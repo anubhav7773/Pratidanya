@@ -1,0 +1,52 @@
+name: pratidnya
+description: "Hindi-First District Court Criminal Lawyer Assistant"
+publish_to: "none"
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.3.0 <4.0.0"
+  flutter: ">=3.19.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+
+  # State Management & Code Generation Runtime
+  flutter_riverpod: ^2.5.1
+  riverpod_annotation: ^2.3.5
+
+  # Declarative Routing & Deep Linking
+  go_router: ^14.2.0
+
+  # Authentication: Firebase Spark Plan (100% Free)
+  firebase_core: ^3.6.0
+  firebase_auth: ^5.3.1
+  google_sign_in: ^6.2.1
+
+  # Database, pgvector & Chamber Storage
+  supabase_flutter: ^2.8.0
+
+  # Typography & Hindi Script Rendering
+  google_fonts: ^6.2.1
+
+  # Monetization & Ads
+  google_mobile_ads: ^5.1.0
+
+  # Network & Communications
+  http: ^1.2.2
+
+  # Formatting & Localization
+  intl: ^0.20.3
+  pdf: ^3.13.0
+  printing: ^5.15.0
+  in_app_purchase: ^3.3.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true

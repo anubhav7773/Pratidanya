@@ -1,0 +1,153 @@
+import json
+import httpx
+from typing import List, Dict, Any
+from fastapi import HTTPException
+from app.core.config import settings
+from app.core.database import get_supabase_admin_client
+
+class GeminiService:
+    def __init__(self):
+        self.api_key = settings.GEMINI_API_KEY
+        self.is_paid_tier = settings.GEMINI_PAID_TIER
+        self.enforce_dummy_data = settings.ENFORCE_DUMMY_DATA
+        self.base_url = "https://generativelanguage.googleapis.com/v1beta/models"
+
+    def _verify_privacy_firewall(self, is_dummy_data: bool):
+        """Rule 6: Blocks non-dummy facts on Free Tier."""
+        if not self.is_paid_tier and not is_dummy_data:
+            raise HTTPException(
+                status_code=403,
+                detail="गोपनीयता सुरक्षा निषेध: फ्री-टियर पर वास्तविक वाद तथ्यों का प्रसंस्करण प्रतिबंधित है। "
+                       "अधिवक्ता गोपनीयता और DPDP अधिनियम 2023 की धारा 8 का अनुपालन अनिवार्य है।"
+            )
+
+    async def generate_dense_embedding(
+        self,
+        text: str,
+        task_type: str = "RETRIEVAL_DOCUMENT",
+        is_dummy_data: bool = True
+    ) -> List[float]:
+        self._verify_privacy_firewall(is_dummy_data)
+
+        url = f"{self.base_url}/text-embedding-004:embedContent"
+        headers = {
+            "Content-Type": "application/json",
+            "x-goog-api-key": self.api_key
+        }
+        payload = {
+            "model": "models/text-embedding-004",
+            "content": {"parts": [{"text": text.strip()}]},
+            "taskType": task_type
+        }
+
+        async with httpx.AsyncClient(timeout=12.0) as client:
+            response = await client.post(url, headers=headers, json=payload)
+            if response.status_code != 200:
+                raise HTTPException(
+                    status_code=response.status_code,
+                    detail=f"Gemini Embedding API विफलता: {response.text}"
+                )
+            
+            data = response.json()
+            values = data.get("embedding", {}).get("values", [])
+            if len(values) != 768:
+                raise HTTPException(
+                    status_code=500,
+                    detail=f"अमान्य वेक्टर आयाम (Dimension): 768 अपेक्षित, {len(values)} प्राप्त।"
+                )
+            return values
+
+    async def generate_structured_case_analysis(
+        self,
+        advocate_id: str,
+        facts_payload: Dict[str, Any],
+        is_dummy_data: bool = True
+    ) -> Dict[str, Any]:
+        self._verify_privacy_firewall(is_dummy_data)
+
+        supabase = get_supabase_admin_client()
+        quota_record = supabase.table("advocate_ai_quotas") \
+            .select("daily_drafts_remaining, subscription_tier, ad_rewarded_drafts") \
+            .eq("advocate_id", advocate_id) \
+            .single() \
+            .execute()
+
+        quota = quota_record.data
+        if quota["subscription_tier"] != "PRO_CHAMBER":
+            if quota["daily_drafts_remaining"] <= 0 and quota["ad_rewarded_drafts"] <= 0:
+                raise HTTPException(
+                    status_code=402,
+                    detail="दैनिक ड्राफ्टिंग कोटा समाप्त। अतिरिक्त ड्राफ्ट के लिए विज्ञापन देखें या प्रो चैंबर में अपग्रेड करें।"
+                )
+
+        system_instruction = (
+            "आप 'प्रतिज्ञा' लीगल असिस्टेंट हैं। आप केवल भारतीय जिला एवं अधीनस्थ न्यायालयों के "
+            "आपराधिक अधिवक्ताओं के लिए विधिक ड्राफ्ट तैयार करते हैं। भाषा प्रामाणिक न्यायालयीन हिंदी "
+            "(Devanagari) होनी चाहिए। कभी भी काल्पनिक केस-लॉ या अप्रमाणित निर्णय उद्धृत न करें।"
+        )
+
+        user_prompt = f"""
+        निम्नलिखित आपराधिक मामले का गहन 360-डिग्री विधिक विश्लेषण करें:
+        - एफ.आई.आर. संख्या: {facts_payload.get('fir_number')}
+        - संबंधित धाराएं: {', '.join(facts_payload.get('sections', []))}
+        - थाना एवं जिला: {facts_payload.get('police_station')}, {facts_payload.get('district')}
+        - अभियुक्त की स्थिति: {facts_payload.get('custody_status')}
+        - घटना एवं अभियोजन कथानक: {facts_payload.get('factual_summary')}
+        
+        प्रतिक्रिया केवल मान्य JSON में दें जिसमें 'court_header', 'statutory_grounds', 
+        'prosecution_weaknesses', aur 'procedural_objections' शामिल हों।
+        """
+
+        url = f"{self.base_url}/gemini-1.5-flash:generateContent"
+        headers = {
+            "Content-Type": "application/json",
+            "x-goog-api-key": self.api_key
+        }
+        body = {
+            "systemInstruction": {"parts": [{"text": system_instruction}]},
+            "contents": [{"role": "user", "parts": [{"text": user_prompt}]}],
+            "generationConfig": {
+                "temperature": 0.2,
+                "topP": 0.9,
+                "maxOutputTokens": 2048,
+                "responseMimeType": "application/json"
+            }
+        }
+
+        async with httpx.AsyncClient(timeout=40.0) as client:
+            response = await client.post(url, headers=headers, json=body)
+            if response.status_code != 200:
+                raise HTTPException(status_code=response.status_code, detail=f"Gemini API त्रुटि: {response.text}")
+
+            result = response.json()
+            raw_text = result["candidates"][0]["content"]["parts"][0]["text"]
+            usage = result.get("usageMetadata", {})
+            total_tokens = usage.get("totalTokenCount", 0)
+
+            self._deduct_user_quota(supabase, advocate_id, quota, total_tokens)
+
+            try:
+                return json.loads(raw_text)
+            except json.JSONDecodeError:
+                raise HTTPException(status_code=500, detail="AI प्रतिक्रिया को JSON में पार्स नहीं किया जा सका।")
+
+    def _deduct_user_quota(self, supabase, advocate_id: str, quota: Dict[str, Any], tokens: int):
+        if quota["subscription_tier"] != "PRO_CHAMBER":
+            if quota["daily_drafts_remaining"] > 0:
+                supabase.table("advocate_ai_quotas") \
+                    .update({
+                        "daily_drafts_remaining": quota["daily_drafts_remaining"] - 1,
+                        "total_tokens_consumed": quota.get("total_tokens_consumed", 0) + tokens,
+                        "updated_at": "now()"
+                    }) \
+                    .eq("advocate_id", advocate_id) \
+                    .execute()
+            elif quota["ad_rewarded_drafts"] > 0:
+                supabase.table("advocate_ai_quotas") \
+                    .update({
+                        "ad_rewarded_drafts": quota["ad_rewarded_drafts"] - 1,
+                        "total_tokens_consumed": quota.get("total_tokens_consumed", 0) + tokens,
+                        "updated_at": "now()"
+                    }) \
+                    .eq("advocate_id", advocate_id) \
+                    .execute()
