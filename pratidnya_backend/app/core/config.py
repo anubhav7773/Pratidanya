@@ -1,3 +1,4 @@
+import os
 import json
 from typing import Dict, Any, Optional
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -45,10 +46,17 @@ class Settings(BaseSettings):
     def get_firebase_credentials_dict(self) -> Optional[Dict[str, Any]]:
         if not self.FIREBASE_SERVICE_ACCOUNT_JSON:
             return None
+        val = self.FIREBASE_SERVICE_ACCOUNT_JSON.strip()
+        if os.path.exists(val):
+            try:
+                with open(val, "r", encoding="utf-8") as f:
+                    return json.load(f)
+            except Exception as e:
+                raise ValueError(f"Failed to read service account file at {val}: {e}")
         try:
-            return json.loads(self.FIREBASE_SERVICE_ACCOUNT_JSON)
+            return json.loads(val)
         except Exception:
-            raise ValueError("FIREBASE_SERVICE_ACCOUNT_JSON is not a valid JSON string.")
+            raise ValueError("FIREBASE_SERVICE_ACCOUNT_JSON is not a valid JSON string or file path.")
 
     model_config = SettingsConfigDict(
         env_file=".env",
