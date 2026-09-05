@@ -1,9 +1,12 @@
 import json
+import logging
 import httpx
 from typing import List, Dict, Any
 from fastapi import HTTPException
 from app.core.config import settings
 from app.core.database import get_supabase_admin_client
+
+logger = logging.getLogger("pratidnya.gemini")
 
 class GeminiService:
     def __init__(self):
@@ -75,15 +78,30 @@ class GeminiService:
         self._verify_privacy_firewall(is_dummy_data)
 
         supabase = get_supabase_admin_client()
-        quota_record = supabase.table("advocate_ai_quotas") \
-            .select("daily_drafts_remaining, subscription_tier, ad_rewarded_drafts") \
-            .eq("advocate_id", advocate_id) \
-            .single() \
-            .execute()
+        try:
+            quota_record = supabase.table("advocate_ai_quotas") \
+                .select("daily_drafts_remaining, subscription_tier, ad_rewarded_drafts") \
+                .eq("advocate_id", advocate_id) \
+                .maybe_single() \
+                .execute()
+            quota = quota_record.data if quota_record else None
+        except Exception:
+            quota = None
 
-        quota = quota_record.data
-        if quota["subscription_tier"] != "PRO_CHAMBER":
-            if quota["daily_drafts_remaining"] <= 0 and quota["ad_rewarded_drafts"] <= 0:
+        if not quota:
+            quota = {"subscription_tier": "FREE", "daily_drafts_remaining": 3, "ad_rewarded_drafts": 0}
+            try:
+                supabase.table("advocate_ai_quotas").upsert({
+                    "advocate_id": advocate_id,
+                    "subscription_tier": "FREE",
+                    "daily_drafts_remaining": 3,
+                    "ad_rewarded_drafts": 0
+                }).execute()
+            except Exception:
+                pass
+
+        if quota.get("subscription_tier") != "PRO_CHAMBER":
+            if quota.get("daily_drafts_remaining", 0) <= 0 and quota.get("ad_rewarded_drafts", 0) <= 0:
                 raise HTTPException(
                     status_code=402,
                     detail="दैनिक ड्राफ्टिंग कोटा समाप्त। अतिरिक्त ड्राफ्ट के लिए विज्ञापन देखें या प्रो चैंबर में अपग्रेड करें।"
@@ -107,7 +125,13 @@ class GeminiService:
         'prosecution_weaknesses', aur 'procedural_objections' शामिल हों।
         """
 
-        url = f"{self.base_url}/gemini-1.5-flash:generateContent"
+        candidate_gen_models = [
+            "gemini-flash-latest",
+            "gemini-3.5-flash",
+            "gemini-3.6-flash",
+            "gemini-3.7-flash"
+        ]
+
         headers = {
             "Content-Type": "application/json",
             "x-goog-api-key": self.api_key
@@ -124,21 +148,31 @@ class GeminiService:
         }
 
         async with httpx.AsyncClient(timeout=40.0) as client:
-            response = await client.post(url, headers=headers, json=body)
-            if response.status_code != 200:
-                raise HTTPException(status_code=response.status_code, detail=f"Gemini API त्रुटि: {response.text}")
+            last_err = None
+            for model_name in candidate_gen_models:
+                url = f"{self.base_url}/{model_name}:generateContent"
+                response = await client.post(url, headers=headers, json=body)
+                if response.status_code == 200:
+                    result = response.json()
+                    raw_text = result["candidates"][0]["content"]["parts"][0]["text"]
+                    usage = result.get("usageMetadata", {})
+                    total_tokens = usage.get("totalTokenCount", 0)
 
-            result = response.json()
-            raw_text = result["candidates"][0]["content"]["parts"][0]["text"]
-            usage = result.get("usageMetadata", {})
-            total_tokens = usage.get("totalTokenCount", 0)
+                    self._deduct_user_quota(supabase, advocate_id, quota, total_tokens)
 
-            self._deduct_user_quota(supabase, advocate_id, quota, total_tokens)
+                    try:
+                        return json.loads(raw_text)
+                    except json.JSONDecodeError:
+                        raise HTTPException(status_code=500, detail="AI प्रतिक्रिया को JSON में पार्स नहीं किया जा सका।")
+                elif response.status_code in (404, 429, 500, 503):
+                    last_err = f"{model_name}: HTTP {response.status_code} - {response.text}"
+                    logger.warning(f"Gemini generation fallback from {model_name}: {response.status_code}")
+                    continue
+                else:
+                    raise HTTPException(status_code=response.status_code, detail=f"Gemini API त्रुटि: {response.text}")
 
-            try:
-                return json.loads(raw_text)
-            except json.JSONDecodeError:
-                raise HTTPException(status_code=500, detail="AI प्रतिक्रिया को JSON में पार्स नहीं किया जा सका।")
+            raise HTTPException(status_code=502, detail=f"कोई भी संगत जनरेटिव मॉडल उपलब्ध नहीं: {last_err}")
+
 
     def _deduct_user_quota(self, supabase, advocate_id: str, quota: Dict[str, Any], tokens: int):
         if quota["subscription_tier"] != "PRO_CHAMBER":

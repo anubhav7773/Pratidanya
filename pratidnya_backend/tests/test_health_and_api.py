@@ -2,6 +2,7 @@ import pytest
 from unittest.mock import MagicMock, patch
 from starlette.testclient import TestClient
 from app.main import app
+from app.core.config import settings
 
 def test_healthz_endpoint_healthy():
     """Verify GET /healthz returns status 200 when dependencies check passes."""
@@ -24,7 +25,7 @@ def test_healthz_endpoint_healthy():
         assert response.status_code == 200
         data = response.json()
         assert data["status"] == "HEALTHY"
-        assert data["dummy_data_enforced"] is True
+        assert data["dummy_data_enforced"] == settings.ENFORCE_DUMMY_DATA
         assert data["opennyai_loaded"] is True
         assert data["supabase_connected"] is True
 
