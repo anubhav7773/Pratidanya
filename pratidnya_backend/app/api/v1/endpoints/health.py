@@ -1,4 +1,4 @@
-from fastapi import APIRouter, status
+from fastapi import APIRouter, status, Response, Request
 from fastapi.responses import JSONResponse
 from app.core.config import settings
 from app.core.database import get_supabase_admin_client
@@ -9,14 +9,43 @@ from datetime import datetime, timezone
 
 router = APIRouter()
 
-@router.get("/health", tags=["System Diagnostics"])
-@router.head("/health", tags=["System Diagnostics"])
-async def uptime_robot_keep_alive():
+@router.head("/", tags=["System Diagnostics"], status_code=status.HTTP_200_OK)
+@router.get("/", tags=["System Diagnostics"], status_code=status.HTTP_200_OK)
+async def root_keep_alive(request: Request):
+    """Root URL keep-alive for UptimeRobot (supports HEAD & GET)."""
+    headers = {
+        "X-Service": "pratidnya-backend",
+        "X-Status": "healthy",
+        "Cache-Control": "no-cache, no-store, must-revalidate"
+    }
+    if request.method == "HEAD":
+        return Response(status_code=status.HTTP_200_OK, headers=headers)
+    return JSONResponse(
+        status_code=status.HTTP_200_OK,
+        content={"status": "HEALTHY", "service": "pratidnya-backend", "alive": True},
+        headers=headers
+    )
+
+@router.head("/health", tags=["System Diagnostics"], status_code=status.HTTP_200_OK)
+async def uptime_robot_head_probe():
     """
-    Lightweight health check probe for UptimeRobot, BetterUptime, Cron, and keep-alive monitors.
-    Returns HTTP 200 immediately without database queries or quota consumption.
-    Prevents Render free tier from going to sleep.
+    Dedicated HTTP HEAD endpoint for UptimeRobot.
+    Returns 200 OK instantly with zero payload body to preserve bandwidth and eliminate latency.
+    Keeps Render backend running 24/7 without sleeping.
     """
+    return Response(
+        status_code=status.HTTP_200_OK,
+        headers={
+            "X-Service": "pratidnya-backend",
+            "X-Status": "healthy",
+            "X-Uptime-Monitor": "active",
+            "Cache-Control": "no-cache, no-store, must-revalidate"
+        }
+    )
+
+@router.get("/health", tags=["System Diagnostics"], status_code=status.HTTP_200_OK)
+async def uptime_robot_get_probe():
+    """Lightweight GET health check probe for uptime monitors."""
     return {
         "status": "HEALTHY",
         "alive": True,
@@ -25,9 +54,12 @@ async def uptime_robot_keep_alive():
         "unix_time": int(time.time())
     }
 
-@router.get("/ping", tags=["System Diagnostics"])
-async def ping():
-    """Ultra-low latency ping-pong endpoint for uptime pingers."""
+@router.head("/ping", tags=["System Diagnostics"], status_code=status.HTTP_200_OK)
+@router.get("/ping", tags=["System Diagnostics"], status_code=status.HTTP_200_OK)
+async def ping(request: Request):
+    """Ultra-low latency ping-pong endpoint for uptime monitors (supports HEAD & GET)."""
+    if request.method == "HEAD":
+        return Response(status_code=status.HTTP_200_OK)
     return {"ping": "pong", "status": "ok"}
 
 @router.get("/healthz", tags=["System Diagnostics"])
