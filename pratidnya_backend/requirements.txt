@@ -7,7 +7,6 @@ python-multipart==0.0.9
 
 # Legal NLP Engine (Self-Hosted MIT License)
 opennyai>=0.0.8
-spacy>=3.7.4
 
 # PyTorch CPU Build (Prevents 4GB+ CUDA Bloat on Render 2GB RAM instance)
 --extra-index-url https://download.pytorch.org/whl/cpu
