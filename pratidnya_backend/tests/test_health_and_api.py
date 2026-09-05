@@ -43,3 +43,27 @@ def test_healthz_endpoint_unhealthy_when_supabase_fails():
         assert data["status"] == "UNHEALTHY"
         assert data["supabase_connected"] is False
         assert "DB Connection Timeout" in data["supabase_error"]
+
+def test_uptimerobot_health_endpoint():
+    """Verify lightweight /health endpoint returns 200 without DB requirement."""
+    client = TestClient(app)
+    response = client.get("/health")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "HEALTHY"
+    assert data["alive"] is True
+    assert data["service"] == "pratidnya-backend"
+
+def test_uptimerobot_health_head_method():
+    """Verify HEAD /health returns 200 for bandwidth-saving uptime monitors."""
+    client = TestClient(app)
+    response = client.head("/health")
+    assert response.status_code == 200
+
+def test_ping_endpoint():
+    """Verify /ping returns pong immediately."""
+    client = TestClient(app)
+    response = client.get("/ping")
+    assert response.status_code == 200
+    assert response.json() == {"ping": "pong", "status": "ok"}
+

@@ -29,6 +29,7 @@ app.add_middleware(
 )
 
 app.include_router(health.router)
+app.include_router(health.router, prefix="/api/v1")
 app.include_router(precedents.router, prefix="/api/v1")
 app.include_router(kanoon.router, prefix="/api/v1")
 app.include_router(nlp.router, prefix="/api/v1")

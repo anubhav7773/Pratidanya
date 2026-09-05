@@ -4,7 +4,31 @@ from app.core.config import settings
 from app.core.database import get_supabase_admin_client
 from app.services.opennyai_engine import OpenNyAIEngine
 
+import time
+from datetime import datetime, timezone
+
 router = APIRouter()
+
+@router.get("/health", tags=["System Diagnostics"])
+@router.head("/health", tags=["System Diagnostics"])
+async def uptime_robot_keep_alive():
+    """
+    Lightweight health check probe for UptimeRobot, BetterUptime, Cron, and keep-alive monitors.
+    Returns HTTP 200 immediately without database queries or quota consumption.
+    Prevents Render free tier from going to sleep.
+    """
+    return {
+        "status": "HEALTHY",
+        "alive": True,
+        "service": "pratidnya-backend",
+        "timestamp_utc": datetime.now(timezone.utc).isoformat(),
+        "unix_time": int(time.time())
+    }
+
+@router.get("/ping", tags=["System Diagnostics"])
+async def ping():
+    """Ultra-low latency ping-pong endpoint for uptime pingers."""
+    return {"ping": "pong", "status": "ok"}
 
 @router.get("/healthz", tags=["System Diagnostics"])
 async def health_check_probe():
