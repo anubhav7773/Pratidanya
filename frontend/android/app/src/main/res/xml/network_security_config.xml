@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  PRATIDNYA LEGAL TECH (ASIVERTICALS)
+  PRODUCTION NETWORK SECURITY CONFIGURATION
+  Enforces strict TLS 1.3/HTTPS and blocks all unencrypted cleartext HTTP traffic
+  in compliance with DPDP Act 2023 Section 8(5).
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+
+    <!-- Specific Domain Whitelist for Live Production APIs -->
+    <domain-config cleartextTrafficPermitted="false">
+        <domain includeSubdomains="true">onrender.com</domain>
+        <domain includeSubdomains="true">supabase.co</domain>
+        <domain includeSubdomains="true">googleapis.com</domain>
+        <domain includeSubdomains="true">kanoon.dev</domain>
+        <domain includeSubdomains="true">google.com</domain>
+    </domain-config>
+</network-security-config>

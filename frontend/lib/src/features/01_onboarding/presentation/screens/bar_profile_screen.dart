@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/stitch_colors.dart';
+import '../../../../core/utils/bar_council_validator.dart';
 import '../../../../shared/components/stitch_hindi_text_field.dart';
 import '../controllers/auth_controller.dart';
 
@@ -19,15 +20,6 @@ class _BarProfileScreenState extends ConsumerState<BarProfileScreen> {
   final _chamberController = TextEditingController();
   String _selectedState = 'Uttar Pradesh';
 
-  final List<String> _states = [
-    'Uttar Pradesh',
-    'Delhi',
-    'Bihar',
-    'Madhya Pradesh',
-    'Rajasthan',
-    'Maharashtra',
-  ];
-
   @override
   void dispose() {
     _fullNameController.dispose();
@@ -41,7 +33,7 @@ class _BarProfileScreenState extends ConsumerState<BarProfileScreen> {
     if (_formKey.currentState?.validate() ?? false) {
       ref.read(authControllerProvider.notifier).saveBarProfile(
             fullName: _fullNameController.text.trim(),
-            barCouncilNumber: _barNumberController.text.trim(),
+            barCouncilNumber: _barNumberController.text.trim().toUpperCase(),
             primaryCourtName: _courtNameController.text.trim(),
             enrolledState: _selectedState,
             chamberAddress: _chamberController.text.trim(),
@@ -52,6 +44,7 @@ class _BarProfileScreenState extends ConsumerState<BarProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authControllerProvider);
+    final availableStates = BarCouncilValidator.statePrefixes.keys.toList();
 
     return Scaffold(
       appBar: AppBar(
@@ -75,7 +68,7 @@ class _BarProfileScreenState extends ConsumerState<BarProfileScreen> {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  'अधिवक्ता अधिनियम 1961 के अंतर्गत केवल अधिकृत अधिवक्ताओं को केस ड्राफ्टिंग की अनुमति है।',
+                  'अधिवक्ता अधिनियम 1961 की धारा 30 के अनुपालन हेतु राज्य बार काउंसिल पंजीकरण आवश्यक है।',
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         color: StitchColors.textSecondary,
                       ),
@@ -84,31 +77,20 @@ class _BarProfileScreenState extends ConsumerState<BarProfileScreen> {
 
                 StitchHindiTextField(
                   controller: _fullNameController,
-                  label: 'अधिवक्ता का पूर्ण नाम',
+                  label: 'अधिवक्ता का पूर्ण नाम (यथा बार नामांकन)',
                   hint: 'उदा. राजेश कुमार त्रिपाठी',
-                  validator: (val) => val == null || val.isEmpty ? 'कृपया पूर्ण नाम दर्ज करें' : null,
-                ),
-                const SizedBox(height: 14),
-
-                StitchHindiTextField(
-                  controller: _barNumberController,
-                  label: 'बार काउंसिल पंजीकरण संख्या (Bar Enrollment No.)',
-                  hint: 'उदा. UP/1234/2018',
-                  validator: (val) {
-                    if (val == null || val.isEmpty) return 'पंजीकरण संख्या अनिवार्य है';
-                    if (!val.contains('/')) return 'मान्य प्रारूप दर्ज करें (उदा. UP/1234/2018)';
-                    return null;
-                  },
+                  validator: (val) => val == null || val.trim().isEmpty ? 'कृपया पूर्ण नाम दर्ज करें' : null,
                 ),
                 const SizedBox(height: 14),
 
                 const Text(
-                  'संबद्ध राज्य बार काउंसिल',
+                  'संबद्ध राज्य बार काउंसिल (State Bar Council)',
                   style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600, color: StitchColors.courtNavy),
                 ),
                 const SizedBox(height: 6),
                 DropdownButtonFormField<String>(
                   initialValue: _selectedState,
+                  isExpanded: true,
                   decoration: InputDecoration(
                     contentPadding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 12.0),
                     border: OutlineInputBorder(
@@ -118,23 +100,38 @@ class _BarProfileScreenState extends ConsumerState<BarProfileScreen> {
                     filled: true,
                     fillColor: Colors.white,
                   ),
-                  items: _states.map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
-                  onChanged: (val) => setState(() => _selectedState = val ?? 'Uttar Pradesh'),
+                  items: availableStates
+                      .map((stateName) => DropdownMenuItem(value: stateName, child: Text(stateName)))
+                      .toList(),
+                  onChanged: (val) {
+                    if (val != null) {
+                      setState(() => _selectedState = val);
+                      _formKey.currentState?.validate();
+                    }
+                  },
+                ),
+                const SizedBox(height: 14),
+
+                StitchHindiTextField(
+                  controller: _barNumberController,
+                  label: 'बार काउंसिल पंजीकरण संख्या (Bar Enrollment No.)',
+                  hint: 'उदा. UP/1234/2018',
+                  validator: (val) => BarCouncilValidator.validateEnrollmentNumber(val, _selectedState),
                 ),
                 const SizedBox(height: 14),
 
                 StitchHindiTextField(
                   controller: _courtNameController,
-                  label: 'प्राथमिक न्यायालय का नाम',
+                  label: 'प्राथमिक जिला/अधीनस्थ न्यायालय',
                   hint: 'उदा. जिला एवं सत्र न्यायालय, लखनऊ',
-                  validator: (val) => val == null || val.isEmpty ? 'न्यायालय का नाम दर्ज करें' : null,
+                  validator: (val) => val == null || val.trim().isEmpty ? 'न्यायालय का नाम दर्ज करें' : null,
                 ),
                 const SizedBox(height: 14),
 
                 StitchHindiTextField(
                   controller: _chamberController,
-                  label: 'चैंबर का पता / कार्यालय (वैकल्पिक)',
-                  hint: 'उदा. चैंबर नं. 42, कलेक्ट्रेट परिसर',
+                  label: 'चैंबर कार्यालय का पता (वैकल्पिक)',
+                  hint: 'उदा. चैंबर संख्या 42, दीवानी कचहरी परिसर',
                 ),
                 const SizedBox(height: 28),
 
