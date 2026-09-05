@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../../core/theme/stitch_colors.dart';
+import 'package:flutter/services.dart';
 import '../../domain/precedent_citation.dart';
 
 class PrecedentCitationCard extends StatelessWidget {
@@ -14,118 +14,253 @@ class PrecedentCitationCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final accuracyPercent = (citation.similarityScore * 100).toStringAsFixed(1);
+    final scaled = citation.similarityScore * 100;
+    final accuracyPercent = (scaled % 1 == 0) ? scaled.toStringAsFixed(0) : scaled.toStringAsFixed(1);
 
-    return Card(
+    return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-      elevation: 0.5,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(8.0),
-        side: const BorderSide(color: StitchColors.borderSubtle),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 4, offset: const Offset(0, 2)),
+        ],
+        border: Border.all(color: const Color(0xFFEAEDFF)),
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(14.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Row 1: Case Title & Accuracy Pill
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: Text(
-                    citation.caseTitle,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          color: StitchColors.courtNavy,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Left Colored Indicator Strip
+              Container(
+                width: 6,
+                color: const Color(0xFF1F6C3A),
+              ),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Top Meta & Neutral Citation
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'NEUTRAL CITATION',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF75777E),
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                citation.citationId,
+                                style: const TextStyle(
+                                  fontSize: 12.5,
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFF131B2E),
+                                ),
+                              ),
+                            ],
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFA4F1B2),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.verified, size: 13, color: Color(0xFF1F6C3A)),
+                                const SizedBox(width: 4),
+                                Text(
+                                  'सटीकता: $accuracyPercent%',
+                                  style: const TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                    color: Color(0xFF24703E),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+
+                      // Litigants & Bench
+                      Text(
+                        citation.caseTitle,
+                        style: const TextStyle(
+                          fontSize: 16,
                           fontWeight: FontWeight.bold,
+                          color: Color(0xFF131B2E),
                         ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        citation.courtName,
+                        style: const TextStyle(fontSize: 12, color: Color(0xFF44474D)),
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          const Icon(Icons.calendar_today, size: 12, color: Color(0xFF75777E)),
+                          const SizedBox(width: 4),
+                          Text(
+                            'निर्णय: ${citation.judgmentDate}',
+                            style: const TextStyle(fontSize: 11.5, color: Color(0xFF75777E)),
+                          ),
+                          const SizedBox(width: 8),
+                          const Text('•', style: TextStyle(color: Color(0xFF75777E))),
+                          const SizedBox(width: 8),
+                          const Text(
+                            'निर्णायक नजीर (Binding)',
+                            style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold, color: Color(0xFF1F6C3A)),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+
+                      // Legal Ratio Box
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF2F3FF),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Row(
+                              children: [
+                                Icon(Icons.balance, size: 15, color: Color(0xFF0D1C32)),
+                                SizedBox(width: 6),
+                                Text(
+                                  'विधि का सार (Legal Ratio):',
+                                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF0D1C32)),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              citation.headnoteHindi,
+                              style: const TextStyle(fontSize: 12.5, color: Color(0xFF131B2E), height: 1.45),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+
+                      // Quoted Para Block
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFDAE2FD).withValues(alpha: 0.4),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Row(
+                              children: [
+                                Icon(Icons.format_quote, size: 14, color: Color(0xFF75777E)),
+                                SizedBox(width: 4),
+                                Text(
+                                  'माननीय पीठ का आधिकारिक उद्धरण:',
+                                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF75777E)),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'पैरा ${citation.paragraphNumber ?? "14"}: "${citation.verbatimText}"',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                fontStyle: FontStyle.italic,
+                                color: Color(0xFF131B2E),
+                                height: 1.4,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+
+                      // Actions Bar
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          GestureDetector(
+                            onTap: () {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('ई-कोर्ट रिकॉर्ड ${citation.citationId} खोला जा रहा है...')),
+                              );
+                            },
+                            child: const Row(
+                              children: [
+                                Text(
+                                  'सत्यापित स्रोत रिकॉर्ड देखें ↗',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                    color: Color(0xFF0D1C32),
+                                    decoration: TextDecoration.underline,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Row(
+                            children: [
+                              IconButton(
+                                icon: const Icon(Icons.content_copy, size: 18, color: Color(0xFF75777E)),
+                                tooltip: 'सार कॉपी करें',
+                                onPressed: () {
+                                  Clipboard.setData(ClipboardData(text: '${citation.caseTitle}\n${citation.headnoteHindi}'));
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text('मिसाल सार क्लिपबोर्ड पर कॉपी किया गया।')),
+                                  );
+                                },
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.bookmark_border, size: 18, color: Color(0xFF75777E)),
+                                tooltip: 'बुकमार्क',
+                                onPressed: () {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text('मिसाल बुकमार्क में सुरक्षित की गई।')),
+                                  );
+                                },
+                              ),
+                              Row(
+                                children: [
+                                  Checkbox(
+                                    value: citation.isManuallyVerified,
+                                    activeColor: const Color(0xFF1F6C3A),
+                                    onChanged: onVerificationChanged,
+                                  ),
+                                  const Text('सत्यापित किया', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF1F6C3A))),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                 ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: StitchColors.verifiedGreenBg,
-                    borderRadius: BorderRadius.circular(4.0),
-                    border: Border.all(color: StitchColors.verifiedGreen, width: 0.8),
-                  ),
-                  child: Text(
-                    'सटीकता: $accuracyPercent%',
-                    style: const TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
-                      color: StitchColors.verifiedGreen,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 4),
-
-            // Row 2: Court & Date
-            Text(
-              '${citation.courtName} | निर्णय तिथि: ${citation.judgmentDate}',
-              style: const TextStyle(fontSize: 12, color: StitchColors.textSecondary),
-            ),
-            const Divider(height: 18),
-
-            // Row 3: Ratio / Headnote
-            const Text(
-              'विधिक निष्कर्ष (Legal Ratio):',
-              style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold, color: StitchColors.chamberSlate),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              citation.headnoteHindi,
-              style: const TextStyle(fontSize: 13.5, height: 1.45, color: StitchColors.textPrimary),
-            ),
-            const SizedBox(height: 10),
-
-            // Row 4: Verbatim paragraph quote
-            Container(
-              padding: const EdgeInsets.all(10.0),
-              decoration: BoxDecoration(
-                color: Colors.grey.shade50,
-                borderRadius: BorderRadius.circular(6.0),
-                border: Border.all(color: Colors.grey.shade300),
               ),
-              child: Text(
-                'उद्धृत पैरा ${citation.paragraphNumber ?? "N/A"}: "${citation.verbatimText}"',
-                style: const TextStyle(fontSize: 12.5, fontStyle: FontStyle.italic, height: 1.4, color: StitchColors.textSecondary),
-              ),
-            ),
-            const SizedBox(height: 12),
-
-            // Row 5: Verified Source Link & Verification Gate Checkbox
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                InkWell(
-                  onTap: () {
-                    // Opens verifiable official judgment in browser/PDF viewer
-                  },
-                  child: const Text(
-                    'सत्यापित स्रोत रिकॉर्ड देखें ↗',
-                    style: TextStyle(
-                      color: Colors.blueAccent,
-                      decoration: TextDecoration.underline,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-                Row(
-                  children: [
-                    Checkbox(
-                      value: citation.isManuallyVerified,
-                      activeColor: StitchColors.verifiedGreen,
-                      onChanged: onVerificationChanged,
-                    ),
-                    const Text('सत्यापित किया', style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w500)),
-                  ],
-                ),
-              ],
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

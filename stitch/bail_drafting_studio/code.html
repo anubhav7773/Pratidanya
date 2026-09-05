@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+
+<html lang="hi"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/><link href="https://fonts.googleapis.com" rel="preconnect"/><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Noto+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base{html,body{width:100vw;margin:0;padding:0;}body{overscroll-behavior:none;}.pb-safe{padding-bottom:env(safe-area-inset-bottom,0px);}.pt-safe{padding-top:env(safe-area-inset-top,0px);}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = { darkMode: "class", theme: { extend: { "colors": { "error-container": "#ffdad6", "surface-bright": "#faf8ff", "primary-container": "#0d1c32", "secondary-fixed-dim": "#8bd79b", "on-primary-container": "#76849f", "surface-tint": "#515f78", "on-tertiary-container": "#d6603b", "surface-container-high": "#e2e7ff", "inverse-on-surface": "#eef0ff", "on-secondary-container": "#24703e", "primary-fixed-dim": "#b9c7e4", "primary": "#000000", "primary-fixed": "#d6e3ff", "surface-variant": "#dae2fd", "inverse-surface": "#283044", "secondary": "#1f6c3a", "surface-container-highest": "#dae2fd", "surface-container-low": "#f2f3ff", "surface-dim": "#d2d9f4", "on-error-container": "#93000a", "tertiary": "#000000", "outline": "#75777e", "surface-container-lowest": "#ffffff", "surface-container": "#eaedff", "on-primary": "#ffffff", "error": "#ba1a1a", "tertiary-fixed-dim": "#ffb59f", "on-tertiary": "#ffffff", "on-tertiary-fixed": "#3a0a00", "on-secondary": "#ffffff", "tertiary-fixed": "#ffdbd1", "on-primary-fixed": "#0d1c32", "on-error": "#ffffff", "on-background": "#131b2e", "on-secondary-fixed": "#00210b", "on-surface": "#131b2e", "outline-variant": "#c5c6cd", "tertiary-container": "#3a0a00", "inverse-primary": "#b9c7e4", "background": "#faf8ff", "on-tertiary-fixed-variant": "#842503", "on-secondary-fixed-variant": "#005226", "on-primary-fixed-variant": "#39475f", "secondary-container": "#a4f1b2", "on-surface-variant": "#44474d", "surface": "#faf8ff", "secondary-fixed": "#a6f4b5" }, "borderRadius": { "DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem" }, "spacing": { "space-2": "0.125rem", "space-56": "3.5rem", "space-20": "1.25rem", "space-16": "1rem", "input-field-height": "3.25rem", "space-8": "0.5rem", "space-40": "2.5rem", "space-32": "2rem", "screen-padding-horizontal": "1rem", "space-24": "1.5rem", "space-4": "0.25rem", "space-48": "3rem", "touch-target-min": "3rem", "space-12": "0.75rem", "gutter": "1rem" }, "fontFamily": { "body-lg": ["Noto Sans"], "headline-lg": ["Noto Sans"], "label-md": ["Inter"], "headline-md": ["Noto Sans"], "label-lg": ["Inter"], "body-sm": ["Noto Sans"], "label-sm": ["Inter"], "title-md": ["Noto Sans"], "body-md": ["Noto Sans"], "title-lg": ["Noto Sans"], "headline-sm": ["Noto Sans"] }, "fontSize": { "body-lg": ["16px", { "lineHeight": "26px", "letterSpacing": "0.01em", "fontWeight": "400" }], "headline-lg": ["30px", { "lineHeight": "44px", "letterSpacing": "-0.01em", "fontWeight": "700" }], "label-md": ["12px", { "lineHeight": "18px", "letterSpacing": "0.04em", "fontWeight": "600" }], "headline-md": ["24px", { "lineHeight": "36px", "letterSpacing": "0em", "fontWeight": "700" }], "label-lg": ["14px", { "lineHeight": "20px", "letterSpacing": "0.02em", "fontWeight": "600" }], "body-sm": ["12px", { "lineHeight": "18px", "letterSpacing": "0.02em", "fontWeight": "400" }], "label-sm": ["11px", { "lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "500" }], "title-md": ["16px", { "lineHeight": "24px", "letterSpacing": "0.01em", "fontWeight": "600" }], "body-md": ["14px", { "lineHeight": "22px", "letterSpacing": "0.01em", "fontWeight": "400" }], "title-lg": ["18px", { "lineHeight": "28px", "letterSpacing": "0em", "fontWeight": "600" }], "headline-sm": ["20px", { "lineHeight": "30px", "letterSpacing": "0em", "fontWeight": "600" }] } } } }</script><style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head><body class="bg-surface font-body-md text-on-surface flex flex-col min-h-screen"><main class="flex flex-col relative w-full min-h-screen bg-surface px-screen-padding-horizontal pt-safe pb-safe"><div class="flex flex-col w-full pb-space-48">
+<!-- Top App Bar / Navigation -->
+<header class="w-full bg-surface-container-lowest shadow-sm px-space-16 py-space-12 flex flex-col gap-space-8 rounded-b-xl">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-space-12 min-w-0">
+<button aria-label="वापस जाएं" class="w-10 h-10 rounded-full flex items-center justify-center bg-surface-container hover:bg-surface-container-high text-on-surface transition-colors" type="button">
+<span class="material-symbols-outlined text-[22px]">arrow_back</span>
+</button>
+<div class="flex flex-col min-w-0">
+<h1 class="font-title-lg text-title-lg text-on-surface truncate leading-tight">
+            जमानत प्रार्थना पत्र प्रारूप
+          </h1>
+<span class="font-body-sm text-body-sm text-on-surface-variant truncate">
+            सत्र न्यायालय एवं उच्च न्यायालय विधिक प्रपत्र
+          </span>
+</div>
+</div>
+<!-- Right Quick Export Button -->
+<button class="flex items-center gap-space-4 bg-primary-container text-on-primary px-space-12 py-space-8 rounded-lg shadow-sm active:scale-95 transition-transform flex-shrink-0" id="quickExportBtn" type="button">
+<span class="material-symbols-outlined text-[18px] text-tertiary-fixed">file_download</span>
+<span class="font-label-md text-label-md text-on-primary">निर्यात</span>
+</button>
+</div>
+</header>
+<!-- Case Summary Header Card (शीर्ष वाद विवरण) -->
+<section class="w-full mt-space-12">
+<div class="bg-surface-container-lowest rounded-xl p-space-16 shadow-sm flex flex-col gap-space-12">
+<!-- Litigant Title & Status Pill -->
+<div class="flex items-start justify-between gap-space-8">
+<div class="flex flex-col min-w-0">
+<span class="font-label-sm text-label-sm text-on-surface-variant tracking-wider uppercase">फौजदारी वाद शीर्षक</span>
+<h2 class="font-title-md text-title-md text-on-surface font-semibold leading-snug break-words">
+            रामेश्वर प्रसाद बनाम उत्तर प्रदेश राज्य
+          </h2>
+</div>
+<div class="flex items-center gap-space-4 bg-secondary-container text-on-secondary-container px-space-8 py-space-4 rounded-full flex-shrink-0">
+<span class="material-symbols-outlined text-[14px]" style="font-variation-settings: 'FILL' 1;">verified</span>
+<span class="font-label-sm text-label-sm font-semibold">नियमित सत्र</span>
+</div>
+</div>
+<!-- Court & Case Parameters Grid -->
+<div class="grid grid-cols-2 gap-space-8 bg-surface-container-low p-space-12 rounded-lg">
+<div class="flex flex-col min-w-0">
+<span class="font-label-sm text-label-sm text-on-surface-variant">सी.एन.आर. (CNR No.)</span>
+<span class="font-label-md text-label-md text-on-surface truncate font-mono">UPLK010045232026</span>
+</div>
+<div class="flex flex-col min-w-0">
+<span class="font-label-sm text-label-sm text-on-surface-variant">मु.अ.सं. (FIR No.)</span>
+<span class="font-body-sm text-body-sm text-on-surface truncate font-medium">124/2026 (कोतवाली, लखनऊ)</span>
+</div>
+<div class="flex flex-col min-w-0">
+<span class="font-label-sm text-label-sm text-on-surface-variant">आरोपित धाराएं</span>
+<span class="font-body-sm text-body-sm text-error font-medium truncate">धारा 307 IPC / 109 BNS, 3/25 Arms</span>
+</div>
+<div class="flex flex-col min-w-0">
+<span class="font-label-sm text-label-sm text-on-surface-variant">न्यायिक अभिरक्षा</span>
+<span class="font-body-sm text-body-sm text-on-secondary-container font-semibold">42 दिन (निरोध में)</span>
+</div>
+</div>
+<!-- Court Details Footer -->
+<div class="flex items-center gap-space-8 pt-space-4 text-on-surface-variant">
+<span class="material-symbols-outlined text-[16px] text-surface-tint">account_balance</span>
+<span class="font-body-sm text-body-sm truncate">विशेष सत्र न्यायाधीश (Court of Sessions), लखनऊ</span>
+</div>
+</div>
+</section>
+<!-- Interactive Horizontal Tab Selection Bar -->
+<nav class="w-full mt-space-16 overflow-x-auto no-scrollbar -mx-screen-padding-horizontal px-screen-padding-horizontal flex gap-space-8 scroll-smooth" role="tablist">
+<button aria-selected="true" class="tab-pill active flex-shrink-0 px-space-16 py-space-8 rounded-full font-label-md text-label-md transition-all flex items-center gap-space-4 bg-primary-container text-on-primary shadow-sm" data-tab="grounds" role="tab" type="button">
+<span class="material-symbols-outlined text-[16px]">gavel</span>
+<span>जमानत के विधिक आधार</span>
+</button>
+<button aria-selected="false" class="tab-pill flex-shrink-0 px-space-16 py-space-8 rounded-full font-label-md text-label-md transition-all flex items-center gap-space-4 bg-surface-container text-on-surface-variant" data-tab="weakpoints" role="tab" type="button">
+<span class="material-symbols-outlined text-[16px]">rule</span>
+<span>अभियोजन की कमजोरियां</span>
+</button>
+<button aria-selected="false" class="tab-pill flex-shrink-0 px-space-16 py-space-8 rounded-full font-label-md text-label-md transition-all flex items-center gap-space-4 bg-surface-container text-on-surface-variant" data-tab="procedural" role="tab" type="button">
+<span class="material-symbols-outlined text-[16px]">fact_check</span>
+<span>प्रक्रियात्मक आपत्तियां</span>
+</button>
+<button aria-selected="false" class="tab-pill flex-shrink-0 px-space-16 py-space-8 rounded-full font-label-md text-label-md transition-all flex items-center gap-space-4 bg-surface-container text-on-surface-variant" data-tab="precedents" role="tab" type="button">
+<span class="material-symbols-outlined text-[16px]">menu_book</span>
+<span>न्यायिक नजीरें (Precedents)</span>
+</button>
+</nav>
+<!-- Studio Main Content Area -->
+<div class="w-full mt-space-16 flex flex-col gap-space-12" id="tabContentArea">
+<!-- Legal Drafting Card 1: False Implication -->
+<article class="bg-surface-container-lowest rounded-xl p-space-16 shadow-sm flex flex-col gap-space-12 relative overflow-hidden transition-all">
+<div class="flex items-start justify-between gap-space-8">
+<div class="flex items-center gap-space-8">
+<span class="w-6 h-6 rounded-full bg-primary-fixed text-on-primary-fixed flex items-center justify-center font-label-sm text-label-sm font-bold">१</span>
+<h3 class="font-title-md text-title-md text-on-surface font-semibold">
+            निर्दोषिता एवं मिथ्या फंसाया जाना
+          </h3>
+</div>
+<div class="flex items-center gap-space-4">
+<button class="copy-btn w-8 h-8 rounded-lg bg-surface-container-low hover:bg-surface-container text-on-surface-variant flex items-center justify-center transition-colors active:scale-90" data-copy="यह कि प्रार्थी/अभियुक्त पूर्णतः निर्दोष है तथा उसे वर्तमान वाद में रंजिश एवं पूर्वाग्रहवश झूठा फंसाया गया है। प्रार्थी का कथित अपराध स्थल पर उपस्थित रहने का कोई प्रत्यक्ष अथवा स्वतंत्र साक्ष्य पत्रावली पर उपलब्ध नहीं है।" title="कॉपी करें" type="button">
+<span class="material-symbols-outlined text-[18px]">content_copy</span>
+</button>
+<button class="w-8 h-8 rounded-lg bg-surface-container-low hover:bg-surface-container text-on-surface-variant flex items-center justify-center transition-colors active:scale-90" title="संपादित करें" type="button">
+<span class="material-symbols-outlined text-[18px]">edit_note</span>
+</button>
+</div>
+</div>
+<!-- Legal Pleading Body with Extended Devanagari Leading -->
+<p class="font-body-md text-body-lg text-on-surface leading-[1.65] text-justify tracking-wide bg-surface-container-lowest py-space-4">
+        यह कि प्रार्थी/अभियुक्त पूर्णतः निर्दोष है तथा उसे वर्तमान वाद में रंजिश एवं पूर्वाग्रहवश झूठा फंसाया गया है। प्रार्थी का कथित अपराध स्थल पर उपस्थित रहने का कोई प्रत्यक्ष अथवा स्वतंत्र साक्ष्य पत्रावली पर उपलब्ध नहीं है।
+      </p>
+<!-- Statutory Chip -->
+<div class="flex items-center justify-between pt-space-8">
+<div class="flex items-center gap-space-4 bg-surface-container-high text-on-surface px-space-8 py-space-4 rounded-md">
+<span class="material-symbols-outlined text-[14px] text-surface-tint">policy</span>
+<span class="font-label-sm text-label-sm font-semibold">संविधान अनुच्छेद 21 / BNSS धारा 480</span>
+</div>
+<span class="font-label-sm text-label-sm text-secondary font-semibold flex items-center gap-space-2">
+<span class="material-symbols-outlined text-[14px]">check_circle</span>
+          मानक विधिक आधार
+        </span>
+</div>
+</article>
+<!-- Legal Drafting Card 2: Nature of Injuries -->
+<article class="bg-surface-container-lowest rounded-xl p-space-16 shadow-sm flex flex-col gap-space-12 relative overflow-hidden transition-all">
+<div class="flex items-start justify-between gap-space-8">
+<div class="flex items-center gap-space-8">
+<span class="w-6 h-6 rounded-full bg-primary-fixed text-on-primary-fixed flex items-center justify-center font-label-sm text-label-sm font-bold">२</span>
+<h3 class="font-title-md text-title-md text-on-surface font-semibold">
+            चोटों की प्रकृति एवं साक्ष्य का अभाव
+          </h3>
+</div>
+<div class="flex items-center gap-space-4">
+<button class="copy-btn w-8 h-8 rounded-lg bg-surface-container-low hover:bg-surface-container text-on-surface-variant flex items-center justify-center transition-colors active:scale-90" data-copy="यह कि कथित घायल की चिकित्सीय आख्या (MLC Report) के अनुसार आई चोटें साधारण प्रकृति की हैं तथा जीवन के लिए घातक (Dangerous to Life) घोषित नहीं की गई हैं। अतः भा.दं.वि. की धारा 307 के आवश्यक तत्व प्रथम दृष्टया स्थापित नहीं होते हैं।" title="कॉपी करें" type="button">
+<span class="material-symbols-outlined text-[18px]">content_copy</span>
+</button>
+<button class="w-8 h-8 rounded-lg bg-surface-container-low hover:bg-surface-container text-on-surface-variant flex items-center justify-center transition-colors active:scale-90" title="संपादित करें" type="button">
+<span class="material-symbols-outlined text-[18px]">edit_note</span>
+</button>
+</div>
+</div>
+<p class="font-body-md text-body-lg text-on-surface leading-[1.65] text-justify tracking-wide bg-surface-container-lowest py-space-4">
+        यह कि कथित घायल की चिकित्सीय आख्या (MLC Report) के अनुसार आई चोटें साधारण प्रकृति की हैं तथा जीवन के लिए घातक (Dangerous to Life) घोषित नहीं की गई हैं। अतः भा.दं.वि. की धारा 307 के आवश्यक तत्व प्रथम दृष्टया स्थापित नहीं होते हैं।
+      </p>
+<!-- Medical / Case Reference Chip -->
+<div class="flex items-center justify-between pt-space-8">
+<div class="flex items-center gap-space-4 bg-tertiary-fixed text-on-tertiary-fixed px-space-8 py-space-4 rounded-md">
+<span class="material-symbols-outlined text-[14px]">local_hospital</span>
+<span class="font-label-sm text-label-sm font-semibold">MLC संदर्भ संख्या 88/2026</span>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant flex items-center gap-space-2">
+<span class="material-symbols-outlined text-[14px]">description</span>
+          संलग्नक 'क'
+        </span>
+</div>
+</article>
+<!-- Legal Drafting Card 3: Clean Antecedents -->
+<article class="bg-surface-container-lowest rounded-xl p-space-16 shadow-sm flex flex-col gap-space-12 relative overflow-hidden transition-all">
+<div class="flex items-start justify-between gap-space-8">
+<div class="flex items-center gap-space-8">
+<span class="w-6 h-6 rounded-full bg-primary-fixed text-on-primary-fixed flex items-center justify-center font-label-sm text-label-sm font-bold">३</span>
+<h3 class="font-title-md text-title-md text-on-surface font-semibold">
+            कोई पूर्व आपराधिक इतिहास नहीं
+          </h3>
+</div>
+<div class="flex items-center gap-space-4">
+<button class="copy-btn w-8 h-8 rounded-lg bg-surface-container-low hover:bg-surface-container text-on-surface-variant flex items-center justify-center transition-colors active:scale-90" data-copy="यह कि प्रार्थी एक सम्मानित नागरिक है तथा उसका पूर्व में कोई आपराधिक इतिहास (Criminal Antecedents) नहीं रहा है। प्रार्थी के समाज से भागने अथवा साक्षियों को प्रभावित करने की तनिक भी संभावना नहीं है।" title="कॉपी करें" type="button">
+<span class="material-symbols-outlined text-[18px]">content_copy</span>
+</button>
+<button class="w-8 h-8 rounded-lg bg-surface-container-low hover:bg-surface-container text-on-surface-variant flex items-center justify-center transition-colors active:scale-90" title="संपादित करें" type="button">
+<span class="material-symbols-outlined text-[18px]">edit_note</span>
+</button>
+</div>
+</div>
+<p class="font-body-md text-body-lg text-on-surface leading-[1.65] text-justify tracking-wide bg-surface-container-lowest py-space-4">
+        यह कि प्रार्थी एक सम्मानित नागरिक है तथा उसका पूर्व में कोई आपराधिक इतिहास (Criminal Antecedents) नहीं रहा है। प्रार्थी के समाज से भागने अथवा साक्षियों को प्रभावित करने की तनिक भी संभावना नहीं है।
+      </p>
+<div class="flex items-center justify-between pt-space-8">
+<div class="flex items-center gap-space-4 bg-secondary-fixed text-on-secondary-fixed px-space-8 py-space-4 rounded-md">
+<span class="material-symbols-outlined text-[14px]">shield</span>
+<span class="font-label-sm text-label-sm font-semibold">पूर्व स्वच्छ आचरण सत्यापित</span>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant">शपथ पत्र पैराग्राफ 7</span>
+</div>
+</article>
+<!-- Showcase Preview: Procedural Lapses & Cited Precedent Preview Banner -->
+<div class="flex flex-col gap-space-8 mt-space-8">
+<div class="flex items-center justify-between px-space-4">
+<span class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">संबद्ध वैधानिक आपत्तियां व मिसालें</span>
+<span class="font-label-sm text-label-sm text-primary-container font-semibold">2 सक्रिय</span>
+</div>
+<!-- Procedural Lapse Snippet Card -->
+<div class="bg-surface-container-low rounded-xl p-space-12 flex flex-col gap-space-8">
+<div class="flex items-center gap-space-6 text-on-error-container">
+<span class="material-symbols-outlined text-[18px] text-error">warning</span>
+<span class="font-label-md text-label-md font-semibold text-error">प्रक्रियात्मक उल्लंघन (धारा 41A CrPC / धारा 35 BNSS)</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface leading-relaxed">
+          गिरफ्तारी पूर्व अनिवार्य विधिक नोटिस का पूर्ण अभाव। माननीय सर्वोच्च न्यायालय द्वारा <span class="font-semibold">अर्नेश कुमार बनाम बिहार राज्य</span> मामले में प्रतिपादित दिशानिर्देशों का खुला उल्लंघन।
+        </p>
+</div>
+<!-- Supreme Court Precedent Snippet Card -->
+<div class="bg-surface-container-lowest rounded-xl p-space-12 shadow-sm flex flex-col gap-space-8">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-space-6 text-on-surface">
+<span class="material-symbols-outlined text-[18px] text-secondary">auto_stories</span>
+<span class="font-label-md text-label-md font-semibold">सर्वोच्च न्यायालय नजीर संदर्भ</span>
+</div>
+<span class="font-label-sm text-label-sm bg-surface-container px-space-6 py-space-2 rounded font-mono text-on-surface-variant">(2012) 1 SCC 40</span>
+</div>
+<div class="bg-surface-container-lowest p-space-8 rounded-lg">
+<p class="font-body-sm text-body-sm text-on-surface font-medium italic">
+            "संजय चंद्र बनाम सी.बी.आई. — जमानत का प्रदान किया जाना ही सामान्य विधिक नियम है और कारावास केवल अपवाद (Bail is the rule, jail is the exception)।"
+          </p>
+</div>
+</div>
+</div>
+</div>
+<!-- Micro-Feedback Toast (Absolute / Fixed to Container) -->
+<div class="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 bg-primary-container text-on-primary font-label-md text-label-md px-space-16 py-space-8 rounded-full shadow-lg opacity-0 pointer-events-none transition-all duration-300 flex items-center gap-space-8" id="copyToast">
+<span class="material-symbols-outlined text-[18px] text-secondary-fixed">done</span>
+<span>विधिक बिंदु क्लिपबोर्ड में कॉपी किया गया</span>
+</div>
+<!-- Bottom Sticky / Persistent Action Bar -->
+<div class="sticky bottom-0 left-0 right-0 w-full mt-space-24 pt-space-8 pb-space-8 bg-surface/90 backdrop-blur-md">
+<div class="flex items-center gap-space-12 w-full">
+<!-- Secondary Outline Full Pleading Preview -->
+<button class="flex-1 h-touch-target-min bg-surface-container-lowest hover:bg-surface-container-low text-on-surface rounded-lg font-title-md text-title-md font-semibold flex items-center justify-center gap-space-6 shadow-sm active:scale-95 transition-all" id="previewBtn" type="button">
+<span class="material-symbols-outlined text-[20px]">visibility</span>
+<span>पूर्वावलोकन</span>
+</button>
+<!-- Primary Full Export Action -->
+<button class="flex-[1.4] h-touch-target-min bg-primary-container hover:bg-primary-container text-on-primary rounded-lg font-title-md text-title-md font-semibold flex items-center justify-center gap-space-8 shadow-md active:scale-95 transition-all" id="exportFullBtn" type="button">
+<span class="material-symbols-outlined text-[20px] text-secondary-fixed">download_for_offline</span>
+<span>ड्राफ्ट निर्यात करें</span>
+</button>
+</div>
+</div>
+</div>
+<script>
+  (function () {
+    // Copy interaction handler
+    const toast = document.getElementById('copyToast');
+    let toastTimeout = null;
+
+    function showToast(msg) {
+      if (!toast) return;
+      if (msg) {
+        const textSpan = toast.querySelector('span:last-child');
+        if (textSpan) textSpan.textContent = msg;
+      }
+      toast.classList.remove('opacity-0', 'pointer-events-none');
+      toast.classList.add('opacity-100');
+      if (toastTimeout) clearTimeout(toastTimeout);
+      toastTimeout = setTimeout(() => {
+        toast.classList.remove('opacity-100');
+        toast.classList.add('opacity-0', 'pointer-events-none');
+      }, 2200);
+    }
+
+    document.querySelectorAll('.copy-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const text = btn.getAttribute('data-copy') || '';
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text).catch(() => {});
+        }
+        showToast('विधिक आधार क्लिपबोर्ड में कॉपी हुआ');
+      });
+    });
+
+    // Tab switcher micro-interaction
+    const tabs = document.querySelectorAll('.tab-pill');
+    tabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        tabs.forEach(t => {
+          t.setAttribute('aria-selected', 'false');
+          t.classList.remove('bg-primary-container', 'text-on-primary', 'shadow-sm');
+          t.classList.add('bg-surface-container', 'text-on-surface-variant');
+        });
+        tab.setAttribute('aria-selected', 'true');
+        tab.classList.remove('bg-surface-container', 'text-on-surface-variant');
+        tab.classList.add('bg-primary-container', 'text-on-primary', 'shadow-sm');
+      });
+    });
+
+    // Action buttons feedback
+    const quickExport = document.getElementById('quickExportBtn');
+    const exportFull = document.getElementById('exportFullBtn');
+    const previewBtn = document.getElementById('previewBtn');
+
+    [quickExport, exportFull].forEach(btn => {
+      if (btn) {
+        btn.addEventListener('click', () => {
+          showToast('PDF / DOCX प्रारूप तैयार किया जा रहा है...');
+        });
+      }
+    });
+
+    if (previewBtn) {
+      previewBtn.addEventListener('click', () => {
+        showToast('पूर्ण न्यायालय प्रारूप लोड हो रहा है...');
+      });
+    }
+  })();
+</script></main></body></html>

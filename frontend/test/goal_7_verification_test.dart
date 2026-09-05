@@ -113,12 +113,12 @@ void main() {
         ),
       );
 
-      expect(find.text('प्रतिज्ञा चैंबर प्रो (Chamber Pro)'), findsOneWidget);
-      expect(find.text('मासिक चैंबर प्रो'), findsOneWidget);
-      expect(find.text('₹499 / माह'), findsOneWidget);
-      expect(find.text('वार्षिक चैंबर प्रो'), findsOneWidget);
-      expect(find.text('₹4,999 / वर्ष'), findsOneWidget);
-      expect(find.text('असीमित 360° जमानत प्रार्थना पत्र एवं बहस के बिंदु'), findsOneWidget);
+      expect(find.text('व्यावसायिक अधिवक्ता योजनाएं (Pro Chambers)'), findsOneWidget);
+      expect(find.text('मासिक प्रो (Solo Advocate)'), findsOneWidget);
+      expect(find.textContaining('499'), findsWidgets);
+      expect(find.text('वार्षिक प्रो - सम्पूर्ण चैंबर पैक'), findsOneWidget);
+      expect(find.textContaining('4,999'), findsWidgets);
+      expect(find.text('असीमित AI विधिक याचिका एवं ड्राफ्टिंग'), findsOneWidget);
     });
   });
 }

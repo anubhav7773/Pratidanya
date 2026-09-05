@@ -57,8 +57,8 @@ void main() {
 
   group('Goal 4: Chamber Isolation & Case Filtering Logic', () {
     test('Chamber Isolation: Filters ensure only advocate owned cases are matched', () {
-      final advocateA = 'advocate_A_uid';
-      final advocateB = 'advocate_B_uid';
+      const advocateA = 'advocate_A_uid';
+      const advocateB = 'advocate_B_uid';
 
       final allCases = [
         CriminalCase(
@@ -151,10 +151,10 @@ void main() {
       // Verify Devanagari texts render without errors
       expect(find.text('मु.अ.सं. 124/2026'), findsOneWidget);
       expect(find.text('श्यामू उर्फ़ श्याम'), findsOneWidget);
-      expect(find.text('न्यायिक अभिरक्षा (जेल में)'), findsOneWidget);
+      expect(find.text('न्यायिक अभिरक्षा'), findsOneWidget);
       expect(find.text('धारा 379 भा.दं.वि.'), findsOneWidget);
       expect(find.text('धारा 411 भा.दं.वि.'), findsOneWidget);
-      expect(find.text('जमानत सुनवाई'), findsOneWidget);
+      expect(find.textContaining('जमानत अर्जी सुनवाई'), findsOneWidget);
     });
 
     testWidgets('CriminalStageStepper renders 5 statutory stages cleanly', (WidgetTester tester) async {
