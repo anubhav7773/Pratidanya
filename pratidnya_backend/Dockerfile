@@ -18,10 +18,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 COPY requirements.txt .
 
-# 1. Install CPU-only PyTorch first
-RUN pip install --no-cache-dir --prefix=/install torch==2.2.1+cpu --extra-index-url https://download.pytorch.org/whl/cpu
-
-# 2. Install remaining production dependencies
+# Install production dependencies
 RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
 
 # ==============================================================================
@@ -58,8 +55,6 @@ RUN mkdir -p /app/cache/torch /app/cache/spacy && \
 
 USER pratidnya
 
-# Pre-download OpenNyAI / SpaCy model weights during image build
-RUN python -c "from opennyai import Pipeline; Pipeline(components=['NER', 'Rhetorical_Role'], use_gpu=False, verbose=False)" || true
 
 # Healthcheck probe for Render orchestrator
 HEALTHCHECK --interval=30s --timeout=10s --start-period=45s --retries=3 \
