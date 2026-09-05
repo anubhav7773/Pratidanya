@@ -29,33 +29,42 @@ class GeminiService:
     ) -> List[float]:
         self._verify_privacy_firewall(is_dummy_data)
 
-        url = f"{self.base_url}/text-embedding-004:embedContent"
+        candidate_models = [
+            ("text-embedding-004", {"model": "models/text-embedding-004", "content": {"parts": [{"text": text.strip()}]}, "taskType": task_type}),
+            ("gemini-embedding-001", {"model": "models/gemini-embedding-001", "content": {"parts": [{"text": text.strip()}]}, "taskType": task_type, "outputDimensionality": 768})
+        ]
+
         headers = {
             "Content-Type": "application/json",
             "x-goog-api-key": self.api_key
         }
-        payload = {
-            "model": "models/text-embedding-004",
-            "content": {"parts": [{"text": text.strip()}]},
-            "taskType": task_type
-        }
 
-        async with httpx.AsyncClient(timeout=12.0) as client:
-            response = await client.post(url, headers=headers, json=payload)
-            if response.status_code != 200:
-                raise HTTPException(
-                    status_code=response.status_code,
-                    detail=f"Gemini Embedding API विफलता: {response.text}"
-                )
-            
-            data = response.json()
-            values = data.get("embedding", {}).get("values", [])
-            if len(values) != 768:
-                raise HTTPException(
-                    status_code=500,
-                    detail=f"अमान्य वेक्टर आयाम (Dimension): 768 अपेक्षित, {len(values)} प्राप्त।"
-                )
-            return values
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            last_err = None
+            for model_name, payload in candidate_models:
+                url = f"{self.base_url}/{model_name}:embedContent"
+                response = await client.post(url, headers=headers, json=payload)
+                if response.status_code == 200:
+                    data = response.json()
+                    values = data.get("embedding", {}).get("values", [])
+                    if len(values) == 768:
+                        return values
+                    raise HTTPException(
+                        status_code=500,
+                        detail=f"अमान्य वेक्टर आयाम (Dimension): 768 अपेक्षित, {len(values)} प्राप्त।"
+                    )
+                elif response.status_code == 404:
+                    last_err = response.text
+                    continue
+                else:
+                    raise HTTPException(
+                        status_code=response.status_code,
+                        detail=f"Gemini Embedding API विफलता: {response.text}"
+                    )
+            raise HTTPException(
+                status_code=502,
+                detail=f"कोई भी संगत एम्बेडिंग मॉडल उपलब्ध नहीं: {last_err}"
+            )
 
     async def generate_structured_case_analysis(
         self,
