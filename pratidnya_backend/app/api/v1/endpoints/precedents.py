@@ -49,11 +49,31 @@ async def search_precedents_endpoint(
         is_dummy_data=payload.is_dummy_testing
     )
 
+    from app.services.kanoon_service import KanoonService
+
     # 2. Query Supabase pgvector HNSW RPC
     supabase = get_supabase_admin_client()
+
+    # Auto-detect intent keywords if target_sections is empty
+    inferred_sections = list(payload.target_sections)
+    lower_q = payload.query_text.lower()
+    if not inferred_sections:
+        if any(w in lower_q for w in ["muder", "murder", "हत्या", "कत्ल"]):
+            inferred_sections = ["302", "103_BNS"]
+        elif any(w in lower_q for w in ["theft", "chori", "चोरी"]):
+            inferred_sections = ["379", "411", "303_BNS"]
+        elif any(w in lower_q for w in ["bail", "जमानत"]):
+            inferred_sections = ["437", "439", "480_BNSS", "483_BNSS"]
+        elif any(w in lower_q for w in ["ndps", "ganja", "गांजा", "चरस"]):
+            inferred_sections = ["50", "20", "21"]
+        elif any(w in lower_q for w in ["dowry", "dahej", "दहेज", "498a"]):
+            inferred_sections = ["498A", "85_BNS"]
+        elif any(w in lower_q for w in ["cheating", "fraud", "420"]):
+            inferred_sections = ["420", "318_BNS"]
+
     rpc_params = {
         "query_embedding": query_vector,
-        "target_sections": payload.target_sections,
+        "target_sections": inferred_sections,
         "similarity_threshold": payload.similarity_threshold,
         "match_count": payload.limit
     }
@@ -61,6 +81,17 @@ async def search_precedents_endpoint(
     try:
         response = supabase.rpc("match_verified_precedents", rpc_params).execute()
         raw_results = response.data or []
+
+        # Adaptive threshold: if strict threshold returned zero and user didn't specify explicit section filter
+        if not raw_results and not payload.target_sections and payload.similarity_threshold > 0.50:
+            relaxed_params = {
+                "query_embedding": query_vector,
+                "target_sections": [],
+                "similarity_threshold": max(0.48, payload.similarity_threshold - 0.15),
+                "match_count": payload.limit
+            }
+            relaxed_res = supabase.rpc("match_verified_precedents", relaxed_params).execute()
+            raw_results = relaxed_res.data or []
 
         # 3. Rule 1 & Rule 3 Enforcement: Filter verifiable URLs only
         verified_results = []
@@ -82,7 +113,7 @@ async def search_precedents_endpoint(
                     similarity_score=round(row["similarity"], 4)
                 ))
 
-        # Rule 3: Returns empty list if no results meet threshold (triggers Abstain widget)
+        # Rule 3: Returns empty list if no certified database matches exist (triggers Abstain widget)
         return verified_results
 
     except Exception as e:

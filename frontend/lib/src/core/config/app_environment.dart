@@ -1,3 +1,5 @@
+import 'package:http/http.dart' as http;
+
 class AppEnvironment {
   // Application Mode: 'DEVELOPMENT', 'STAGING', 'PRODUCTION'
   static const String appEnv = String.fromEnvironment('APP_ENV', defaultValue: 'PRODUCTION');
@@ -49,5 +51,15 @@ class AppEnvironment {
         );
       }
     }
+  }
+
+  /// Silently pings /healthz in the background to wake up Render from cold start
+  static void warmupBackend() {
+    try {
+      http.get(Uri.parse('$backendBaseUrl/healthz')).timeout(
+        const Duration(seconds: 8),
+        onTimeout: () => http.Response('timeout', 408),
+      ).catchError((_) => http.Response('error', 500));
+    } catch (_) {}
   }
 }

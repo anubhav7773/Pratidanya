@@ -81,10 +81,19 @@ class DraftingRepository {
         body: payload,
       ).timeout(const Duration(seconds: 60));
 
-      // Automatic 1-time retry on 502/503/504 (recovering from Render container cold start)
-      if (response.statusCode == 502 || response.statusCode == 503 || response.statusCode == 504) {
-        debugPrint('[DraftingRepository] Server returned ${response.statusCode}, retrying once in 3 seconds...');
-        await Future.delayed(const Duration(milliseconds: 3000));
+      // Resilient progressive retry on 502/503/504 (recovering from Render container cold start)
+      int retryCount = 0;
+      const maxRetries = 3;
+      final retryDelays = [4000, 7000, 10000];
+
+      while ((response.statusCode == 502 || response.statusCode == 503 || response.statusCode == 504) &&
+          retryCount < maxRetries) {
+        final delayMs = retryDelays[retryCount];
+        retryCount++;
+        debugPrint(
+          '[DraftingRepository] Server returned ${response.statusCode}, Render container waking up... attempt $retryCount/$maxRetries in ${delayMs / 1000}s',
+        );
+        await Future.delayed(Duration(milliseconds: delayMs));
         try {
           final refreshedToken = await user.getIdToken(true);
           response = await http.post(
@@ -96,7 +105,7 @@ class DraftingRepository {
             body: payload,
           ).timeout(const Duration(seconds: 60));
         } catch (retryErr) {
-          debugPrint('[DraftingRepository] Retry attempt error: $retryErr');
+          debugPrint('[DraftingRepository] Retry attempt $retryCount error: $retryErr');
         }
       }
 

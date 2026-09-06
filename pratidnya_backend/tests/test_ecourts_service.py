@@ -110,3 +110,13 @@ def test_api_webhook_endpoint():
     data = response.json()
     assert data["status"] == "PROCESSED"
     assert data["notification_dispatched"] is True
+
+
+def test_daily_cause_list_with_real_cases():
+    # Verify that get_daily_cause_list includes real registered cases
+    res = EcourtsService.get_daily_cause_list(advocate_id="qpZHVHiyfVaor3P58peRIwt0QDx2")
+    assert res["total_listed"] >= 5
+    first_case = res["entries"][0]
+    assert first_case["is_my_case"] is True
+    assert "Ramesh Kumar" in first_case["applicant_name"]
+    assert "124/2026" in first_case["fir_details"]

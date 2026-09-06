@@ -105,3 +105,51 @@ def test_precedents_search_filters_unverified_urls():
         assert results[0]["citation_id"] == "AIR 1980 SC 785"
         assert results[0]["similarity_score"] == 0.88
         assert results[0]["verified_source_url"].startswith("https://")
+
+
+def test_precedents_search_adaptive_relaxation_on_typo():
+    client = TestClient(app)
+
+    relaxed_mock_results = [
+        {
+            "id": "2",
+            "citation_id": "1984_4_SCC_116_SHARAD_BIRDHICHAND",
+            "case_title": "शरद बिरधीचंद सारडा बनाम महाराष्ट्र राज्य",
+            "court_name": "सर्वोच्च न्यायालय",
+            "judgment_date": "1984-07-17",
+            "act_name": "IPC",
+            "section_numbers": ["302", "103_BNS"],
+            "headnote_hindi": "परिस्थितिजन्य साक्ष्य के आधार पर दोषसिद्धि के 5 स्वर्णिम सिद्धांत।",
+            "verbatim_text": "सन्देह चाहे कितना भी गम्भीर क्यों न हो, वह साक्ष्य का स्थान नहीं ले सकता।",
+            "paragraph_number": 153,
+            "verified_source_url": "https://judgments.ecourts.gov.in/pdfcache/1984_4_scc_116.pdf",
+            "similarity": 0.6155
+        }
+    ]
+
+    with patch("app.api.v1.endpoints.precedents.GeminiService.generate_dense_embedding") as mock_embed, \
+         patch("app.api.v1.endpoints.precedents.get_supabase_admin_client") as mock_db:
+
+        mock_embed.return_value = [0.1] * 768
+        mock_rpc = MagicMock()
+        # First call (at 0.65) returns empty, second call (at 0.50) returns match
+        mock_rpc.execute.side_effect = [MagicMock(data=[]), MagicMock(data=relaxed_mock_results)]
+        mock_client = MagicMock()
+        mock_client.rpc.return_value = mock_rpc
+        mock_db.return_value = mock_client
+
+        response = client.post(
+            "/api/v1/precedents/search",
+            json={
+                "query_text": "muder case",
+                "similarity_threshold": 0.65,
+                "is_dummy_testing": True
+            }
+        )
+
+        assert response.status_code == 200
+        results = response.json()
+        assert len(results) == 1
+        assert "शरद बिरधीचंद सारडा" in results[0]["case_title"]
+        assert results[0]["similarity_score"] == 0.6155
+

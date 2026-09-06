@@ -1,7 +1,8 @@
 import logging
 from typing import Optional, List, Dict, Any
-from fastapi import APIRouter, HTTPException, Query, Header
+from fastapi import APIRouter, HTTPException, Query, Header, Security
 from pydantic import BaseModel, Field
+from app.core.security import verify_advocate_token_optional
 from app.services.ecourts_service import EcourtsService
 
 logger = logging.getLogger("pratidnya.api.ecourts")
@@ -54,16 +55,20 @@ async def get_cause_list_endpoint(
     court_designation: Optional[str] = Query(None, description="Specific Court Coram/Designation"),
     target_date: Optional[str] = Query(None, description="Target listing date (YYYY-MM-DD)"),
     advocate_bar_number: Optional[str] = Query(None, description="Advocate Bar Enrollment Number for highlighting"),
+    current_user: Optional[dict] = Security(verify_advocate_token_optional),
 ):
     """
-    Retrieves the Daily Cause List (दैनिक वाद सूची) for District & Sessions Courts.
+    Retrieves the Daily Cause List (दैनिक वाद सूची) for District & Sessions Courts,
+    automatically personalizing for the authenticated advocate chamber.
     """
-    logger.info(f"⚡ [CAUSE_LIST_REQUEST] District={district} | Date={target_date} | Advocate={advocate_bar_number}")
+    advocate_id = current_user.get("uid") if current_user else None
+    logger.info(f"⚡ [CAUSE_LIST_REQUEST] District={district} | Date={target_date} | Advocate={advocate_bar_number} | UID={advocate_id}")
     return EcourtsService.get_daily_cause_list(
         district=district,
         court_designation=court_designation,
         target_date=target_date,
         advocate_bar_number=advocate_bar_number,
+        advocate_id=advocate_id,
     )
 
 @router.post("/webhook")
