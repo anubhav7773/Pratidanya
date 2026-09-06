@@ -15,8 +15,8 @@ class NiActDefenseScreen extends ConsumerStatefulWidget {
 }
 
 class _NiActDefenseScreenState extends ConsumerState<NiActDefenseScreen> {
-  final _chequeNumberController = TextEditingController(text: '450912');
-  final _amountController = TextEditingController(text: '250000');
+  final _chequeNumberController = TextEditingController();
+  final _amountController = TextEditingController();
 
   DateTime _chequeDate = DateTime.now().subtract(const Duration(days: 90));
   DateTime _returnMemoDate = DateTime.now().subtract(const Duration(days: 60));

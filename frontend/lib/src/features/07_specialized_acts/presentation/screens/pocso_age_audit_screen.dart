@@ -16,7 +16,7 @@ class PocsoAgeAuditScreen extends ConsumerStatefulWidget {
 
 class _PocsoAgeAuditScreenState extends ConsumerState<PocsoAgeAuditScreen> {
   DateTime _incidentDate = DateTime.now().subtract(const Duration(days: 60));
-  final _firAgeController = TextEditingController(text: '15');
+  final _firAgeController = TextEditingController();
 
   bool _hasMatriculation = false;
   final DateTime? _matriculationDob = null;
@@ -27,13 +27,13 @@ class _PocsoAgeAuditScreenState extends ConsumerState<PocsoAgeAuditScreen> {
   bool _hasMunicipal = false;
   final DateTime? _municipalDob = null;
 
-  bool _ossificationConducted = true;
-  final _lowerAgeController = TextEditingController(text: '16.0');
-  final _upperAgeController = TextEditingController(text: '18.0');
+  bool _ossificationConducted = false;
+  final _lowerAgeController = TextEditingController();
+  final _upperAgeController = TextEditingController();
 
-  bool _priorRelationship = true;
-  final _delayDaysController = TextEditingController(text: '7');
-  bool _noInjuries = true;
+  bool _priorRelationship = false;
+  final _delayDaysController = TextEditingController();
+  bool _noInjuries = false;
 
   bool _isLoading = false;
   PocsoAgeEvaluationResult? _result;

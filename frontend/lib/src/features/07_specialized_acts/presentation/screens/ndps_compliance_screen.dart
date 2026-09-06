@@ -16,7 +16,7 @@ class NdpsComplianceScreen extends ConsumerStatefulWidget {
 
 class _NdpsComplianceScreenState extends ConsumerState<NdpsComplianceScreen> {
   String _selectedSubstance = 'Ganja';
-  final _quantityController = TextEditingController(text: '850');
+  final _quantityController = TextEditingController();
   bool _isPersonalSearch = true;
   bool _section50NoticeGiven = true;
   final String _noticeType = 'THIRD_OPTION_DEFECT';

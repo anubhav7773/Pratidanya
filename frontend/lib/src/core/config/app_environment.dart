@@ -15,7 +15,7 @@ class AppEnvironment {
   // Production FastAPI Microservice URL (Deployed on Render Starter Plan)
   static const String backendBaseUrl = String.fromEnvironment(
     'BACKEND_BASE_URL',
-    defaultValue: 'https://pratidnya-api.onrender.com',
+    defaultValue: 'https://pratidanya-backend.onrender.com',
   );
 
   // Production AI & Statutory Compliance Flags

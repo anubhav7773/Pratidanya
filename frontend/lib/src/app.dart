@@ -11,7 +11,7 @@ class PratidnyaApplication extends ConsumerWidget {
     final router = ref.watch(routerProvider);
 
     return MaterialApp.router(
-      title: 'Pratidnya Legal Tech',
+      title: 'Pratidanya',
       theme: StitchTheme.lightTheme,
       darkTheme: StitchTheme.chamberDarkTheme,
       themeMode: ThemeMode.light,

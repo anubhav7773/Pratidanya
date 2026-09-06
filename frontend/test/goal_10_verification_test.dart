@@ -89,7 +89,7 @@ void main() {
   group('Goal 10: Cloud Endpoints & Security Environment', () {
     test('AppEnvironment production configuration is valid', () {
       expect(AppEnvironment.appEnv, 'PRODUCTION');
-      expect(AppEnvironment.backendBaseUrl, 'https://pratidnya-api.onrender.com');
+      expect(AppEnvironment.backendBaseUrl, 'https://pratidanya-backend.onrender.com');
       expect(AppEnvironment.supabaseUrl, startsWith('https://'));
       expect(AppEnvironment.supabaseUrl, contains('supabase.co'));
       expect(AppEnvironment.isGeminiPaidTier, isTrue);

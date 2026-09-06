@@ -20,18 +20,17 @@ class PrecedentSearchScreen extends ConsumerStatefulWidget {
 }
 
 class _PrecedentSearchScreenState extends ConsumerState<PrecedentSearchScreen> {
-  final _queryController = TextEditingController(text: 'धारा 307 भा.दं.वि. प्राणघातक आशय चोट की गंभीरता');
+  final _queryController = TextEditingController();
   final List<String> _selectedSections = [];
 
   final List<String> _filterChips = [
-    'धारा 307 भा.दं.वि. / 109 BNS',
     'उच्चतम न्यायालय (SC)',
     'इलाहाबाद उच्च न्यायालय',
     'जमानत मिसालें (Bail)',
     'अंतिम 5 वर्ष',
   ];
 
-  String _activeChip = 'धारा 307 भा.दं.वि. / 109 BNS';
+  String _activeChip = 'उच्चतम न्यायालय (SC)';
 
   @override
   void initState() {

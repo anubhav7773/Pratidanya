@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/stitch_colors.dart';
 import '../controllers/auth_controller.dart';
+import '../controllers/language_provider.dart';
+import '../widgets/language_toggle_widget.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -13,9 +15,9 @@ class LoginScreen extends ConsumerStatefulWidget {
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _emailController = TextEditingController(text: 'advocate@barcouncil.in');
-  final _passwordController = TextEditingController(text: 'CriminalCourt@2024');
-  final _enrollmentController = TextEditingController(text: 'UP/1234/2018');
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _enrollmentController = TextEditingController();
 
   String _selectedStateBar = 'UP';
   bool _rememberSession = true;
@@ -55,6 +57,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authControllerProvider);
+    final lang = ref.watch(onboardingLanguageProvider);
+    final isEn = lang == AppLanguage.english;
 
     ref.listen<AsyncValue<void>>(authControllerProvider, (previous, next) {
       if (next.hasError) {
@@ -81,6 +85,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                // Top Language Switcher Row
+                const Align(
+                  alignment: Alignment.topRight,
+                  child: OnboardingLanguageToggle(),
+                ),
+                const SizedBox(height: 8),
+
                 // 1. Brand Header Section
                 Center(
                   child: Column(
@@ -114,7 +125,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       ),
                       const SizedBox(height: 12),
                       const Text(
-                        'प्रतिदान्या (Pratidanya)',
+                        'Pratidanya (प्रतिदान्या)',
                         style: TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.w700,
@@ -123,10 +134,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         ),
                       ),
                       const SizedBox(height: 4),
-                      const Text(
-                        'जिला न्यायालय आपराधिक विधिक सहायक',
+                      Text(
+                        isEn
+                            ? 'District Court Criminal Defense Assistant'
+                            : 'जिला न्यायालय आपराधिक विधिक सहायक',
                         textAlign: TextAlign.center,
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w500,
                           color: Color(0xFF44474D),
@@ -139,14 +152,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           color: const Color(0xFFA4F1B2),
                           borderRadius: BorderRadius.circular(20),
                         ),
-                        child: const Row(
+                        child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.verified, size: 16, color: Color(0xFF1F6C3A)),
-                            SizedBox(width: 4),
+                            const Icon(Icons.verified, size: 16, color: Color(0xFF1F6C3A)),
+                            const SizedBox(width: 4),
                             Text(
-                              'सत्यापित विधिक प्रवेश द्वार',
-                              style: TextStyle(
+                              isEn ? 'Sec 30 Advocates Act Verified' : 'सत्यापित विधिक प्रवेश द्वार',
+                              style: const TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w600,
                                 color: Color(0xFF24703E),
@@ -179,13 +192,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             color: const Color(0xFFF2F3FF),
                             borderRadius: BorderRadius.circular(8),
                           ),
-                          child: const Row(
+                          child: Row(
                             children: [
-                              Icon(Icons.verified_user, size: 20, color: Color(0xFF131B2E)),
-                              SizedBox(width: 8),
+                              const Icon(Icons.verified_user, size: 20, color: Color(0xFF131B2E)),
+                              const SizedBox(width: 8),
                               Text(
-                                'अधिवक्ता सनद एवं सत्यापन',
-                                style: TextStyle(
+                                isEn ? 'Advocate Enrollment & Verification' : 'अधिवक्ता सनद एवं सत्यापन',
+                                style: const TextStyle(
                                   fontSize: 15,
                                   fontWeight: FontWeight.w600,
                                   color: Color(0xFF131B2E),
@@ -195,9 +208,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           ),
                         ),
                         const SizedBox(height: 16),
-                        const Text(
-                          'राज्य विधिज्ञ परिषद (State Bar Council)',
-                          style: TextStyle(
+                        Text(
+                          isEn ? 'State Bar Council' : 'राज्य विधिज्ञ परिषद (State Bar Council)',
+                          style: const TextStyle(
                             fontSize: 13.5,
                             fontWeight: FontWeight.w600,
                             color: Color(0xFF131B2E),
@@ -232,20 +245,20 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           },
                         ),
                         const SizedBox(height: 14),
-                        const Row(
+                        Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text(
-                              'बार काउंसिल पंजीकरण संख्या (Enrollment No.)',
-                              style: TextStyle(
+                              isEn ? 'Bar Council Enrollment No.' : 'बार काउंसिल पंजीकरण संख्या (Enrollment No.)',
+                              style: const TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w600,
                                 color: Color(0xFF131B2E),
                               ),
                             ),
                             Text(
-                              'प्रारूप: UP/1234/2018',
-                              style: TextStyle(fontSize: 11, color: Color(0xFF75777E)),
+                              isEn ? 'Format: UP/1234/2018' : 'प्रारूप: UP/1234/2018',
+                              style: const TextStyle(fontSize: 11, color: Color(0xFF75777E)),
                             ),
                           ],
                         ),
@@ -263,19 +276,19 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                 color: const Color(0xFFA4F1B2),
                                 borderRadius: BorderRadius.circular(16),
                               ),
-                              child: const Row(
+                              child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  Icon(Icons.check_circle, size: 14, color: Color(0xFF1F6C3A)),
-                                  SizedBox(width: 4),
+                                  const Icon(Icons.check_circle, size: 14, color: Color(0xFF1F6C3A)),
+                                  const SizedBox(width: 4),
                                   Text(
-                                    'सत्यापित',
-                                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF24703E)),
+                                    isEn ? 'Verified' : 'सत्यापित',
+                                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF24703E)),
                                   ),
                                 ],
                               ),
                             ),
-                            hintText: 'उदा. UP/1234/2018',
+                            hintText: 'UP/1234/2018',
                             contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(8),
@@ -284,18 +297,22 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             filled: true,
                             fillColor: const Color(0xFFF2F3FF),
                           ),
-                          validator: (val) => val == null || val.isEmpty ? 'पंजीकरण संख्या अनिवार्य है' : null,
+                          validator: (val) => val == null || val.isEmpty
+                              ? (isEn ? 'Enrollment number is required' : 'पंजीकरण संख्या अनिवार्य है')
+                              : null,
                         ),
                         const SizedBox(height: 8),
-                        const Row(
+                        Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Icon(Icons.info_outline, size: 15, color: Color(0xFF75777E)),
-                            SizedBox(width: 4),
+                            const Icon(Icons.info_outline, size: 15, color: Color(0xFF75777E)),
+                            const SizedBox(width: 4),
                             Expanded(
                               child: Text(
-                                'सनद प्रमाण-पत्र के अनुसार अपनी आधिकारिक पंजीकरण संख्या दर्ज करें।',
-                                style: TextStyle(fontSize: 12, color: Color(0xFF75777E)),
+                                isEn
+                                    ? 'Enter official enrollment number as per your Bar Council Certificate.'
+                                    : 'सनद प्रमाण-पत्र के अनुसार अपनी आधिकारिक पंजीकरण संख्या दर्ज करें।',
+                                style: const TextStyle(fontSize: 12, color: Color(0xFF75777E)),
                               ),
                             ),
                           ],
@@ -322,13 +339,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            const Row(
+                            Row(
                               children: [
-                                Icon(Icons.vpn_key, size: 20, color: Color(0xFF0D1C32)),
-                                SizedBox(width: 8),
+                                const Icon(Icons.vpn_key, size: 20, color: Color(0xFF0D1C32)),
+                                const SizedBox(width: 8),
                                 Text(
-                                  'अधिवक्ता अभिगम खाता (Login Portal)',
-                                  style: TextStyle(fontSize: 14.5, fontWeight: FontWeight.w600, color: Color(0xFF131B2E)),
+                                  isEn ? 'Advocate Login Portal' : 'अधिवक्ता अभिगम खाता (Login Portal)',
+                                  style: const TextStyle(fontSize: 14.5, fontWeight: FontWeight.w600, color: Color(0xFF131B2E)),
                                 ),
                               ],
                             ),
@@ -338,17 +355,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                 color: const Color(0xFFE2E7FF),
                                 borderRadius: BorderRadius.circular(6),
                               ),
-                              child: const Text(
-                                'चरण 2/2',
-                                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF44474D)),
+                              child: Text(
+                                isEn ? 'Step 2/2' : 'चरण 2/2',
+                                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF44474D)),
                               ),
                             ),
                           ],
                         ),
                         const SizedBox(height: 16),
-                        const Text(
-                          'पंजीकृत ईमेल आईडी (Registered Email ID)',
-                          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF131B2E)),
+                        Text(
+                          isEn ? 'Registered Email ID' : 'पंजीकृत ईमेल आईडी (Registered Email ID)',
+                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF131B2E)),
                         ),
                         const SizedBox(height: 6),
                         TextFormField(
@@ -365,25 +382,27 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             filled: true,
                             fillColor: const Color(0xFFF2F3FF),
                           ),
-                          validator: (val) => val == null || !val.contains('@') ? 'कृपया मान्य ईमेल दर्ज करें' : null,
+                          validator: (val) => val == null || !val.contains('@')
+                              ? (isEn ? 'Please enter a valid email' : 'कृपया मान्य ईमेल दर्ज करें')
+                              : null,
                         ),
                         const SizedBox(height: 14),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            const Text(
-                              'पासवर्ड / सुरक्षा पिन (Security PIN)',
-                              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF131B2E)),
+                            Text(
+                              isEn ? 'Password / Security PIN' : 'पासवर्ड / सुरक्षा पिन (Security PIN)',
+                              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF131B2E)),
                             ),
                             GestureDetector(
                               onTap: () {
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('पासवर्ड रीसेट लिंक आपके ईमेल पर भेजा गया है।')),
+                                  SnackBar(content: Text(isEn ? 'Password reset link sent to your email.' : 'पासवर्ड रीसेट लिंक आपके ईमेल पर भेजा गया है।')),
                                 );
                               },
-                              child: const Text(
-                                'पासवर्ड भूल गए?',
-                                style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: StitchColors.courtNavy),
+                              child: Text(
+                                isEn ? 'Forgot Password?' : 'पासवर्ड भूल गए?',
+                                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: StitchColors.courtNavy),
                               ),
                             ),
                           ],
@@ -411,7 +430,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             filled: true,
                             fillColor: const Color(0xFFF2F3FF),
                           ),
-                          validator: (val) => val == null || val.length < 6 ? 'न्यूनतम 6 अक्षर आवश्यक हैं' : null,
+                          validator: (val) => val == null || val.length < 6
+                              ? (isEn ? 'Minimum 6 characters required' : 'न्यूनतम 6 अक्षर आवश्यक हैं')
+                              : null,
                         ),
                         const SizedBox(height: 8),
                         Row(
@@ -424,16 +445,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                   activeColor: StitchColors.courtNavy,
                                   onChanged: (val) => setState(() => _rememberSession = val ?? false),
                                 ),
-                                const Text('सत्र सुरक्षित याद रखें', style: TextStyle(fontSize: 13, color: Color(0xFF131B2E))),
+                                Text(isEn ? 'Remember session' : 'सत्र सुरक्षित याद रखें', style: const TextStyle(fontSize: 13, color: Color(0xFF131B2E))),
                               ],
                             ),
-                            const Row(
+                            Row(
                               children: [
-                                Icon(Icons.fingerprint, size: 18, color: Color(0xFF1F6C3A)),
-                                SizedBox(width: 4),
+                                const Icon(Icons.fingerprint, size: 18, color: Color(0xFF1F6C3A)),
+                                const SizedBox(width: 4),
                                 Text(
-                                  'बायोमेट्रिक सक्षम',
-                                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF1F6C3A)),
+                                  isEn ? 'Biometric Enabled' : 'बायोमेट्रिक सक्षम',
+                                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF1F6C3A)),
                                 ),
                               ],
                             ),
@@ -460,7 +481,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
                                       Text(
-                                        _isSignUpMode ? 'पंजीकरण करें (Register)' : 'अधिवक्ता प्रवेश करें (Login as Advocate)',
+                                        isEn
+                                            ? (_isSignUpMode ? 'Register Account' : 'Login as Advocate')
+                                            : (_isSignUpMode ? 'पंजीकरण करें (Register)' : 'अधिवक्ता प्रवेश करें (Login as Advocate)'),
                                         style: const TextStyle(fontSize: 14.5, fontWeight: FontWeight.bold),
                                       ),
                                       const SizedBox(width: 8),
@@ -474,20 +497,22 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           child: TextButton(
                             onPressed: () => setState(() => _isSignUpMode = !_isSignUpMode),
                             child: Text(
-                              _isSignUpMode ? 'पहले से खाता है? लॉगिन करें' : 'नया चैंबर खाता बनाएं (पंजीकरण)',
+                              isEn
+                                  ? (_isSignUpMode ? 'Already have an account? Login here' : 'Create New Chamber Account (Register)')
+                                  : (_isSignUpMode ? 'पहले से खाता है? लॉगिन करें' : 'नया चैंबर खाता बनाएं (पंजीकरण)'),
                               style: const TextStyle(color: StitchColors.courtNavy, fontSize: 13, fontWeight: FontWeight.w600),
                             ),
                           ),
                         ),
                         const SizedBox(height: 12),
-                        const Row(
+                        Row(
                           children: [
-                            Expanded(child: Divider()),
+                            const Expanded(child: Divider()),
                             Padding(
-                              padding: EdgeInsets.symmetric(horizontal: 12.0),
-                              child: Text('अथवा (OR)', style: TextStyle(fontSize: 12, color: Color(0xFF75777E))),
+                              padding: const EdgeInsets.symmetric(horizontal: 12.0),
+                              child: Text(isEn ? 'OR' : 'अथवा (OR)', style: const TextStyle(fontSize: 12, color: Color(0xFF75777E))),
                             ),
-                            Expanded(child: Divider()),
+                            const Expanded(child: Divider()),
                           ],
                         ),
                         const SizedBox(height: 12),
@@ -501,9 +526,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                             ),
                             icon: const Icon(Icons.g_mobiledata, size: 28, color: Colors.blueAccent),
-                            label: const Text(
-                              'Google One-Tap से लॉगिन करें',
-                              style: TextStyle(
+                            label: Text(
+                              isEn ? 'Sign in with Google One-Tap' : 'Google One-Tap से लॉगिन करें',
+                              style: const TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w600,
                                 color: Color(0xFF131B2E),
@@ -530,21 +555,23 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Row(
+                        Row(
                           children: [
-                            Icon(Icons.gavel, size: 20, color: Color(0xFFD6603B)),
-                            SizedBox(width: 8),
+                            const Icon(Icons.gavel, size: 20, color: Color(0xFFD6603B)),
+                            const SizedBox(width: 8),
                             Text(
-                              'वैधानिक चेतावनी एवं सूचना (Statutory Gate)',
-                              style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF131B2E)),
+                              isEn ? 'Statutory Gate Notice' : 'वैधानिक चेतावनी एवं सूचना (Statutory Gate)',
+                              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF131B2E)),
                             ),
                           ],
                         ),
                         const SizedBox(height: 8),
-                        const Text(
-                          'यह प्रणाली केवल अधिवक्ता अधिनियम, 1961 की धारा 30 (Section 30 of the Advocates Act 1961) के तहत राज्य विधिज्ञ परिषद में नामांकित एवं आपराधिक विधि व्यवसाय के लिए अधिकृत वकीलों के उपयोग हेतु पूर्णतः आरक्षित है। अनधिकृत प्रवेश, गलत सनद विवरण अथवा न्यायिक पोर्टल डेटा का दुरुपयोग भारतीय न्याय संहिता (BNS) एवं आईटी अधिनियम, 2000 के अंतर्गत संज्ञेय एवं दंडनीय अपराध है।',
+                        Text(
+                          isEn
+                              ? 'Statutory Gate Notice: This system is strictly reserved for the use of advocates enrolled with State Bar Councils under Section 30 of the Advocates Act, 1961 for legal research and drafting management. Unauthorized access or falsification is punishable under the Bharatiya Nyaya Sanhita (BNS) and Information Technology Act, 2000.'
+                              : 'यह प्रणाली केवल अधिवक्ता अधिनियम, 1961 की धारा 30 (Section 30 of the Advocates Act 1961) के तहत राज्य विधिज्ञ परिषद में नामांकित एवं आपराधिक विधि व्यवसाय के लिए अधिकृत वकीलों के उपयोग हेतु पूर्णतः आरक्षित है। अनधिकृत प्रवेश, गलत सनद विवरण अथवा न्यायिक पोर्टल डेटा का दुरुपयोग भारतीय न्याय संहिता (BNS) एवं आईटी अधिनियम, 2000 के अंतर्गत संज्ञेय एवं दंडनीय अपराध है।',
                           textAlign: TextAlign.justify,
-                          style: TextStyle(fontSize: 12, color: Color(0xFF44474D), height: 1.45),
+                          style: const TextStyle(fontSize: 12, color: Color(0xFF44474D), height: 1.45),
                         ),
                         const SizedBox(height: 12),
                         Container(
@@ -553,26 +580,26 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             color: Colors.white.withValues(alpha: 0.8),
                             borderRadius: BorderRadius.circular(8),
                           ),
-                          child: const Row(
+                          child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Row(
                                 children: [
-                                  Icon(Icons.lock, size: 16, color: Color(0xFF1F6C3A)),
-                                  SizedBox(width: 6),
+                                  const Icon(Icons.lock, size: 16, color: Color(0xFF1F6C3A)),
+                                  const SizedBox(width: 6),
                                   Text(
-                                    '256-bit e-Courts SSL एन्क्रिप्टेड',
-                                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: Color(0xFF131B2E)),
+                                    isEn ? '256-bit e-Courts SSL Encrypted' : '256-bit e-Courts SSL एन्क्रिप्टेड',
+                                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: Color(0xFF131B2E)),
                                   ),
                                 ],
                               ),
                               Row(
                                 children: [
-                                  Icon(Icons.verified, size: 16, color: Color(0xFF1F6C3A)),
-                                  SizedBox(width: 6),
+                                  const Icon(Icons.verified, size: 16, color: Color(0xFF1F6C3A)),
+                                  const SizedBox(width: 6),
                                   Text(
-                                    'विधिक सेवा पोर्टल 2026',
-                                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: Color(0xFF131B2E)),
+                                    isEn ? 'Legal Portal 2026' : 'विधिक सेवा पोर्टल 2026',
+                                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: Color(0xFF131B2E)),
                                   ),
                                 ],
                               ),

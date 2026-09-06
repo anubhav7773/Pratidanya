@@ -19,11 +19,11 @@ class NewCaseFormScreen extends ConsumerStatefulWidget {
 class _NewCaseFormScreenState extends ConsumerState<NewCaseFormScreen> {
   final _formKey = GlobalKey<FormState>();
 
-  final _firNumberController = TextEditingController(text: '124');
-  final _firYearController = TextEditingController(text: '2026');
-  final _policeStationController = TextEditingController(text: 'कोतवाली नगर');
-  final _districtController = TextEditingController(text: 'लखनऊ');
-  final _accusedNameController = TextEditingController(text: 'रामेश्वर प्रसाद उर्फ कल्लू व अन्य');
+  final _firNumberController = TextEditingController();
+  final _firYearController = TextEditingController(text: DateTime.now().year.toString());
+  final _policeStationController = TextEditingController();
+  final _districtController = TextEditingController();
+  final _accusedNameController = TextEditingController();
   final _sectionInputController = TextEditingController();
   final _factualSummaryController = TextEditingController();
 
@@ -31,11 +31,7 @@ class _NewCaseFormScreenState extends ConsumerState<NewCaseFormScreen> {
   String _custodyStatus = 'JUDICIAL_CUSTODY';
   String _courtDesignation = 'CJM (मुख्य न्यायिक मजिस्ट्रेट, लखनऊ)';
 
-  final List<String> _sectionsList = [
-    'धारा 307 भा.दं.वि. (IPC)',
-    'धारा 109 BNS (हत्या का प्रयास)',
-    'धारा 3/25 Arms Act',
-  ];
+  final List<String> _sectionsList = [];
 
   final List<String> _courts = [
     'CJM (मुख्य न्यायिक मजिस्ट्रेट, लखनऊ)',
