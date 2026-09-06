@@ -33,8 +33,9 @@ class GeminiService:
         self._verify_privacy_firewall(is_dummy_data)
 
         candidate_models = [
-            ("text-embedding-004", {"model": "models/text-embedding-004", "content": {"parts": [{"text": text.strip()}]}, "taskType": task_type}),
-            ("gemini-embedding-001", {"model": "models/gemini-embedding-001", "content": {"parts": [{"text": text.strip()}]}, "taskType": task_type, "outputDimensionality": 768})
+            ("gemini-embedding-001", {"model": "models/gemini-embedding-001", "content": {"parts": [{"text": text.strip()}]}, "taskType": task_type, "outputDimensionality": 768}),
+            ("gemini-embedding-2", {"model": "models/gemini-embedding-2", "content": {"parts": [{"text": text.strip()}]}, "taskType": task_type, "outputDimensionality": 768}),
+            ("text-embedding-004", {"model": "models/text-embedding-004", "content": {"parts": [{"text": text.strip()}]}, "taskType": task_type})
         ]
 
         headers = {
@@ -126,10 +127,10 @@ class GeminiService:
         """
 
         candidate_gen_models = [
-            "gemini-flash-latest",
+            "gemini-3.1-flash-lite",
             "gemini-3.5-flash",
-            "gemini-3.6-flash",
-            "gemini-3.7-flash"
+            "gemini-3.7-flash",
+            "gemini-3.8-flash"
         ]
 
         headers = {
@@ -142,16 +143,22 @@ class GeminiService:
             "generationConfig": {
                 "temperature": 0.2,
                 "topP": 0.9,
-                "maxOutputTokens": 2048,
+                "maxOutputTokens": 8192,
                 "responseMimeType": "application/json"
             }
         }
 
-        async with httpx.AsyncClient(timeout=40.0) as client:
+        async with httpx.AsyncClient(timeout=20.0) as client:
             last_err = None
             for model_name in candidate_gen_models:
                 url = f"{self.base_url}/{model_name}:generateContent"
-                response = await client.post(url, headers=headers, json=body)
+                try:
+                    response = await client.post(url, headers=headers, json=body)
+                except (httpx.TimeoutException, httpx.RequestError) as net_err:
+                    last_err = f"{model_name}: Network/Timeout - {str(net_err)}"
+                    logger.warning(f"Gemini timeout/error on {model_name}, failing over to next model: {net_err}")
+                    continue
+
                 if response.status_code == 200:
                     result = response.json()
                     raw_text = result["candidates"][0]["content"]["parts"][0]["text"]
@@ -160,9 +167,19 @@ class GeminiService:
 
                     self._deduct_user_quota(supabase, advocate_id, quota, total_tokens)
 
+                    clean_json = raw_text.strip()
+                    if clean_json.startswith("```json"):
+                        clean_json = clean_json[7:]
+                    if clean_json.startswith("```"):
+                        clean_json = clean_json[3:]
+                    if clean_json.endswith("```"):
+                        clean_json = clean_json[:-3]
+                    clean_json = clean_json.strip()
+
                     try:
-                        return json.loads(raw_text)
-                    except json.JSONDecodeError:
+                        return json.loads(clean_json)
+                    except json.JSONDecodeError as jde:
+                        logger.error(f"JSON decode failed on response from {model_name}: {jde}")
                         raise HTTPException(status_code=500, detail="AI प्रतिक्रिया को JSON में पार्स नहीं किया जा सका।")
                 elif response.status_code in (404, 429, 500, 503):
                     last_err = f"{model_name}: HTTP {response.status_code} - {response.text}"

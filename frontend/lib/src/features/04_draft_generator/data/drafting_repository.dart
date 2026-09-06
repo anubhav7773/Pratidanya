@@ -59,11 +59,42 @@ class DraftingRepository {
 
     if (response.statusCode == 200) {
       final decoded = jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
+      ActivityService.logActivity(
+        activityType: 'DRAFT_GENERATE_360_SUCCESS',
+        details: {
+          'case_id': caseId,
+          'grounds_count': (decoded['statutory_grounds'] as List?)?.length ?? 0,
+          'precedents_count': (decoded['cited_precedents'] as List?)?.length ?? 0,
+        },
+      );
       return CaseAnalysisDraft.fromJson(decoded);
-    } else if (response.statusCode == 402) {
-      throw Exception('दैनिक कोटा समाप्त: अतिरिक्त ड्राफ्ट के लिए विज्ञापन देखें या प्रो चैंबर में अपग्रेड करें।');
     } else {
-      throw Exception('ड्राफ्ट निर्माण विफलता (${response.statusCode}): ${response.body}');
+      String errorMessage;
+      if (response.statusCode == 402) {
+        errorMessage = 'दैनिक कोटा समाप्त: अतिरिक्त ड्राफ्ट के लिए विज्ञापन देखें या प्रो चैंबर में अपग्रेड करें।';
+      } else if (response.statusCode == 502 || response.statusCode == 503 || response.statusCode == 504) {
+        errorMessage = 'सर्वर पर उच्च भार या नेटवर्क रीस्टार्ट (त्रुटि ${response.statusCode})। कृपया 5-10 सेकंड बाद पुनः "ड्राफ्ट तैयार करें" दबाएं।';
+      } else {
+        // Try parsing JSON detail if available, avoid dumping raw HTML
+        try {
+          final errorJson = jsonDecode(utf8.decode(response.bodyBytes));
+          errorMessage = errorJson['detail']?.toString() ?? 'ड्राफ्ट निर्माण विफल (${response.statusCode})';
+        } catch (_) {
+          errorMessage = 'ड्राफ्ट निर्माण विफलता (${response.statusCode})। कृपया पुनः प्रयास करें।';
+        }
+      }
+
+      ActivityService.logActivity(
+        activityType: 'DRAFT_GENERATION_FAILED',
+        details: {
+          'case_id': caseId,
+          'fir_number': firNumber,
+          'status_code': response.statusCode,
+          'error_message': errorMessage,
+        },
+      );
+
+      throw Exception(errorMessage);
     }
   }
 }
