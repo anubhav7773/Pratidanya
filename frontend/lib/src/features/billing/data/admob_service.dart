@@ -22,7 +22,7 @@ class AdMobService {
 
     final requestConfiguration = RequestConfiguration(
       testDeviceIds: AdMobConstants.testDeviceIds,
-      tagForChildDirectedTreatment: TagForChildDirectedTreatment.no,
+      ageRestrictedTreatment: AgeRestrictedTreatment.unspecified,
       maxAdContentRating: MaxAdContentRating.g, // Professional legal audience
     );
     await MobileAds.instance.updateRequestConfiguration(requestConfiguration);

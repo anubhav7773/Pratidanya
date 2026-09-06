@@ -44,13 +44,13 @@ class _HighCourtStudioScreenState extends ConsumerState<HighCourtStudioScreen>
   }
 
   Future<void> _pickAndUploadJudgment() async {
-    final result = await FilePicker.platform.pickFiles(
+    final result = await FilePickerPlatform.instance.pickFiles(
       type: FileType.custom,
       allowedExtensions: ['pdf'],
     );
 
-    if (result != null && result.files.single.path != null) {
-      final file = File(result.files.single.path!);
+    if (result.isNotEmpty && result.first.path != null) {
+      final file = File(result.first.path!);
       try {
         final pleadingId = await ref
             .read(highCourtSuiteProvider.notifier)

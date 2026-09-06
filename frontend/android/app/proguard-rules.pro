@@ -36,3 +36,4 @@
 # Suppress harmless warnings during release compilation
 -dontwarn okio.**
 -dontwarn javax.annotation.**
+-dontwarn com.google.android.play.core.**
