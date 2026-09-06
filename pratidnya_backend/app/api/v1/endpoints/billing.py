@@ -5,7 +5,7 @@ from app.core.security import verify_advocate_token
 from app.core.database import get_supabase_admin_client
 from app.services.subscription_verifier import GooglePlaySubscriptionVerifier
 
-router = APIRouter(prefix="/billing", tags=["Billing, Quotas & Rewarded Ads"])
+router = APIRouter(prefix="/billing", tags=["Billing, Quotas & Subscriptions"])
 
 MAX_REWARDED_ADS_PER_DAY = 3
 
@@ -38,7 +38,7 @@ async def verify_subscription_endpoint(
 async def claim_ad_reward_endpoint(current_user: dict = Security(verify_advocate_token)):
     """
     BCI Rule 36 Compliant Ad-Reward Engine:
-    Validates advocate daily ceiling and atomically unlocks +1 AI Draft.
+    Validates advocate daily ceiling and unlocks +1 AI Draft.
     """
     advocate_id = current_user["uid"]
     supabase = get_supabase_admin_client()
@@ -74,6 +74,32 @@ async def claim_ad_reward_endpoint(current_user: dict = Security(verify_advocate
         "status": "SUCCESS",
         "ad_rewarded_drafts_available": new_count,
         "message": "1 अतिरिक्त AI विधिक ड्राफ्ट सफलतापूर्वक अनलॉक किया गया।"
+    }
+
+@router.get("/status")
+async def get_billing_status_endpoint(current_user: dict = Security(verify_advocate_token)):
+    advocate_id = current_user["uid"]
+    supabase = get_supabase_admin_client()
+
+    quota_res = supabase.table("advocate_ai_quotas") \
+        .select("subscription_tier, daily_drafts_remaining, ad_rewarded_drafts") \
+        .eq("advocate_id", advocate_id) \
+        .single() \
+        .execute()
+
+    sub_res = supabase.table("advocate_subscriptions") \
+        .select("product_id, subscription_status, expiry_time, auto_renewing") \
+        .eq("advocate_id", advocate_id) \
+        .order("created_at", desc=True) \
+        .limit(1) \
+        .execute()
+
+    active_sub = sub_res.data[0] if sub_res.data else None
+
+    return {
+        "quota": quota_res.data,
+        "subscription": active_sub,
+        "is_pro": quota_res.data.get("subscription_tier") == "PRO_CHAMBER"
     }
 
 @router.get("/quota-status")

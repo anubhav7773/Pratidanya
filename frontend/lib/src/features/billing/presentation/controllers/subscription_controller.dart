@@ -9,7 +9,8 @@ import '../../../../core/config/app_environment.dart';
 
 final isProSubscriberProvider = StateProvider<bool>((ref) => false);
 
-final subscriptionControllerProvider = StateNotifierProvider<SubscriptionController, AsyncValue<bool>>((ref) {
+final subscriptionControllerProvider =
+    StateNotifierProvider<SubscriptionController, AsyncValue<bool>>((ref) {
   return SubscriptionController(ref);
 });
 
@@ -29,22 +30,48 @@ class SubscriptionController extends StateNotifier<AsyncValue<bool>> {
   }
 
   Future<void> _initializeBilling() async {
+    final bool available = await _iap.isAvailable();
+    if (!available) {
+      debugPrint("[Google Play Billing] Store unavailable on current device/environment.");
+      return;
+    }
+
+    _subscriptionStream = _iap.purchaseStream.listen(
+      _handlePurchaseUpdates,
+      onDone: () => _subscriptionStream?.cancel(),
+      onError: (error) => debugPrint("[Google Play Billing] Stream error: $error"),
+    );
+
+    // Fetch official product metadata from Google Play Console
+    final ProductDetailsResponse response = await _iap.queryProductDetails(kProductIds);
+    if (response.error == null) {
+      availableProducts = response.productDetails;
+      debugPrint("[Google Play Billing] ${availableProducts.length} SKUs loaded from Play Store.");
+    } else {
+      debugPrint("[Google Play Billing] SKU Query Error: ${response.error!.message}");
+    }
+
+    // Check initial status from backend
+    await checkActiveSubscription();
+  }
+
+  Future<void> checkActiveSubscription() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
     try {
-      final bool available = await _iap.isAvailable();
-      if (!available) return;
+      final idToken = await user.getIdToken();
+      final url = Uri.parse('${AppEnvironment.backendBaseUrl}/api/v1/billing/status');
+      final res = await http.get(url, headers: {'Authorization': 'Bearer $idToken'});
 
-      _subscriptionStream = _iap.purchaseStream.listen(
-        _handlePurchaseUpdates,
-        onDone: () => _subscriptionStream?.cancel(),
-        onError: (error) => debugPrint("Billing Stream Error: $error"),
-      );
-
-      final ProductDetailsResponse response = await _iap.queryProductDetails(kProductIds);
-      if (response.error == null) {
-        availableProducts = response.productDetails;
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body);
+        final isPro = data['is_pro'] == true;
+        _ref.read(isProSubscriberProvider.notifier).state = isPro;
+        state = AsyncValue.data(isPro);
       }
     } catch (e) {
-      debugPrint("Billing init error: $e");
+      debugPrint("[Google Play Billing] Status sync exception: $e");
     }
   }
 
@@ -54,7 +81,16 @@ class SubscriptionController extends StateNotifier<AsyncValue<bool>> {
     try {
       await _iap.buyNonConsumable(purchaseParam: purchaseParam);
     } catch (e, st) {
-      state = AsyncValue.error('खरीद प्रक्रिया आरंभ विफल: $e', st);
+      state = AsyncValue.error('खरीद आरंभ विफल: $e', st);
+    }
+  }
+
+  Future<void> restorePurchases() async {
+    state = const AsyncValue.loading();
+    try {
+      await _iap.restorePurchases();
+    } catch (e, st) {
+      state = AsyncValue.error('सदस्यता पुनर्भरण विफल: $e', st);
     }
   }
 
@@ -62,6 +98,8 @@ class SubscriptionController extends StateNotifier<AsyncValue<bool>> {
     for (final PurchaseDetails purchase in purchaseDetailsList) {
       switch (purchase.status) {
         case PurchaseStatus.pending:
+          // Handles Indian UPI payment processing & NetBanking asynchronous approvals
+          debugPrint("[Google Play Billing] Transaction Pending: ${purchase.purchaseID}");
           state = const AsyncValue.loading();
           break;
 
@@ -69,8 +107,10 @@ class SubscriptionController extends StateNotifier<AsyncValue<bool>> {
         case PurchaseStatus.restored:
           final bool valid = await _verifyWithBackend(purchase);
           if (valid) {
+            // CRITICAL: Acknowledge purchase with Google Play to prevent automatic refund after 3 days
             if (purchase.pendingCompletePurchase) {
               await _iap.completePurchase(purchase);
+              debugPrint("[Google Play Billing] Purchase acknowledged: ${purchase.purchaseID}");
             }
             _ref.read(isProSubscriberProvider.notifier).state = true;
             state = const AsyncValue.data(true);
@@ -80,7 +120,10 @@ class SubscriptionController extends StateNotifier<AsyncValue<bool>> {
           break;
 
         case PurchaseStatus.error:
-          state = AsyncValue.error(purchase.error?.message ?? 'लेन-देन विफल हुआ।', StackTrace.current);
+          state = AsyncValue.error(
+            purchase.error?.message ?? 'लेन-देन रद्द अथवा विफल हुआ।',
+            StackTrace.current,
+          );
           break;
 
         case PurchaseStatus.canceled:
@@ -112,6 +155,7 @@ class SubscriptionController extends StateNotifier<AsyncValue<bool>> {
 
       return response.statusCode == 200;
     } catch (e) {
+      debugPrint("[Google Play Billing] Backend Verification Error: $e");
       return false;
     }
   }

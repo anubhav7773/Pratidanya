@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
+import '../../core/config/admob_constants.dart';
 import '../../core/theme/stitch_colors.dart';
-import '../../features/billing/data/admob_service.dart';
 import '../../features/billing/presentation/controllers/subscription_controller.dart';
 
 class CourtInlineBannerAd extends ConsumerStatefulWidget {
@@ -29,8 +29,11 @@ class _CourtInlineBannerAdState extends ConsumerState<CourtInlineBannerAd> {
   }
 
   void _loadAd() {
+    final isPro = ref.read(isProSubscriberProvider);
+    if (isPro) return;
+
     _bannerAd = BannerAd(
-      adUnitId: AdMobService.androidBannerTestId,
+      adUnitId: AdMobConstants.bannerAdUnitId,
       size: AdSize.banner,
       request: const AdRequest(),
       listener: BannerAdListener(
@@ -54,7 +57,11 @@ class _CourtInlineBannerAdState extends ConsumerState<CourtInlineBannerAd> {
   @override
   Widget build(BuildContext context) {
     final isPro = ref.watch(isProSubscriberProvider);
-    if (isPro) return const SizedBox.shrink();
+    if (isPro) {
+      _bannerAd?.dispose();
+      _bannerAd = null;
+      return const SizedBox.shrink();
+    }
 
     if (!_isAdLoaded || _bannerAd == null) return const SizedBox.shrink();
 

@@ -10,6 +10,12 @@ from app.core.database import get_supabase_admin_client
 logger = logging.getLogger("pratidnya.billing")
 
 class GooglePlaySubscriptionVerifier:
+    """
+    Production Server-Side Receipt Verification Engine for Google Play Billing.
+    Interfaces with androidpublisher v3 API, enforces anti-replay safeguards,
+    and maintains synchronization with Supabase advocate quotas.
+    """
+
     def __init__(self):
         self.package_name = "me.asiverticals.pratidnya"
         self._publisher_service = None
@@ -18,8 +24,8 @@ class GooglePlaySubscriptionVerifier:
         if self._publisher_service is None:
             creds_dict = settings.get_firebase_credentials_dict()
             if not creds_dict:
-                raise RuntimeError("Google Service Account credentials missing in backend configuration.")
-            
+                raise RuntimeError("FATAL: Google Service Account credentials missing for Play Publisher API.")
+
             credentials = service_account.Credentials.from_service_account_info(
                 creds_dict,
                 scopes=["https://www.googleapis.com/auth/androidpublisher"]
@@ -33,13 +39,9 @@ class GooglePlaySubscriptionVerifier:
         product_id: str,
         purchase_token: str
     ) -> Dict[str, Any]:
-        """
-        Anti-Replay Validation & Server-Side Google Play Receipt Verification.
-        Atomically updates advocate_subscriptions and triggers AI quota elevation.
-        """
         supabase = get_supabase_admin_client()
 
-        # Step 1: Anti-Replay Guard
+        # Step 1: Anti-Replay Guard — Check if purchase_token is already bound to another advocate
         existing_token = supabase.table("advocate_subscriptions") \
             .select("advocate_id, subscription_status") \
             .eq("purchase_token", purchase_token) \
@@ -48,13 +50,13 @@ class GooglePlaySubscriptionVerifier:
 
         if existing_token and existing_token.data:
             if existing_token.data["advocate_id"] != advocate_id:
-                logger.warning(f"Security Alert: Replay attack detected for token {purchase_token}")
+                logger.error(f"Security Alert: Replay attack intercepted for token {purchase_token}")
                 raise HTTPException(
                     status_code=403,
                     detail="सुरक्षा उल्लंघन: यह खरीद रसीद पहले से किसी अन्य खाते में सक्रिय है।"
                 )
 
-        # Step 2: Query Google Play Android Publisher API
+        # Step 2: Query Google Play Android Publisher Subscriptionsv2 API
         try:
             service = self._get_publisher_service()
             request = service.purchases().subscriptionsv2().get(
@@ -69,10 +71,10 @@ class GooglePlaySubscriptionVerifier:
                 detail=f"Google Play सर्वर से रसीद सत्यापन विफल: {str(e)}"
             )
 
-        # Step 3: Parse Subscription State
+        # Step 3: Parse Subscription Lifecycle State
         subscription_state = response.get("subscriptionState")
         line_items = response.get("lineItems", [])
-        
+
         if not line_items:
             raise HTTPException(status_code=400, detail="अमान्य सदस्यता मद (No line items found).")
 
@@ -81,6 +83,7 @@ class GooglePlaySubscriptionVerifier:
         auto_renewing_plan = line_item.get("autoRenewingPlan", {})
         is_auto_renewing = auto_renewing_plan.get("autoRenewEnabled", False)
 
+        # Valid states: SUBSCRIPTION_STATE_ACTIVE (1), SUBSCRIPTION_STATE_IN_GRACE_PERIOD (2)
         is_active = subscription_state in [
             "SUBSCRIPTION_STATE_ACTIVE",
             "SUBSCRIPTION_STATE_IN_GRACE_PERIOD"
@@ -92,29 +95,33 @@ class GooglePlaySubscriptionVerifier:
                 detail=f"सदस्यता सक्रिय नहीं है। वर्तमान स्थिति: {subscription_state}"
             )
 
-        # Step 4: Persist in Supabase advocate_subscriptions Table
+        # Step 4: Map price parameters
+        price_amount_micros = 499000000 if "monthly" in product_id else 4999000000
+
+        # Step 5: Atomically persist validated subscription record in Supabase
         subscription_payload = {
             "advocate_id": advocate_id,
             "product_id": product_id,
             "purchase_token": purchase_token,
-            "order_id": response.get("latestOrderId", f"GPA.LOCAL-{int(datetime.now().timestamp())}"),
+            "order_id": response.get("latestOrderId", f"GPA.LIVE-{int(datetime.now().timestamp())}"),
             "subscription_status": "ACTIVE" if subscription_state == "SUBSCRIPTION_STATE_ACTIVE" else "IN_GRACE_PERIOD",
             "auto_renewing": is_auto_renewing,
             "start_time": response.get("startTime", datetime.now(timezone.utc).isoformat()),
             "expiry_time": expiry_time_str,
             "payment_method_type": "GOOGLE_PLAY",
             "price_currency_code": "INR",
-            "price_amount_micros": 499000000 if "monthly" in product_id else 4999000000,
+            "price_amount_micros": price_amount_micros,
             "country_code": response.get("regionCode", "IN"),
             "raw_google_play_response": response,
             "updated_at": datetime.now(timezone.utc).isoformat()
         }
 
+        # Triggers trg_sync_advocate_subscription_status to elevate advocate_ai_quotas
         supabase.table("advocate_subscriptions") \
             .upsert(subscription_payload, on_conflict="purchase_token") \
             .execute()
 
-        # Step 5: Elevate AI Quota tier to PRO_CHAMBER
+        # Step 5b: Also elevate advocate_ai_quotas directly for guaranteed consistency
         supabase.table("advocate_ai_quotas") \
             .update({
                 "subscription_tier": "PRO_CHAMBER",
@@ -122,6 +129,8 @@ class GooglePlaySubscriptionVerifier:
             }) \
             .eq("advocate_id", advocate_id) \
             .execute()
+
+        logger.info(f"Subscription confirmed and activated for advocate {advocate_id} ({product_id})")
 
         return {
             "status": "SUCCESS",
