@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as supa;
 
@@ -25,12 +26,19 @@ final routerProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     initialLocation: '/cases',
     redirect: (BuildContext context, GoRouterState state) async {
-      final firebaseUser = FirebaseAuth.instance.currentUser;
       final currentPath = state.matchedLocation;
-
       final isLoggingIn = currentPath == '/login';
       final isConsentScreen = currentPath == '/dpdp-consent';
       final isBarEnrollmentScreen = currentPath == '/bar-enrollment';
+
+      User? firebaseUser;
+      try {
+        if (Firebase.apps.isNotEmpty) {
+          firebaseUser = FirebaseAuth.instance.currentUser;
+        }
+      } catch (e) {
+        debugPrint('Firebase Auth status check note: $e');
+      }
 
       // Gate 1: Check Authentication
       if (firebaseUser == null) {
@@ -63,6 +71,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         }
       } catch (e) {
         debugPrint('Router check sync note: $e');
+        return isLoggingIn ? null : '/login';
       }
 
       return null;
