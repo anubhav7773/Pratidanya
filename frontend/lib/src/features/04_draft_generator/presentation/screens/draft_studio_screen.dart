@@ -31,6 +31,9 @@ class _DraftStudioScreenState extends ConsumerState<DraftStudioScreen> {
       activityType: 'DRAFT_STUDIO_OPENED',
       details: {'case_id': widget.caseId},
     );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(draftingControllerProvider.notifier).loadCachedDraft(widget.caseId);
+    });
   }
 
   @override

@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/stitch_colors.dart';
 import '../../../../core/services/activity_service.dart';
+import '../../../../core/storage/courtroom_sync_manager.dart';
+import '../../data/case_repository.dart';
 import '../controllers/case_controller.dart';
 import '../widgets/case_card.dart';
 import '../widgets/advocate_drawer.dart';
@@ -31,6 +33,9 @@ class _CaseListScreenState extends ConsumerState<CaseListScreen> {
   @override
   Widget build(BuildContext context) {
     final casesAsync = ref.watch(caseListProvider);
+    final isOfflineMode = ref.watch(isOfflineModeProvider);
+    final isSyncing = ref.watch(isSyncingProvider);
+    final pendingCount = ref.watch(pendingQueueCountProvider);
 
     return Scaffold(
       key: _scaffoldKey,
@@ -41,8 +46,31 @@ class _CaseListScreenState extends ConsumerState<CaseListScreen> {
           loading: () => const Center(child: CircularProgressIndicator()),
           error: (err, _) => Center(
             child: Padding(
-              padding: const EdgeInsets.all(20.0),
-              child: Text('डेटा लोड करने में त्रुटि: $err', textAlign: TextAlign.center),
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.signal_cellular_connected_no_internet_4_bar, size: 48, color: Colors.orange),
+                  const SizedBox(height: 12),
+                  const Text(
+                    'कोर्टरूम नेटवर्क अनुपलब्ध',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF0D1C32)),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    '$err',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(fontSize: 12, color: Colors.grey),
+                  ),
+                  const SizedBox(height: 16),
+                  ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF0D1C32), foregroundColor: Colors.white),
+                    icon: const Icon(Icons.refresh, size: 18),
+                    label: const Text('पुनः प्रयास करें'),
+                    onPressed: () => ref.invalidate(caseListProvider),
+                  ),
+                ],
+              ),
             ),
           ),
           data: (cases) {
@@ -331,6 +359,70 @@ class _CaseListScreenState extends ConsumerState<CaseListScreen> {
                     ],
                   ),
                 ),
+
+                // Courtroom Offline Mode Indicator Banner
+                if (isOfflineMode || pendingCount > 0)
+                  Container(
+                    margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFFBEB),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: const Color(0xFFFDE68A)),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.cloud_off, size: 20, color: Color(0xFFD97706)),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'ऑफलाइन कोर्टरूम मोड (Courtroom Offline)',
+                                style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF92400E)),
+                              ),
+                              Text(
+                                pendingCount > 0
+                                    ? '$pendingCount केस/कार्यवाही सिंक हेतु कतारबद्ध • स्थानीय सुरक्षित'
+                                    : 'स्थानीय सुरक्षित केस डायरी सक्रिय • इंटरनेट पर स्वतः सिंक होगा',
+                                style: const TextStyle(fontSize: 10.5, color: Color(0xFFB45309)),
+                              ),
+                            ],
+                          ),
+                        ),
+                        TextButton.icon(
+                          style: TextButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            minimumSize: Size.zero,
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
+                          onPressed: isSyncing
+                              ? null
+                              : () async {
+                                  final count = await ref.read(courtroomSyncManagerProvider).syncPendingOperations(
+                                        ref.read(caseRepositoryProvider),
+                                      );
+                                  ref.invalidate(caseListProvider);
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(count > 0 ? '$count केस सफलतापूर्वक सिंक हुए!' : 'कोर्ट डायरी अद्यतन है।'),
+                                      ),
+                                    );
+                                  }
+                                },
+                          icon: isSyncing
+                              ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2))
+                              : const Icon(Icons.sync, size: 16, color: Color(0xFFD97706)),
+                          label: Text(
+                            isSyncing ? 'सिंक...' : 'सिंक करें',
+                            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFFD97706)),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
 
                 // Filter & Sort Quick Tabs
                 Padding(

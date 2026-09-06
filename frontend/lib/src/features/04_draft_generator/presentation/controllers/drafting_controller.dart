@@ -37,6 +37,15 @@ class DraftingController extends StateNotifier<AsyncValue<CaseAnalysisDraft?>> {
     });
   }
 
+  Future<bool> loadCachedDraft(String caseId) async {
+    final cached = await _repository.getCachedDraft(caseId);
+    if (cached != null) {
+      state = AsyncValue.data(cached);
+      return true;
+    }
+    return false;
+  }
+
   void updateGround(int index, String newText) {
     final current = state.valueOrNull;
     if (current == null) return;

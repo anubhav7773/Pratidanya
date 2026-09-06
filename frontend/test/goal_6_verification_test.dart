@@ -9,6 +9,9 @@ import 'package:pratidnya/src/features/04_draft_generator/presentation/widgets/c
 
 class MockDraftingRepository implements DraftingRepository {
   @override
+  Future<CaseAnalysisDraft?> getCachedDraft(String caseId) async => null;
+
+  @override
   Future<CaseAnalysisDraft> generate360Draft({
     required String caseId,
     required String firNumber,
