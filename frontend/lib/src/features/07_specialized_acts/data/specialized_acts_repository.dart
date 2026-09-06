@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/config/app_environment.dart';
 import '../domain/specialized_act_models.dart';
+import '../domain/scst_ni_models.dart';
 
 final specializedActsRepositoryProvider = Provider<SpecializedActsRepository>((ref) {
   return SpecializedActsRepository();
@@ -120,6 +121,91 @@ class SpecializedActsRepository {
       return PocsoAgeEvaluationResult.fromJson(data);
     } else {
       throw Exception('पॉक्सो आयु निर्धारण विफल: ${response.body}');
+    }
+  }
+
+  Future<ScstComplianceResult> evaluateScst({
+    required String caseId,
+    required String incidentPlaceType,
+    required bool independentWitnesses,
+    required bool casteNameAlleged,
+    required bool priorCivilDispute,
+    DateTime? specialCourtOrderDate,
+    required bool victimNoticeServed,
+  }) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) throw Exception('प्रमाणीकरण आवश्यक है।');
+
+    final idToken = await user.getIdToken();
+    final url = Uri.parse('${AppEnvironment.backendBaseUrl}/api/v1/specialized-acts/scst/evaluate');
+
+    final response = await _client.post(
+      url,
+      headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer $idToken'},
+      body: jsonEncode({
+        'case_id': caseId,
+        'atrocity_sections': ['3(1)(r)', '3(1)(s)'],
+        'incident_place_type': incidentPlaceType,
+        'independent_public_witnesses_present': independentWitnesses,
+        'allegation_of_caste_name_used': casteNameAlleged,
+        'prior_land_or_civil_dispute_existing': priorCivilDispute,
+        'special_court_order_date': specialCourtOrderDate?.toIso8601String().split('T').first,
+        'proposed_appeal_filing_date': DateTime.now().toIso8601String().split('T').first,
+        'victim_notice_served': victimNoticeServed,
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
+      return ScstComplianceResult.fromJson(data);
+    } else {
+      throw Exception('एस.सी./एस.टी. मूल्यांकन विफलता: ${response.body}');
+    }
+  }
+
+  Future<NiActComplianceResult> evaluateNiAct({
+    required String caseId,
+    required String chequeNumber,
+    required double chequeAmount,
+    required DateTime chequeDate,
+    required DateTime returnMemoDate,
+    required DateTime noticeDispatchDate,
+    required DateTime noticeDeliveryDate,
+    required bool isOmnibusDefective,
+    required DateTime complaintFilingDate,
+    required String defenseCategory,
+    required bool seeksCompounding,
+  }) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) throw Exception('प्रमाणीकरण आवश्यक है।');
+
+    final idToken = await user.getIdToken();
+    final url = Uri.parse('${AppEnvironment.backendBaseUrl}/api/v1/specialized-acts/ni-act/evaluate');
+
+    final response = await _client.post(
+      url,
+      headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer $idToken'},
+      body: jsonEncode({
+        'case_id': caseId,
+        'cheque_number': chequeNumber,
+        'cheque_amount': chequeAmount,
+        'cheque_date': chequeDate.toIso8601String().split('T').first,
+        'bank_return_memo_date': returnMemoDate.toIso8601String().split('T').first,
+        'dishonour_reason': 'FUNDS_INSUFFICIENT',
+        'demand_notice_dispatch_date': noticeDispatchDate.toIso8601String().split('T').first,
+        'demand_notice_delivery_date': noticeDeliveryDate.toIso8601String().split('T').first,
+        'is_omnibus_demand_defective': isOmnibusDefective,
+        'complaint_filing_date': complaintFilingDate.toIso8601String().split('T').first,
+        'defense_category': defenseCategory,
+        'seeks_compounding': seeksCompounding,
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
+      return NiActComplianceResult.fromJson(data);
+    } else {
+      throw Exception('एन.आई. एक्ट 138 मूल्यांकन विफलता: ${response.body}');
     }
   }
 }

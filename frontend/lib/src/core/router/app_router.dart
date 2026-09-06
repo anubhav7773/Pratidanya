@@ -17,6 +17,8 @@ import '../../features/billing/presentation/screens/paywall_screen.dart';
 import '../../features/06_high_court/presentation/screens/high_court_studio_screen.dart';
 import '../../features/07_specialized_acts/presentation/screens/ndps_compliance_screen.dart';
 import '../../features/07_specialized_acts/presentation/screens/pocso_age_audit_screen.dart';
+import '../../features/07_specialized_acts/presentation/screens/scst_appeal_screen.dart';
+import '../../features/07_specialized_acts/presentation/screens/ni_act_defense_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   return GoRouter(
@@ -123,6 +125,20 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) {
           final caseId = state.pathParameters['id'] ?? '';
           return PocsoAgeAuditScreen(caseId: caseId);
+        },
+      ),
+      GoRoute(
+        path: '/cases/:id/scst-appeal',
+        builder: (context, state) {
+          final caseId = state.pathParameters['id'] ?? '';
+          return ScstAppealScreen(caseId: caseId);
+        },
+      ),
+      GoRoute(
+        path: '/cases/:id/ni-act-defense',
+        builder: (context, state) {
+          final caseId = state.pathParameters['id'] ?? '';
+          return NiActDefenseScreen(caseId: caseId);
         },
       ),
     ],
