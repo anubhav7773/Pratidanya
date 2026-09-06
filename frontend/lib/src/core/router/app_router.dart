@@ -19,6 +19,7 @@ import '../../features/07_specialized_acts/presentation/screens/ndps_compliance_
 import '../../features/07_specialized_acts/presentation/screens/pocso_age_audit_screen.dart';
 import '../../features/07_specialized_acts/presentation/screens/scst_appeal_screen.dart';
 import '../../features/07_specialized_acts/presentation/screens/ni_act_defense_screen.dart';
+import '../../features/09_compliance_audit/presentation/screens/chamber_privacy_audit_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   return GoRouter(
@@ -140,6 +141,10 @@ final routerProvider = Provider<GoRouter>((ref) {
           final caseId = state.pathParameters['id'] ?? '';
           return NiActDefenseScreen(caseId: caseId);
         },
+      ),
+      GoRoute(
+        path: '/chamber-privacy-audit',
+        builder: (context, state) => const ChamberPrivacyAuditScreen(),
       ),
     ],
   );

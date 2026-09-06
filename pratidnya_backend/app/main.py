@@ -2,7 +2,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.services.opennyai_engine import OpenNyAIEngine
-from app.api.v1.endpoints import health, precedents, kanoon, nlp, drafts, billing, trial_judgment, high_court_grounds, high_court_interlocutory, specialized_acts, scst_ni_acts, voice
+from app.api.v1.endpoints import health, precedents, kanoon, nlp, drafts, billing, trial_judgment, high_court_grounds, high_court_interlocutory, specialized_acts, scst_ni_acts, voice, dpdp_compliance
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -41,3 +41,4 @@ app.include_router(high_court_interlocutory.router, prefix="/api/v1")
 app.include_router(specialized_acts.router, prefix="/api/v1")
 app.include_router(scst_ni_acts.router, prefix="/api/v1")
 app.include_router(voice.router, prefix="/api/v1")
+app.include_router(dpdp_compliance.router, prefix="/api/v1")

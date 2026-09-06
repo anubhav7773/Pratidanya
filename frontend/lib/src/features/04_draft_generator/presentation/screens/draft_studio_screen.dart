@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/stitch_colors.dart';
+import '../../../../core/security/advocate_privilege_guard.dart';
 import '../../../02_case_input/domain/criminal_case.dart';
 import '../../../02_case_input/presentation/controllers/case_controller.dart';
 import '../controllers/drafting_controller.dart';
@@ -20,6 +21,18 @@ class DraftStudioScreen extends ConsumerStatefulWidget {
 class _DraftStudioScreenState extends ConsumerState<DraftStudioScreen> {
   int _selectedTabIndex = 0; // 0: grounds, 1: weakpoints, 2: procedural, 3: precedents
   final List<String> _injectedFacts = [];
+
+  @override
+  void initState() {
+    super.initState();
+    AdvocatePrivilegeGuard.enableConfidentialityProtection();
+  }
+
+  @override
+  void dispose() {
+    AdvocatePrivilegeGuard.disableConfidentialityProtection();
+    super.dispose();
+  }
 
   void _triggerDraftGeneration(CriminalCase criminalCase) {
     ref.read(draftingControllerProvider.notifier).generateDraft(

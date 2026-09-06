@@ -5,6 +5,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:printing/printing.dart';
 import 'package:pdf/pdf.dart';
 import '../../../../core/theme/stitch_colors.dart';
+import '../../../../core/security/advocate_privilege_guard.dart';
 import '../../../../shared/components/bci_disclaimer_banner.dart';
 import '../../../01_onboarding/presentation/controllers/auth_controller.dart';
 import '../controllers/high_court_controller.dart';
@@ -32,10 +33,12 @@ class _HighCourtStudioScreenState extends ConsumerState<HighCourtStudioScreen>
     super.initState();
     _tabController = TabController(length: 4, vsync: this);
     _activePleadingId = widget.initialPleadingId;
+    AdvocatePrivilegeGuard.enableConfidentialityProtection();
   }
 
   @override
   void dispose() {
+    AdvocatePrivilegeGuard.disableConfidentialityProtection();
     _tabController.dispose();
     super.dispose();
   }
