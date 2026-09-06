@@ -60,24 +60,45 @@ class DraftingRepository {
       final idToken = await user.getIdToken(true);
       final url = Uri.parse('${AppEnvironment.backendBaseUrl}/api/v1/drafts/generate-360');
 
-      final response = await http.post(
+      final payload = jsonEncode({
+        'case_id': caseId,
+        'fir_number': firNumber,
+        'sections': sections,
+        'police_station': policeStation,
+        'district': district,
+        'factual_summary': factualSummary,
+        'custody_status': custodyStatus,
+        'extracted_facts': extractedFacts,
+        'is_dummy_testing': AppEnvironment.enforceDummyData,
+      });
+
+      http.Response response = await http.post(
         url,
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $idToken',
         },
-        body: jsonEncode({
-          'case_id': caseId,
-          'fir_number': firNumber,
-          'sections': sections,
-          'police_station': policeStation,
-          'district': district,
-          'factual_summary': factualSummary,
-          'custody_status': custodyStatus,
-          'extracted_facts': extractedFacts,
-          'is_dummy_testing': AppEnvironment.enforceDummyData,
-        }),
-      );
+        body: payload,
+      ).timeout(const Duration(seconds: 60));
+
+      // Automatic 1-time retry on 502/503/504 (recovering from Render container cold start)
+      if (response.statusCode == 502 || response.statusCode == 503 || response.statusCode == 504) {
+        debugPrint('[DraftingRepository] Server returned ${response.statusCode}, retrying once in 3 seconds...');
+        await Future.delayed(const Duration(milliseconds: 3000));
+        try {
+          final refreshedToken = await user.getIdToken(true);
+          response = await http.post(
+            url,
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer $refreshedToken',
+            },
+            body: payload,
+          ).timeout(const Duration(seconds: 60));
+        } catch (retryErr) {
+          debugPrint('[DraftingRepository] Retry attempt error: $retryErr');
+        }
+      }
 
       if (response.statusCode == 200) {
         final decoded = jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;

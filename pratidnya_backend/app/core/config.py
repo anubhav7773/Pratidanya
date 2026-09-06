@@ -69,25 +69,36 @@ class Settings(BaseSettings):
         return v
 
     def get_firebase_credentials_dict(self) -> Optional[Dict[str, Any]]:
-        if not self.FIREBASE_SERVICE_ACCOUNT_JSON:
-            return None
-        val = self.FIREBASE_SERVICE_ACCOUNT_JSON.strip()
-        if not val or val.lower() in ("none", "null", "undefined", '""', "''", "{}"):
-            return None
         backend_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        candidate_paths = [val, os.path.join(backend_dir, val)]
-        for cp in candidate_paths:
-            if os.path.exists(cp):
+        default_file = os.path.join(backend_dir, "serviceAccountKey.json")
+        cwd_file = os.path.join(os.getcwd(), "serviceAccountKey.json")
+
+        if self.FIREBASE_SERVICE_ACCOUNT_JSON:
+            val = self.FIREBASE_SERVICE_ACCOUNT_JSON.strip()
+            if val and val.lower() not in ("none", "null", "undefined", '""', "''", "{}"):
+                candidate_paths = [val, os.path.join(backend_dir, val), os.path.join(os.getcwd(), val)]
+                for cp in candidate_paths:
+                    if os.path.exists(cp):
+                        try:
+                            with open(cp, "r", encoding="utf-8") as f:
+                                return json.load(f)
+                        except Exception as e:
+                            logger.warning(f"Failed to read service account file at {cp}: {e}")
                 try:
-                    with open(cp, "r", encoding="utf-8") as f:
+                    return json.loads(val)
+                except Exception:
+                    pass
+
+        # Fallback to local serviceAccountKey.json if present
+        for fpath in [default_file, cwd_file]:
+            if os.path.exists(fpath):
+                try:
+                    with open(fpath, "r", encoding="utf-8") as f:
                         return json.load(f)
                 except Exception as e:
-                    logger.warning(f"Failed to read service account file at {cp}: {e}")
-        try:
-            return json.loads(val)
-        except Exception:
-            logger.warning("FIREBASE_SERVICE_ACCOUNT_JSON is not a valid JSON string or file path. Proceeding with default project credentials.")
-            return None
+                    logger.warning(f"Failed to read service account file at {fpath}: {e}")
+
+        return None
 
 
     class Config:

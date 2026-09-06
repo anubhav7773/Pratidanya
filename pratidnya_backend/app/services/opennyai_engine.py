@@ -7,6 +7,7 @@ logger = logging.getLogger("pratidnya.nlp")
 class OpenNyAIEngine:
     _instance: Optional["OpenNyAIEngine"] = None
     _pipeline = None
+    _initialized: bool = False
 
     @classmethod
     def get_instance(cls) -> "OpenNyAIEngine":
@@ -16,8 +17,10 @@ class OpenNyAIEngine:
 
     def initialize(self):
         """Loads models once into RAM during FastAPI startup (Singleton)."""
+        if self._initialized:
+            return
+        self._initialized = True
         if self._pipeline is None:
-            logger.info("OpenNyAI मॉडल्स मेमोरी में लोड हो रहे हैं (CPU Mode)...")
             try:
                 from opennyai import Pipeline
                 self._pipeline = Pipeline(
@@ -26,8 +29,11 @@ class OpenNyAIEngine:
                     verbose=False
                 )
                 logger.info("OpenNyAI मॉडल्स सफलतापूर्वक लोड हो गए।")
+            except ImportError:
+                logger.info("OpenNyAI वैकल्पिक मॉड्यूल उपलब्ध नहीं है। हल्का एवं तीव्र नियम-आधारित निष्कर्षण इंजन सक्रिय है।")
+                self._pipeline = None
             except Exception as e:
-                logger.warning(f"OpenNyAI लोड विफलता: {e}")
+                logger.info(f"OpenNyAI इनिशियलाइज़ेशन नोट: {e}। नियम-आधारित निष्कर्षण इंजन सक्रिय है।")
                 self._pipeline = None
 
     def cleanup(self):

@@ -39,14 +39,27 @@ class VoiceRepository {
       audioFile.path,
     ));
 
-    final streamedResponse = _client != null ? await _client.send(request) : await request.send();
+    final streamedResponse = _client != null 
+        ? await _client.send(request).timeout(const Duration(seconds: 60))
+        : await request.send().timeout(const Duration(seconds: 60));
     final response = await http.Response.fromStream(streamedResponse);
 
     if (response.statusCode == 200) {
       final data = jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
       return VoiceDictationResult.fromJson(data);
     } else {
-      throw Exception('वॉयस प्रोसेसिंग विफलता (${response.statusCode}): ${response.body}');
+      String errorMessage;
+      if (response.statusCode == 502 || response.statusCode == 503 || response.statusCode == 504) {
+        errorMessage = 'सर्वर पर उच्च भार या नेटवर्क पुनःप्रारंभ (त्रुटि ${response.statusCode})। कृपया 5 सेकंड बाद पुनः बोलकर प्रयास करें।';
+      } else {
+        try {
+          final errJson = jsonDecode(utf8.decode(response.bodyBytes));
+          errorMessage = errJson['detail']?.toString() ?? 'वॉयस प्रोसेसिंग विफलता (${response.statusCode})';
+        } catch (_) {
+          errorMessage = 'वॉयस प्रोसेसिंग विफलता (${response.statusCode})। कृपया स्पष्ट आवाज में पुनः बोलें।';
+        }
+      }
+      throw Exception(errorMessage);
     }
   }
 }

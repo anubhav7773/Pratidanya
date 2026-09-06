@@ -127,7 +127,9 @@ class GeminiService:
         """
 
         candidate_gen_models = [
+            "gemini-3.6-flash",
             "gemini-3.1-flash-lite",
+            "gemini-flash-latest",
             "gemini-3.5-flash",
             "gemini-3.7-flash",
             "gemini-3.8-flash"
@@ -148,7 +150,7 @@ class GeminiService:
             }
         }
 
-        async with httpx.AsyncClient(timeout=20.0) as client:
+        async with httpx.AsyncClient(timeout=45.0) as client:
             last_err = None
             for model_name in candidate_gen_models:
                 url = f"{self.base_url}/{model_name}:generateContent"

@@ -40,8 +40,67 @@ class VerificationGateScreen extends ConsumerWidget {
     final profile = ref.watch(currentAdvocateProfileProvider).valueOrNull;
 
     if (draft == null || cases == null || profile == null) {
-      return const Scaffold(
-        body: Center(child: Text('डेटा लोड करने में असमर्थ। कृपया ड्राफ्टिंग स्टूडियो से पुनः प्रयास करें।')),
+      return Scaffold(
+        backgroundColor: const Color(0xFFFAF8FF),
+        appBar: AppBar(
+          title: const Text('अधिवक्ता विधिक सत्यापन', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          backgroundColor: Colors.white,
+          foregroundColor: const Color(0xFF131B2E),
+          elevation: 0.5,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () {
+              if (Navigator.of(context).canPop()) {
+                Navigator.of(context).pop();
+              }
+            },
+          ),
+        ),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFEAEDFF),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.description_outlined, size: 48, color: Color(0xFF0D1C32)),
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  'सक्रिय ड्राफ्ट उपलब्ध नहीं है',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF131B2E)),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'विधिक सत्यापन एवं निर्यात के लिए कृपया पहले ड्राफ्टिंग स्टूडियो में "ड्राफ्ट तैयार करें" दबाएं।',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 13, color: Color(0xFF44474D), height: 1.4),
+                ),
+                const SizedBox(height: 20),
+                ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF0D1C32),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                  icon: const Icon(Icons.arrow_back, size: 18),
+                  label: const Text('ड्राफ्टिंग स्टूडियो पर वापस जाएं'),
+                  onPressed: () {
+                    if (Navigator.of(context).canPop()) {
+                      Navigator.of(context).pop();
+                    }
+                  },
+                ),
+              ],
+            ),
+          ),
+        ),
       );
     }
 

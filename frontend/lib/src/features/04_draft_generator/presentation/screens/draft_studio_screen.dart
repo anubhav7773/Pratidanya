@@ -189,6 +189,15 @@ class _DraftStudioScreenState extends ConsumerState<DraftStudioScreen> {
                             icon: const Icon(Icons.file_download, size: 16, color: Color(0xFFFFDBD1)),
                             label: const Text('निर्यात', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
                             onPressed: () {
+                              if (draftAsync.valueOrNull == null) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('कृपया पहले "360° विधिक ड्राफ्ट तैयार करें" दबाकर मसौदा बनाएं।'),
+                                    backgroundColor: Color(0xFF0D1C32),
+                                  ),
+                                );
+                                return;
+                              }
                               context.push('/cases/${widget.caseId}/verify-gate');
                             },
                           ),
@@ -580,6 +589,15 @@ class _DraftStudioScreenState extends ConsumerState<DraftStudioScreen> {
                           icon: const Icon(Icons.visibility, size: 18, color: Color(0xFF131B2E)),
                           label: const Text('पूर्वावलोकन', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF131B2E))),
                           onPressed: () {
+                            if (draftAsync.valueOrNull == null) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('कृपया पहले "360° विधिक ड्राफ्ट तैयार करें" दबाकर मसौदा बनाएं।'),
+                                  backgroundColor: Color(0xFF0D1C32),
+                                ),
+                              );
+                              return;
+                            }
                             context.push('/cases/${widget.caseId}/verify-gate');
                           },
                         ),
@@ -597,6 +615,15 @@ class _DraftStudioScreenState extends ConsumerState<DraftStudioScreen> {
                           icon: const Icon(Icons.download_for_offline, size: 18, color: Color(0xFFA4F1B2)),
                           label: const Text('ड्राफ्ट निर्यात करें', style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.bold)),
                           onPressed: () {
+                            if (draftAsync.valueOrNull == null) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('कृपया पहले "360° विधिक ड्राफ्ट तैयार करें" दबाकर मसौदा बनाएं।'),
+                                  backgroundColor: Color(0xFF0D1C32),
+                                ),
+                              );
+                              return;
+                            }
                             context.push('/cases/${widget.caseId}/verify-gate');
                           },
                         ),

@@ -17,7 +17,11 @@ class VoiceIntakeService:
     Enforces DPDP Act 2023 Sec 8(7): raw audio bytes exist solely in-memory during execution.
     """
 
-    GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent"
+    CANDIDATE_VOICE_MODELS = [
+        "gemini-3.6-flash",
+        "gemini-3.1-flash-lite",
+        "gemini-flash-latest"
+    ]
 
     @classmethod
     async def process_audio_dictation(
@@ -97,26 +101,48 @@ class VoiceIntakeService:
 
         try:
             async with httpx.AsyncClient(timeout=60.0) as client:
-                response = await client.post(cls.GEMINI_API_URL, headers=headers, json=body)
-                if response.status_code != 200:
-                    raise HTTPException(
-                        status_code=response.status_code,
-                        detail=f"Gemini Voice Engine त्रुटि ({response.status_code}): {response.text}"
-                    )
+                last_err = None
+                for model_name in cls.CANDIDATE_VOICE_MODELS:
+                    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent"
+                    try:
+                        response = await client.post(url, headers=headers, json=body)
+                    except (httpx.TimeoutException, httpx.RequestError) as net_err:
+                        last_err = f"{model_name}: Network/Timeout - {str(net_err)}"
+                        logger.warning(f"Gemini voice timeout/error on {model_name}: {net_err}")
+                        continue
 
-                result_json = response.json()
-                raw_text = result_json["candidates"][0]["content"]["parts"][0]["text"]
-                parsed_data = json.loads(raw_text)
+                    if response.status_code == 200:
+                        result_json = response.json()
+                        raw_text = result_json["candidates"][0]["content"]["parts"][0]["text"]
+                        clean_json = raw_text.strip()
+                        if clean_json.startswith("```json"):
+                            clean_json = clean_json[7:]
+                        if clean_json.startswith("```"):
+                            clean_json = clean_json[3:]
+                        if clean_json.endswith("```"):
+                            clean_json = clean_json[:-3]
+                        parsed_data = json.loads(clean_json.strip())
 
-                # Post-process through PoliceDocumentSanitizer
-                parsed_data["verbatim_transcript_hindi"] = PoliceDocumentSanitizer.clean_and_normalize(
-                    parsed_data.get("verbatim_transcript_hindi", "")
-                )
-                parsed_data["cleaned_factual_matrix"] = PoliceDocumentSanitizer.clean_and_normalize(
-                    parsed_data.get("cleaned_factual_matrix", "")
-                )
+                        # Post-process through PoliceDocumentSanitizer
+                        parsed_data["verbatim_transcript_hindi"] = PoliceDocumentSanitizer.clean_and_normalize(
+                            parsed_data.get("verbatim_transcript_hindi", "")
+                        )
+                        parsed_data["cleaned_factual_matrix"] = PoliceDocumentSanitizer.clean_and_normalize(
+                            parsed_data.get("cleaned_factual_matrix", "")
+                        )
 
-                return parsed_data
+                        return parsed_data
+                    elif response.status_code in (404, 429, 500, 503):
+                        last_err = f"{model_name}: HTTP {response.status_code} - {response.text}"
+                        logger.warning(f"Gemini voice fallback from {model_name}: {response.status_code}")
+                        continue
+                    else:
+                        raise HTTPException(
+                            status_code=response.status_code,
+                            detail=f"Gemini Voice Engine त्रुटि ({response.status_code}): {response.text}"
+                        )
+
+                raise HTTPException(status_code=502, detail=f"वॉयस ट्रांसक्रिप्शन मॉडल अनुपलब्ध: {last_err}")
 
         except json.JSONDecodeError:
             raise HTTPException(status_code=500, detail="AI ऑडियो प्रतिलेख को संरचित JSON में पार्स नहीं किया जा सका।")
