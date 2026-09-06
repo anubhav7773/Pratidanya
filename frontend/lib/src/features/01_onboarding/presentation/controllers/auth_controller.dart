@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/services/activity_service.dart';
 import '../../data/auth_repository.dart';
 import '../../data/profile_repository.dart';
 import '../../domain/advocate_profile.dart';
@@ -42,24 +43,39 @@ class AuthController extends StateNotifier<AsyncValue<void>> {
   Future<void> loginWithGoogle() async {
     state = const AsyncValue.loading();
     state = await AsyncValue.guard(() async {
-      await _authRepository.signInWithGoogle();
+      final cred = await _authRepository.signInWithGoogle();
       _ref.invalidate(currentAdvocateProfileProvider);
+      ActivityService.logActivity(
+        activityType: 'AUTH_GOOGLE_LOGIN_SUCCESS',
+        advocateId: cred.user?.uid,
+        details: {'email': cred.user?.email},
+      );
     });
   }
 
   Future<void> loginWithEmail(String email, String password) async {
     state = const AsyncValue.loading();
     state = await AsyncValue.guard(() async {
-      await _authRepository.signInWithEmail(email: email, password: password);
+      final cred = await _authRepository.signInWithEmail(email: email, password: password);
       _ref.invalidate(currentAdvocateProfileProvider);
+      ActivityService.logActivity(
+        activityType: 'AUTH_EMAIL_LOGIN_SUCCESS',
+        advocateId: cred.user?.uid,
+        details: {'email': email.trim()},
+      );
     });
   }
 
   Future<void> signupWithEmail(String email, String password) async {
     state = const AsyncValue.loading();
     state = await AsyncValue.guard(() async {
-      await _authRepository.signUpWithEmail(email: email, password: password);
+      final cred = await _authRepository.signUpWithEmail(email: email, password: password);
       _ref.invalidate(currentAdvocateProfileProvider);
+      ActivityService.logActivity(
+        activityType: 'AUTH_EMAIL_SIGNUP_SUCCESS',
+        advocateId: cred.user?.uid,
+        details: {'email': email.trim()},
+      );
     });
   }
 

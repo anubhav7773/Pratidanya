@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/stitch_colors.dart';
+import '../../../../core/services/activity_service.dart';
 import '../../../../shared/components/statute_selector_bar.dart';
 import '../controllers/case_controller.dart';
 import '../../../08_voice_intake/presentation/widgets/court_voice_dictation_sheet.dart';
@@ -86,6 +87,9 @@ class _NewCaseFormScreenState extends ConsumerState<NewCaseFormScreen> {
   }
 
   void _openVoiceDictationSheet() {
+    ActivityService.logActivity(
+      activityType: 'VOICE_DICTATION_OPENED',
+    );
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -160,6 +164,16 @@ class _NewCaseFormScreenState extends ConsumerState<NewCaseFormScreen> {
           );
 
       if (success && mounted) {
+        ActivityService.logActivity(
+          activityType: 'NEW_CASE_SAVED',
+          details: {
+            'fir_number': fullFir,
+            'police_station': _policeStationController.text.trim(),
+            'district': _districtController.text.trim(),
+            'court': _courtDesignation,
+            'sections': _sectionsList,
+          },
+        );
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('आपराधिक केस सफलतापूर्वक दर्ज किया गया।'),

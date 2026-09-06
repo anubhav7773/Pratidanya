@@ -84,3 +84,18 @@ def test_ping_endpoint():
     assert head_resp.status_code == 200
     assert len(head_resp.content) == 0
 
+def test_activity_log_endpoint():
+    """Verify POST /api/v1/activity/log records user activity and returns 200."""
+    client = TestClient(app)
+    payload = {
+        "activity_type": "DOCKET_VIEWED",
+        "advocate_id": "test-advocate-101",
+        "details": {"total_cases": 5}
+    }
+    response = client.post("/api/v1/activity/log", json=payload)
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "SUCCESS"
+    assert data["activity_type"] == "DOCKET_VIEWED"
+
+

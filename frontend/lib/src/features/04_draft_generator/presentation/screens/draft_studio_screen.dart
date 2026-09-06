@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/stitch_colors.dart';
 import '../../../../core/security/advocate_privilege_guard.dart';
+import '../../../../core/services/activity_service.dart';
 import '../../../02_case_input/domain/criminal_case.dart';
 import '../../../02_case_input/presentation/controllers/case_controller.dart';
 import '../controllers/drafting_controller.dart';
@@ -26,6 +27,10 @@ class _DraftStudioScreenState extends ConsumerState<DraftStudioScreen> {
   void initState() {
     super.initState();
     AdvocatePrivilegeGuard.enableConfidentialityProtection();
+    ActivityService.logActivity(
+      activityType: 'DRAFT_STUDIO_OPENED',
+      details: {'case_id': widget.caseId},
+    );
   }
 
   @override

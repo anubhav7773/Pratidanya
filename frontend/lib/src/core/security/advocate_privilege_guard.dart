@@ -5,10 +5,12 @@ import 'package:flutter/foundation.dart';
 class AdvocatePrivilegeGuard {
   static const MethodChannel _channel = MethodChannel('me.asiverticals.pratidnya/security');
 
+  /// Testing phase toggle: disabled per user instruction to allow screenshots and screen recording
+  static bool isTestingPhaseDisabled = true;
+
   /// Enforces Advocate-Client Privilege under Section 132 of the Bharatiya Sakshya Adhiniyam, 2023
   /// (equivalent to Section 126 of the Indian Evidence Act, 1872).
-  /// Dynamically engages Android WindowManager FLAG_SECURE to block unauthorized screenshots,
-  /// background screen recording, and system recents window cache leakage.
+  /// Note: During testing phase, MainActivity clears FLAG_SECURE to permit user screenshots & recording.
   static Future<void> enableConfidentialityProtection() async {
     if (kIsWeb) return;
 

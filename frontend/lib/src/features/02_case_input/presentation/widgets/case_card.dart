@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../core/theme/stitch_colors.dart';
+import '../../../../core/services/activity_service.dart';
 import '../../domain/criminal_case.dart';
 
 class CaseCard extends StatelessWidget {
@@ -286,20 +287,44 @@ class CaseCard extends StatelessWidget {
                         icon: Icons.sync,
                         tooltip: 'ई-कोर्ट स्थिति सिंक्रनाइज़',
                         color: const Color(0xFF1F6C3A),
-                        onPressed: onSyncTap ?? () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('मु.अ.सं. ${criminalCase.firNumber} ई-कोर्ट्स से सिंक हो रहा है...')),
+                        onPressed: () {
+                          ActivityService.logActivity(
+                            activityType: 'ECOURTS_SYNC_TRIGGERED',
+                            details: {
+                              'fir_number': criminalCase.firNumber,
+                              'district': criminalCase.district,
+                              'court': criminalCase.courtDesignation,
+                            },
                           );
+                          if (onSyncTap != null) {
+                            onSyncTap!();
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('मु.अ.सं. ${criminalCase.firNumber} ई-कोर्ट्स से सिंक हो रहा है...')),
+                            );
+                          }
                         },
                       ),
                       const SizedBox(width: 4),
                       _buildActionIcon(
                         icon: Icons.download,
                         tooltip: 'वकालतनामा डाउनलोड करें',
-                        onPressed: onDownloadTap ?? () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('वकालतनामा PDF तैयार हो रहा है...')),
+                        onPressed: () {
+                          ActivityService.logActivity(
+                            activityType: 'VAKALATNAMA_DOWNLOAD_TRIGGERED',
+                            details: {
+                              'fir_number': criminalCase.firNumber,
+                              'accused_name': criminalCase.accusedName,
+                              'court': criminalCase.courtDesignation,
+                            },
                           );
+                          if (onDownloadTap != null) {
+                            onDownloadTap!();
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('वकालतनामा PDF तैयार हो रहा है...')),
+                            );
+                          }
                         },
                       ),
                       PopupMenuButton<String>(

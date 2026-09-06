@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/stitch_colors.dart';
+import '../../../../core/services/activity_service.dart';
 import '../controllers/case_controller.dart';
 import '../widgets/case_card.dart';
 
@@ -53,6 +54,15 @@ class _CaseListScreenState extends ConsumerState<CaseListScreen> {
                 .length;
 
             final totalCases = cases.length;
+
+            ActivityService.logActivity(
+              activityType: 'DOCKET_VIEWED',
+              details: {
+                'total_cases': totalCases,
+                'today_hearings': todayHearingsCount,
+                'judicial_custody': judicialCustodyCount,
+              },
+            );
 
             return Column(
               children: [
@@ -396,6 +406,9 @@ class _CaseListScreenState extends ConsumerState<CaseListScreen> {
                                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
                                             ),
                                             onPressed: () {
+                                              ActivityService.logActivity(
+                                                activityType: 'AIR_LEGAL_PORTAL_OPENED',
+                                              );
                                               ScaffoldMessenger.of(context).showSnackBar(
                                                 const SnackBar(content: Text('AIR विधिक शोध पोर्टल खोला जा रहा है...')),
                                               );
@@ -413,6 +426,14 @@ class _CaseListScreenState extends ConsumerState<CaseListScreen> {
                               return CaseCard(
                                 criminalCase: c,
                                 onTap: () {
+                                  ActivityService.logActivity(
+                                    activityType: 'DRAFT_STUDIO_NAVIGATED',
+                                    details: {
+                                      'case_id': c.id,
+                                      'fir_number': c.firNumber,
+                                      'district': c.district,
+                                    },
+                                  );
                                   context.push('/cases/${c.id}/draft-studio');
                                 },
                                 onArchive: () async {

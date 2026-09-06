@@ -28,7 +28,7 @@ class Settings(BaseSettings):
     SUPABASE_SERVICE_ROLE_KEY: str = Field(...)
 
     # Firebase Admin Auth
-    FIREBASE_PROJECT_ID: str = Field(default="pratidnya-legal-tech")
+    FIREBASE_PROJECT_ID: str = Field(default="pratidanya")
     FIREBASE_SERVICE_ACCOUNT_JSON: Optional[str] = Field(default=None)
 
     # Concurrency & Incident Monitoring

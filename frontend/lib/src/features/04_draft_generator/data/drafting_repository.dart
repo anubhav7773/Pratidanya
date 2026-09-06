@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/config/app_environment.dart';
+import '../../../core/services/activity_service.dart';
 import '../domain/case_analysis_draft.dart';
 
 final draftingRepositoryProvider = Provider<DraftingRepository>((ref) {
@@ -23,7 +24,18 @@ class DraftingRepository {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) throw Exception('प्रमाणीकरण आवश्यक है।');
 
-    final idToken = await user.getIdToken();
+    ActivityService.logActivity(
+      activityType: 'DRAFT_GENERATE_360_REQUESTED',
+      details: {
+        'case_id': caseId,
+        'fir_number': firNumber,
+        'sections': sections,
+        'district': district,
+      },
+    );
+
+    // Force refresh token so no expired or stale token triggers 401
+    final idToken = await user.getIdToken(true);
     final url = Uri.parse('${AppEnvironment.backendBaseUrl}/api/v1/drafts/generate-360');
 
     final response = await http.post(
