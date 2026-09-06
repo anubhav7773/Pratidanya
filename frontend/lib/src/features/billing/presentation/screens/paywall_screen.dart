@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../controllers/subscription_controller.dart';
+import '../widgets/payment_method_sheet.dart';
 import '../../data/admob_service.dart';
+
 
 class PaywallScreen extends ConsumerWidget {
   const PaywallScreen({super.key});
@@ -9,7 +11,6 @@ class PaywallScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final billingState = ref.watch(subscriptionControllerProvider);
-    final billingController = ref.read(subscriptionControllerProvider.notifier);
 
     return Scaffold(
       backgroundColor: const Color(0xFFFAF8FF),
@@ -401,18 +402,12 @@ class PaywallScreen extends ConsumerWidget {
                               onPressed: billingState.isLoading
                                   ? null
                                   : () {
-                                      final products = billingController.availableProducts;
-                                      if (products.isNotEmpty) {
-                                        final p = products.firstWhere(
-                                          (prod) => prod.id == SubscriptionController.yearlySku,
-                                          orElse: () => products.last,
-                                        );
-                                        billingController.buySubscription(p);
-                                      } else {
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          const SnackBar(content: Text('Google Play स्टोर से उत्पाद कनेक्ट हो रहा है...')),
-                                        );
-                                      }
+                                      PaymentMethodSheet.show(
+                                        context,
+                                        planType: 'YEARLY',
+                                        planTitle: 'वार्षिक चैंबर प्रो (Annual Pro)',
+                                        priceLabel: '₹4,999/वर्ष',
+                                      );
                                     },
                             ),
                           ),
@@ -420,6 +415,7 @@ class PaywallScreen extends ConsumerWidget {
                       ),
                     ),
                     const SizedBox(height: 14),
+
 
                     // Subscription Plan 2: Monthly Pro Card
                     Card(
@@ -493,18 +489,12 @@ class PaywallScreen extends ConsumerWidget {
                                   style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF131B2E)),
                                 ),
                                 onPressed: () {
-                                  final products = billingController.availableProducts;
-                                  if (products.isNotEmpty) {
-                                    final p = products.firstWhere(
-                                      (prod) => prod.id == SubscriptionController.monthlySku,
-                                      orElse: () => products.first,
-                                    );
-                                    billingController.buySubscription(p);
-                                  } else {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(content: Text('Google Play स्टोर से उत्पाद कनेक्ट हो रहा है...')),
-                                    );
-                                  }
+                                  PaymentMethodSheet.show(
+                                    context,
+                                    planType: 'MONTHLY',
+                                    planTitle: 'मासिक चैंबर प्रो (Monthly Pro)',
+                                    priceLabel: '₹499/माह',
+                                  );
                                 },
                               ),
                             ),

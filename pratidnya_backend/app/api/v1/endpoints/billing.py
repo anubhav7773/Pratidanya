@@ -4,6 +4,7 @@ from typing import Dict, Any
 from app.core.security import verify_advocate_token
 from app.core.database import get_supabase_admin_client
 from app.services.subscription_verifier import GooglePlaySubscriptionVerifier
+from app.services.razorpay_service import RazorpayService
 
 router = APIRouter(prefix="/billing", tags=["Billing, Quotas & Subscriptions"])
 
@@ -19,6 +20,42 @@ class VerifySubscriptionResponse(BaseModel):
     expiry_time: str
     tier: str
 
+class CreateRazorpayOrderRequest(BaseModel):
+    plan_type: str = Field("YEARLY", description="'MONTHLY' (₹499) or 'YEARLY' (₹4,999)")
+
+class VerifyRazorpayPaymentRequest(BaseModel):
+    plan_type: str = Field("YEARLY")
+    razorpay_order_id: str
+    razorpay_payment_id: str
+    razorpay_signature: str
+
+@router.post("/razorpay/create-order")
+async def create_razorpay_order_endpoint(
+    payload: CreateRazorpayOrderRequest,
+    current_user: dict = Security(verify_advocate_token),
+):
+    advocate_id = current_user["uid"]
+    advocate_email = current_user.get("email")
+    return RazorpayService.create_order(
+        advocate_id=advocate_id,
+        plan_type=payload.plan_type,
+        advocate_email=advocate_email,
+    )
+
+@router.post("/razorpay/verify-payment")
+async def verify_razorpay_payment_endpoint(
+    payload: VerifyRazorpayPaymentRequest,
+    current_user: dict = Security(verify_advocate_token),
+):
+    advocate_id = current_user["uid"]
+    return RazorpayService.verify_and_activate(
+        advocate_id=advocate_id,
+        plan_type=payload.plan_type,
+        razorpay_order_id=payload.razorpay_order_id,
+        razorpay_payment_id=payload.razorpay_payment_id,
+        razorpay_signature=payload.razorpay_signature,
+    )
+
 @router.post("/verify-subscription", response_model=VerifySubscriptionResponse)
 async def verify_subscription_endpoint(
     payload: VerifySubscriptionRequest,
@@ -33,6 +70,7 @@ async def verify_subscription_endpoint(
         purchase_token=payload.purchase_token
     )
     return VerifySubscriptionResponse(**result)
+
 
 @router.post("/claim-ad-reward")
 async def claim_ad_reward_endpoint(current_user: dict = Security(verify_advocate_token)):

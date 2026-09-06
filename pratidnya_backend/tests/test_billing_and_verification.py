@@ -167,3 +167,50 @@ def test_subscription_tier_elevation_to_pro_chamber():
         assert data["status"] == "SUCCESS"
         assert data["subscription_status"] == "ACTIVE"
         assert data["tier"] == "PRO_CHAMBER"
+
+def test_razorpay_create_order():
+    from app.services.razorpay_service import RazorpayService
+
+    monthly = RazorpayService.create_order("adv_123", "MONTHLY")
+    assert monthly["amount_paise"] == 49900
+    assert monthly["amount_inr"] == 499.0
+    assert monthly["gst_amount_inr"] == 76.12
+    assert "upi://pay" in monthly["upi_intent_url"]
+
+    yearly = RazorpayService.create_order("adv_123", "YEARLY")
+    assert yearly["amount_paise"] == 499900
+    assert yearly["amount_inr"] == 4999.0
+    assert yearly["gst_amount_inr"] == 762.56
+
+def test_razorpay_verify_payment():
+    from app.services.razorpay_service import RazorpayService
+
+    with patch("app.services.razorpay_service.get_supabase_admin_client") as mock_get_supabase:
+        mock_supabase = MagicMock()
+        mock_subs = MagicMock()
+        mock_subs.select.return_value.eq.return_value.maybe_single.return_value.execute.return_value = MagicMock(data=None)
+        mock_subs.upsert.return_value.execute.return_value = MagicMock()
+        mock_quotas = MagicMock()
+        mock_quotas.update.return_value.eq.return_value.execute.return_value = MagicMock()
+
+        def table_dispatch(name):
+            if name == "advocate_subscriptions":
+                return mock_subs
+            elif name == "advocate_ai_quotas":
+                return mock_quotas
+            return MagicMock()
+
+        mock_supabase.table.side_effect = table_dispatch
+        mock_get_supabase.return_value = mock_supabase
+
+        result = RazorpayService.verify_and_activate(
+            advocate_id="adv_123",
+            plan_type="YEARLY",
+            razorpay_order_id="order_123",
+            razorpay_payment_id="pay_123",
+            razorpay_signature="test_signature_valid",
+        )
+        assert result["status"] == "SUCCESS"
+        assert result["tier"] == "PRO_CHAMBER"
+        assert result["subscription_status"] == "ACTIVE"
+

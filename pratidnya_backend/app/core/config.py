@@ -35,6 +35,12 @@ class Settings(BaseSettings):
     MAX_CONCURRENT_NLP_JOBS: int = Field(default=4)
     DPBI_REPORTING_WEBHOOK_URL: str = Field(default="https://api.asiverticals.me/internal/dpdp/incident-alerts")
 
+    # Razorpay Bharat Gateway (UPI, QR & NetBanking)
+    RAZORPAY_KEY_ID: str = Field(default="rzp_live_pratidanya_in")
+    RAZORPAY_KEY_SECRET: str = Field(default="secret_rzp_pratidanya_live")
+    RAZORPAY_WEBHOOK_SECRET: str = Field(default="whsec_pratidanya_legal")
+
+
     @field_validator("GEMINI_API_KEY")
     def validate_gemini_key(cls, v: str) -> str:
         if not v or v.startswith("mock_") or len(v) < 15:

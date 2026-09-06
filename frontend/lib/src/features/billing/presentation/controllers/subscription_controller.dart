@@ -6,8 +6,10 @@ import 'package:in_app_purchase/in_app_purchase.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:http/http.dart' as http;
 import '../../../../core/config/app_environment.dart';
+import '../../../../core/services/activity_service.dart';
 
 final isProSubscriberProvider = StateProvider<bool>((ref) => false);
+
 
 final subscriptionControllerProvider =
     StateNotifierProvider<SubscriptionController, AsyncValue<bool>>((ref) {
@@ -160,7 +162,89 @@ class SubscriptionController extends StateNotifier<AsyncValue<bool>> {
     }
   }
 
+  Future<Map<String, dynamic>?> createRazorpayOrder(String planType) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return null;
+
+    final idToken = await user.getIdToken();
+    final url = Uri.parse('${AppEnvironment.backendBaseUrl}/api/v1/billing/razorpay/create-order');
+
+    try {
+      final response = await http.post(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $idToken',
+        },
+        body: jsonEncode({'plan_type': planType}),
+      );
+
+      if (response.statusCode == 200) {
+        return jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
+      }
+    } catch (e) {
+      debugPrint("[Razorpay] Order creation failed: $e");
+    }
+    return null;
+  }
+
+  Future<bool> verifyRazorpayPayment({
+    required String planType,
+    required String orderId,
+    required String paymentId,
+    required String signature,
+  }) async {
+    state = const AsyncValue.loading();
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      state = AsyncValue.error('उपयोगकर्ता प्रमाणीकृत नहीं है।', StackTrace.current);
+      return false;
+    }
+
+    final idToken = await user.getIdToken();
+    final url = Uri.parse('${AppEnvironment.backendBaseUrl}/api/v1/billing/razorpay/verify-payment');
+
+    try {
+      final response = await http.post(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $idToken',
+        },
+        body: jsonEncode({
+          'plan_type': planType,
+          'razorpay_order_id': orderId,
+          'razorpay_payment_id': paymentId,
+          'razorpay_signature': signature,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        _ref.read(isProSubscriberProvider.notifier).state = true;
+        state = const AsyncValue.data(true);
+
+        ActivityService.logActivity(
+          activityType: 'PRO_SUBSCRIPTION_ACTIVATED_RAZORPAY',
+          details: {
+            'plan_type': planType,
+            'order_id': orderId,
+            'payment_id': paymentId,
+          },
+        );
+        return true;
+      } else {
+        final errorData = jsonDecode(utf8.decode(response.bodyBytes));
+        state = AsyncValue.error(errorData['detail'] ?? 'भुगतान सत्यापन विफल हुआ।', StackTrace.current);
+        return false;
+      }
+    } catch (e, st) {
+      state = AsyncValue.error('भुगतान सत्यापन नेटवर्क त्रुटि: $e', st);
+      return false;
+    }
+  }
+
   Future<bool> claimAdReward() async {
+
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return false;
 
