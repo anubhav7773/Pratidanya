@@ -49,6 +49,7 @@ class CaseFormController extends StateNotifier<AsyncValue<CriminalCase?>> {
     required String stageOfCase,
     String? complainantName,
     String? caseNumber,
+    String? cnrNumber,
     DateTime? nextHearingDate,
     String? lastCourtOrder,
   }) async {
@@ -74,6 +75,7 @@ class CaseFormController extends StateNotifier<AsyncValue<CriminalCase?>> {
         stageOfCase: stageOfCase,
         complainantName: complainantName,
         caseNumber: caseNumber,
+        cnrNumber: cnrNumber,
         nextHearingDate: nextHearingDate,
         lastCourtOrder: lastCourtOrder,
       );
@@ -83,6 +85,7 @@ class CaseFormController extends StateNotifier<AsyncValue<CriminalCase?>> {
       return true;
     } catch (e, st) {
       state = AsyncValue.error(e, st);
+
       return false;
     }
   }

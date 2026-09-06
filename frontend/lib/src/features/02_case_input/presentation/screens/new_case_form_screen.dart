@@ -7,6 +7,7 @@ import '../../../../shared/components/statute_selector_bar.dart';
 import '../controllers/case_controller.dart';
 import '../../../08_voice_intake/presentation/widgets/court_voice_dictation_sheet.dart';
 import '../../../08_voice_intake/domain/voice_intake_result.dart';
+import '../../../08_ecourts_cis/domain/ecourts_models.dart';
 
 class NewCaseFormScreen extends ConsumerStatefulWidget {
   final VoidCallback? onCaseSaved;
@@ -20,6 +21,7 @@ class NewCaseFormScreen extends ConsumerStatefulWidget {
 class _NewCaseFormScreenState extends ConsumerState<NewCaseFormScreen> {
   final _formKey = GlobalKey<FormState>();
 
+  final _cnrNumberController = TextEditingController();
   final _firNumberController = TextEditingController();
   final _firYearController = TextEditingController(text: DateTime.now().year.toString());
   final _policeStationController = TextEditingController();
@@ -27,6 +29,7 @@ class _NewCaseFormScreenState extends ConsumerState<NewCaseFormScreen> {
   final _accusedNameController = TextEditingController();
   final _sectionInputController = TextEditingController();
   final _factualSummaryController = TextEditingController();
+
 
   StatuteSystem _selectedStatute = StatuteSystem.hybrid;
   String _custodyStatus = 'JUDICIAL_CUSTODY';
@@ -45,9 +48,11 @@ class _NewCaseFormScreenState extends ConsumerState<NewCaseFormScreen> {
 
   @override
   void dispose() {
+    _cnrNumberController.dispose();
     _firNumberController.dispose();
     _firYearController.dispose();
     _policeStationController.dispose();
+
     _districtController.dispose();
     _accusedNameController.dispose();
     _sectionInputController.dispose();
@@ -160,8 +165,10 @@ class _NewCaseFormScreenState extends ConsumerState<NewCaseFormScreen> {
             underSections: _sectionsList,
             courtDesignation: _courtDesignation,
             stageOfCase: 'BAIL',
+            cnrNumber: _cnrNumberController.text.trim().isNotEmpty ? _cnrNumberController.text.trim().toUpperCase() : null,
             lastCourtOrder: _factualSummaryController.text.trim(),
           );
+
 
       if (success && mounted) {
         ActivityService.logActivity(
@@ -428,8 +435,78 @@ class _NewCaseFormScreenState extends ConsumerState<NewCaseFormScreen> {
                       ),
                       const SizedBox(height: 14),
 
+                      // e-Courts CNR Input Field (Institutional Bar)
+                      Card(
+                        elevation: 0,
+                        color: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          side: const BorderSide(color: Color(0xFFEAEDFF)),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(14.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Expanded(
+                                    child: Row(
+                                      children: [
+                                        Icon(Icons.qr_code_2, size: 16, color: Color(0xFF1F6C3A)),
+                                        SizedBox(width: 6),
+                                        Expanded(
+                                          child: Text(
+                                            'ई-कोर्ट्स सी.एन.आर. संख्या (CNR Number)',
+                                            style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF131B2E)),
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  SizedBox(width: 8),
+                                  Text(
+                                    'ऐच्छिक (16 अक्षर)',
+                                    style: TextStyle(fontSize: 11, color: Color(0xFF75777E)),
+                                  ),
+                                ],
+                              ),
+
+                              const SizedBox(height: 8),
+                              TextFormField(
+                                controller: _cnrNumberController,
+                                textCapitalization: TextCapitalization.characters,
+                                decoration: InputDecoration(
+                                  hintText: 'उदा. UPHC010123452026',
+                                  hintStyle: const TextStyle(fontSize: 12, color: Color(0xFF94A3B8)),
+                                  prefixIcon: const Icon(Icons.fingerprint, color: Color(0xFF0D1C32), size: 20),
+                                  suffixIcon: IconButton(
+                                    icon: const Icon(Icons.clear, size: 16, color: Color(0xFF94A3B8)),
+                                    onPressed: () => _cnrNumberController.clear(),
+                                  ),
+                                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFFC5C6CD))),
+                                  filled: true,
+                                  fillColor: const Color(0xFFFAF8FF),
+                                ),
+                                validator: CnrValidator.validate,
+                              ),
+                              const SizedBox(height: 6),
+                              const Text(
+                                'सी.एन.आर. प्रविष्ट करने से केस डायरी स्वतः ई-कोर्ट्स सेवा (CIS 3.2) से सिंक्रोनाइज़ हो जाएगी।',
+                                style: TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+
                       // Row 1: FIR No & Year (2 Columns)
                       Row(
+
                         children: [
                           Expanded(
                             child: _buildInputField(

@@ -21,6 +21,7 @@ import '../../features/07_specialized_acts/presentation/screens/ndps_compliance_
 import '../../features/07_specialized_acts/presentation/screens/pocso_age_audit_screen.dart';
 import '../../features/07_specialized_acts/presentation/screens/scst_appeal_screen.dart';
 import '../../features/07_specialized_acts/presentation/screens/ni_act_defense_screen.dart';
+import '../../features/08_ecourts_cis/presentation/screens/cause_list_screen.dart';
 import '../../features/09_compliance_audit/presentation/screens/chamber_privacy_audit_screen.dart';
 
 class RouterNotifier extends ChangeNotifier {
@@ -173,9 +174,14 @@ final routerProvider = Provider<GoRouter>((ref) {
         },
       ),
       GoRoute(
+        path: '/cause-list',
+        builder: (context, state) => const CauseListScreen(),
+      ),
+      GoRoute(
         path: '/chamber-privacy-audit',
         builder: (context, state) => const ChamberPrivacyAuditScreen(),
       ),
     ],
   );
 });
+

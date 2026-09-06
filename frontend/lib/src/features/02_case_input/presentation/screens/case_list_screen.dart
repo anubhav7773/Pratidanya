@@ -131,16 +131,13 @@ class _CaseListScreenState extends ConsumerState<CaseListScreen> {
                                 children: [
                                   IconButton(
                                     icon: const Icon(Icons.notifications_outlined, color: Color(0xFFD6E3FF)),
-                                    tooltip: 'न्यायालयीन सूचनाएं',
+                                    tooltip: 'दैनिक कॉज लिस्ट (e-Courts CIS 3.2)',
                                     onPressed: () {
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        const SnackBar(
-                                          content: Text('ई-कोर्ट्स कॉज लिस्ट सूचना: आज की सभी पेशियां अद्यतित हैं।'),
-                                          duration: Duration(seconds: 2),
-                                        ),
-                                      );
+                                      ActivityService.logActivity(activityType: 'NOTIFICATION_BELL_CAUSE_LIST_OPENED');
+                                      context.push('/cause-list');
                                     },
                                   ),
+
                                   Positioned(
                                     right: 12,
                                     top: 12,

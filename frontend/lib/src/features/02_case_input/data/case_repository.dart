@@ -54,6 +54,7 @@ class CriminalCaseRepository {
     required String stageOfCase,
     String? complainantName,
     String? caseNumber,
+    String? cnrNumber,
     DateTime? nextHearingDate,
     String? lastCourtOrder,
   }) async {
@@ -71,6 +72,7 @@ class CriminalCaseRepository {
         'under_sections': underSections,
         'court_designation': courtDesignation.trim(),
         'case_number': caseNumber?.trim(),
+        'cnr_number': (cnrNumber != null && cnrNumber.trim().isNotEmpty) ? cnrNumber.trim() : null,
         'stage_of_case': stageOfCase,
         'next_hearing_date': nextHearingDate?.toIso8601String().split('T').first,
         'last_court_order': lastCourtOrder?.trim(),
@@ -83,6 +85,7 @@ class CriminalCaseRepository {
       throw Exception('नया केस दर्ज करने में विफल: ${e.message}');
     }
   }
+
 
   Future<void> updateCaseProceedings({
     required String caseId,

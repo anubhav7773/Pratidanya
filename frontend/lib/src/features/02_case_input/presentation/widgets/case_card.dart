@@ -7,6 +7,7 @@ import '../../../../core/services/activity_service.dart';
 import '../../domain/criminal_case.dart';
 import '../../../01_onboarding/presentation/controllers/auth_controller.dart';
 import '../../../05_verify_and_export/data/court_pdf_builder.dart';
+import '../../../08_ecourts_cis/presentation/widgets/ecourts_sync_dialog.dart';
 
 class CaseCard extends StatelessWidget {
   final CriminalCase criminalCase;
@@ -577,33 +578,9 @@ class CaseCard extends StatelessWidget {
       },
     );
 
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Row(
-          children: [
-            Icon(Icons.sync, color: Color(0xFF1F6C3A)),
-            SizedBox(width: 8),
-            Text('ई-कोर्ट्स वाद स्थिति', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-          ],
-        ),
-        content: Text(
-          'मुकदमा अपराध संख्या: ${criminalCase.firNumber}\n'
-          'न्यायालय: ${criminalCase.courtDesignation}\n\n'
-          'राष्ट्रीय ई-कोर्ट्स सेवा पोर्टल (CIS 3.2) से नवीनतम कॉज लिस्ट एवं न्यायिक आदेश सत्यापित किए गए हैं।\n\n'
-          'वर्तमान कार्यवाही चरण: ${criminalCase.stageOfCase == 'BAIL' ? 'जमानत अर्जी सुनवाई (Bail)' : criminalCase.stageOfCase}\n'
-          'स्थिति: अद्यतित (Up-to-date)',
-          style: const TextStyle(fontSize: 13, height: 1.4),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('ठीक है'),
-          ),
-        ],
-      ),
-    );
+    EcourtsSyncDialog.show(context, criminalCase);
   }
+
 
   Widget _buildActionIcon({
     required IconData icon,

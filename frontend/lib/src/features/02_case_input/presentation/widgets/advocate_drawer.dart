@@ -168,6 +168,19 @@ class AdvocateDrawer extends ConsumerWidget {
                 ),
                 _buildDrawerItem(
                   context: context,
+                  icon: Icons.format_list_numbered_rtl,
+                  title: 'दैनिक कॉज लिस्ट (e-Courts CIS 3.2)',
+                  subtitle: 'आज एवं कल की पेशी सूची, न्यायकक्ष व पुकार स्थिति',
+                  badgeColor: const Color(0xFF1F6C3A),
+                  badgeText: 'CIS 3.2',
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    ActivityService.logActivity(activityType: 'DRAWER_CAUSE_LIST_OPENED');
+                    context.push('/cause-list');
+                  },
+                ),
+                _buildDrawerItem(
+                  context: context,
                   icon: Icons.shield_outlined,
                   title: 'विधिक गोपनीयता एवं DPDP ऑडिट',
                   subtitle: 'अधिवक्ता अधिनियम धारा 126 एवं DPDP सुरक्षा',
@@ -178,6 +191,7 @@ class AdvocateDrawer extends ConsumerWidget {
                   },
                 ),
               ],
+
             ),
           ),
 
