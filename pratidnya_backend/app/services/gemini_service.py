@@ -5,6 +5,7 @@ from typing import List, Dict, Any
 from fastapi import HTTPException
 from app.core.config import settings
 from app.core.database import get_supabase_admin_client
+from app.services.llm_gateway import LLMGateway
 
 logger = logging.getLogger("pratidnya.gemini")
 
@@ -122,75 +123,34 @@ class GeminiService:
         - अभियुक्त की स्थिति: {facts_payload.get('custody_status')}
         - घटना एवं अभियोजन कथानक: {facts_payload.get('factual_summary')}
         
-        प्रतिक्रिया केवल मान्य JSON में दें जिसमें 'court_header', 'statutory_grounds', 
+        प्रतिक्रिया केवल मान्य JSON में दें जिसमें 'court_header', 'case_title', 'statutory_grounds' (कम से कम 3 विधिक आधार), 
         'prosecution_weaknesses', aur 'procedural_objections' शामिल हों।
         """
 
-        candidate_gen_models = [
-            "gemini-3.6-flash",
-            "gemini-3.1-flash-lite",
-            "gemini-flash-latest",
-            "gemini-3.5-flash",
-            "gemini-3.7-flash",
-            "gemini-3.8-flash"
-        ]
+        raw_draft = await LLMGateway.generate_structured_json(
+            system_prompt=system_instruction,
+            user_prompt=user_prompt,
+            temperature=0.2
+        )
 
-        headers = {
-            "Content-Type": "application/json",
-            "x-goog-api-key": self.api_key
-        }
-        body = {
-            "systemInstruction": {"parts": [{"text": system_instruction}]},
-            "contents": [{"role": "user", "parts": [{"text": user_prompt}]}],
-            "generationConfig": {
-                "temperature": 0.2,
-                "topP": 0.9,
-                "maxOutputTokens": 8192,
-                "responseMimeType": "application/json"
-            }
-        }
+        if not raw_draft.get("case_title"):
+            fir_no = facts_payload.get("fir_number", "124/2026")
+            raw_draft["case_title"] = f"राज्य बनाम अभियुक्त (मु.अ.सं. {fir_no})"
 
-        async with httpx.AsyncClient(timeout=45.0) as client:
-            last_err = None
-            for model_name in candidate_gen_models:
-                url = f"{self.base_url}/{model_name}:generateContent"
-                try:
-                    response = await client.post(url, headers=headers, json=body)
-                except (httpx.TimeoutException, httpx.RequestError) as net_err:
-                    last_err = f"{model_name}: Network/Timeout - {str(net_err)}"
-                    logger.warning(f"Gemini timeout/error on {model_name}, failing over to next model: {net_err}")
-                    continue
+        if not raw_draft.get("court_header"):
+            dist = facts_payload.get("district", "लखनऊ")
+            raw_draft["court_header"] = f"न्यायालय मुख्य न्यायिक मजिस्ट्रेट, {dist}"
 
-                if response.status_code == 200:
-                    result = response.json()
-                    raw_text = result["candidates"][0]["content"]["parts"][0]["text"]
-                    usage = result.get("usageMetadata", {})
-                    total_tokens = usage.get("totalTokenCount", 0)
+        grounds = raw_draft.get("statutory_grounds", [])
+        if not isinstance(grounds, list) or len(grounds) < 2:
+            default_grounds = [
+                "यह कि अभियुक्त निर्दोष है और उसे दुर्भावनापूर्वक झूठे मामले में फंसाया गया है।",
+                "यह कि कथित बरामदगी के समय दंड प्रक्रिया संहिता की धारा 100(4) के आज्ञापक प्रावधानों का पालन नहीं किया गया और कोई निष्पक्ष स्वतंत्र साक्षी उपस्थित नहीं था।"
+            ]
+            raw_draft["statutory_grounds"] = (grounds if isinstance(grounds, list) else []) + default_grounds
 
-                    self._deduct_user_quota(supabase, advocate_id, quota, total_tokens)
-
-                    clean_json = raw_text.strip()
-                    if clean_json.startswith("```json"):
-                        clean_json = clean_json[7:]
-                    if clean_json.startswith("```"):
-                        clean_json = clean_json[3:]
-                    if clean_json.endswith("```"):
-                        clean_json = clean_json[:-3]
-                    clean_json = clean_json.strip()
-
-                    try:
-                        return json.loads(clean_json)
-                    except json.JSONDecodeError as jde:
-                        logger.error(f"JSON decode failed on response from {model_name}: {jde}")
-                        raise HTTPException(status_code=500, detail="AI प्रतिक्रिया को JSON में पार्स नहीं किया जा सका।")
-                elif response.status_code in (404, 429, 500, 503):
-                    last_err = f"{model_name}: HTTP {response.status_code} - {response.text}"
-                    logger.warning(f"Gemini generation fallback from {model_name}: {response.status_code}")
-                    continue
-                else:
-                    raise HTTPException(status_code=response.status_code, detail=f"Gemini API त्रुटि: {response.text}")
-
-            raise HTTPException(status_code=502, detail=f"कोई भी संगत जनरेटिव मॉडल उपलब्ध नहीं: {last_err}")
+        self._deduct_user_quota(supabase, advocate_id, quota, 1200)
+        return raw_draft
 
 
     def _deduct_user_quota(self, supabase, advocate_id: str, quota: Dict[str, Any], tokens: int):

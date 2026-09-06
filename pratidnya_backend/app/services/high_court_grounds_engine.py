@@ -5,6 +5,7 @@ from fastapi import HTTPException
 from app.core.config import settings
 from app.core.database import get_supabase_admin_client
 from app.services.gemini_service import GeminiService
+from app.services.llm_gateway import LLMGateway
 from app.services.grounding_validator import GroundingValidator
 from app.services.revision_statutory_gate import RevisionStatutoryGate
 from app.schemas.high_court_grounds_schema import (
@@ -108,8 +109,8 @@ class HighCourtGroundsEngine:
             }).execute()
             retrieved_precedents = fallback_rpc.data or []
 
-        # 4. Generate Structured Appellate/Revisional Grounds via Gemini
-        generated_data = await cls._invoke_gemini_grounds_generation(
+        # 4. Generate Structured Appellate/Revisional Grounds via LLM Gateway
+        generated_data = await cls._invoke_gateway_grounds(
             pleading=pleading,
             analysis=analysis,
             req=req,
@@ -202,7 +203,7 @@ class HighCourtGroundsEngine:
         )
 
     @classmethod
-    async def _invoke_gemini_grounds_generation(
+    async def _invoke_gateway_grounds(
         cls,
         pleading: Dict[str, Any],
         analysis: Dict[str, Any],
@@ -253,38 +254,11 @@ class HighCourtGroundsEngine:
         }}
         """
 
-        headers = {
-            "Content-Type": "application/json",
-            "x-goog-api-key": settings.GEMINI_API_KEY
-        }
-        body = {
-            "systemInstruction": {"parts": [{"text": system_prompt}]},
-            "contents": [{"role": "user", "parts": [{"text": user_prompt}]}],
-            "generationConfig": {
-                "temperature": 0.15,
-                "responseMimeType": "application/json"
-            }
-        }
+        return await LLMGateway.generate_structured_json(
+            system_prompt=system_prompt,
+            user_prompt=user_prompt,
+            temperature=0.15
+        )
 
-        async with httpx.AsyncClient(timeout=45.0) as client:
-            last_err = None
-            for model_name in cls.CANDIDATE_MODELS:
-                url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent"
-                try:
-                    response = await client.post(url, headers=headers, json=body)
-                    if response.status_code == 200:
-                        result = response.json()
-                        raw_text = result["candidates"][0]["content"]["parts"][0]["text"]
-                        return json.loads(raw_text)
-                    elif response.status_code in (404, 503, 429):
-                        last_err = f"{model_name} HTTP {response.status_code}: {response.text}"
-                        continue
-                    else:
-                        raise HTTPException(status_code=502, detail=f"Gemini Grounds Synthesis Error: {response.text}")
-                except HTTPException:
-                    raise
-                except Exception as ex:
-                    last_err = str(ex)
-                    continue
-
-            raise HTTPException(status_code=502, detail=f"Gemini Grounds Synthesis Error: {last_err}")
+    # Backward compatibility alias
+    _invoke_gemini_grounds_generation = _invoke_gateway_grounds

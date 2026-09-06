@@ -13,6 +13,11 @@ class Settings(BaseSettings):
     GEMINI_PAID_TIER: bool = Field(default=True, description="Enables zero data retention on Google Cloud")
     ENFORCE_DUMMY_DATA: bool = Field(default=False, description="Disabled for live real-case processing")
 
+    # Groq & LLM Gateway Configuration
+    DEFAULT_LLM_PROVIDER: str = Field(default="GROQ", description="Primary LLM Provider: GROQ or GEMINI")
+    GROQ_API_KEY: Optional[str] = Field(default=None, description="Groq API Key for high-speed Llama-3.3 and Whisper")
+    GROQ_MODEL: str = Field(default="llama-3.3-70b-versatile", description="Groq Primary Legal LLM Model")
+
     # App State
     APP_ENV: str = Field(default="PRODUCTION")
     PORT: int = Field(default=8000)

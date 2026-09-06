@@ -5,6 +5,7 @@ from typing import Dict, Any, List
 from fastapi import HTTPException
 from app.core.config import settings
 from app.services.text_sanitizer import PoliceDocumentSanitizer
+from app.services.llm_gateway import LLMGateway
 from app.schemas.trial_judgment_schema import (
     TrialCourtMetadata,
     WitnessContradiction,
@@ -149,41 +150,11 @@ class HighCourtJudgmentParser:
         }}
         """
 
-        headers = {
-            "Content-Type": "application/json",
-            "x-goog-api-key": settings.GEMINI_API_KEY
-        }
-        body = {
-            "systemInstruction": {"parts": [{"text": system_prompt}]},
-            "contents": [{"role": "user", "parts": [{"text": user_prompt}]}],
-            "generationConfig": {
-                "temperature": 0.1,
-                "responseMimeType": "application/json"
-            }
-        }
-
-        async with httpx.AsyncClient(timeout=45.0) as client:
-            last_err = None
-            for model_name in cls.CANDIDATE_MODELS:
-                url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent"
-                try:
-                    response = await client.post(url, headers=headers, json=body)
-                    if response.status_code == 200:
-                        result = response.json()
-                        raw_json_str = result["candidates"][0]["content"]["parts"][0]["text"]
-                        return json.loads(raw_json_str)
-                    elif response.status_code in (404, 503, 429):
-                        last_err = f"{model_name} HTTP {response.status_code}: {response.text}"
-                        continue
-                    else:
-                        raise HTTPException(status_code=502, detail=f"निर्णय विश्लेषण विफलता: {response.text}")
-                except HTTPException:
-                    raise
-                except Exception as ex:
-                    last_err = str(ex)
-                    continue
-
-            raise HTTPException(status_code=502, detail=f"निर्णय विश्लेषण विफलता: {last_err}")
+        return await LLMGateway.generate_structured_json(
+            system_prompt=system_prompt,
+            user_prompt=user_prompt,
+            temperature=0.1
+        )
 
     @classmethod
     def _synthesize_appeal_grounds(
