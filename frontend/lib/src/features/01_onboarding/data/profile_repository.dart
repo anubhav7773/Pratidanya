@@ -26,14 +26,28 @@ class AdvocateProfileRepository {
     }
   }
 
-  Future<void> recordStatutoryConsent(String firebaseUid) async {
+  Future<void> recordStatutoryConsent(
+    String firebaseUid, {
+    String? email,
+    String? fullName,
+  }) async {
     final nowUtc = DateTime.now().toUtc().toIso8601String();
     try {
-      // 1. Update Advocate Profile Consent Flag
-      await _supabase.from('advocate_profiles').update({
+      // 1. Ensure Advocate Profile exists and set Consent Flag
+      final profilePayload = <String, dynamic>{
+        'id': firebaseUid,
         'dpdp_consent_accepted': true,
         'dpdp_consent_timestamp': nowUtc,
-      }).eq('id', firebaseUid);
+        'updated_at': nowUtc,
+      };
+      if (email != null && email.trim().isNotEmpty) {
+        profilePayload['email'] = email.trim().toLowerCase();
+      }
+      if (fullName != null && fullName.trim().isNotEmpty) {
+        profilePayload['full_name'] = fullName.trim();
+      }
+
+      await _supabase.from('advocate_profiles').upsert(profilePayload);
 
       // 2. Insert Immutable DPDP Audit Log
       await _supabase.from('dpdp_audit_logs').insert({

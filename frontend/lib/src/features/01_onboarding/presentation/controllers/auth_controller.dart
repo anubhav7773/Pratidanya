@@ -68,7 +68,11 @@ class AuthController extends StateNotifier<AsyncValue<void>> {
     state = await AsyncValue.guard(() async {
       final user = _authRepository.currentFirebaseUser;
       if (user == null) throw Exception('उपयोगकर्ता प्रमाणीकृत नहीं है।');
-      await _profileRepository.recordStatutoryConsent(user.uid);
+      await _profileRepository.recordStatutoryConsent(
+        user.uid,
+        email: user.email,
+        fullName: user.displayName,
+      );
       _ref.invalidate(currentAdvocateProfileProvider);
     });
   }

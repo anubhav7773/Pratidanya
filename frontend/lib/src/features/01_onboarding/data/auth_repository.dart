@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart' as fb_auth;
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as supa;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/config/app_environment.dart';
 
 final authRepositoryProvider = Provider<AuthRepository>((ref) {
   return AuthRepository(
@@ -22,16 +23,24 @@ class AuthRepository {
     required supa.SupabaseClient supabaseClient,
   })  : _firebaseAuth = firebaseAuth,
         _googleSignIn = googleSignIn,
-        _supabaseClient = supabaseClient;
+        _supabaseClient = supabaseClient {
+    _ensureSupabaseAnonHeaders();
+  }
 
   fb_auth.User? get currentFirebaseUser => _firebaseAuth.currentUser;
   Stream<fb_auth.User?> get authStateChanges => _firebaseAuth.authStateChanges();
 
+  void _ensureSupabaseAnonHeaders() {
+    _supabaseClient.rest.headers['Authorization'] = 'Bearer ${AppEnvironment.supabaseAnonKey}';
+    _supabaseClient.rest.headers['apikey'] = AppEnvironment.supabaseAnonKey;
+  }
+
   Future<void> _injectFirebaseTokenToSupabase(fb_auth.User user) async {
-    final String? idToken = await user.getIdToken();
-    if (idToken != null) {
-      _supabaseClient.rest.headers['Authorization'] = 'Bearer $idToken';
-    }
+    // Note: Supabase PostgREST uses Supabase anonKey for public/anon RLS.
+    // Overwriting the Authorization header with Firebase RS256 token causes
+    // PostgREST PGRST301 "No suitable key or wrong key type".
+    // Ensure Supabase client retains its valid anonKey Authorization header.
+    _ensureSupabaseAnonHeaders();
   }
 
   Future<fb_auth.UserCredential> signInWithGoogle() async {
@@ -98,7 +107,7 @@ class AuthRepository {
   Future<void> signOut() async {
     await _googleSignIn.signOut();
     await _firebaseAuth.signOut();
-    _supabaseClient.rest.headers.remove('Authorization');
+    _ensureSupabaseAnonHeaders();
   }
 
   String _mapFirebaseAuthError(String code) {
