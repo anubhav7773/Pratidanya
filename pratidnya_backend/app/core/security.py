@@ -114,3 +114,17 @@ async def verify_advocate_token(auth_creds: HTTPAuthorizationCredentials = Secur
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="अमान्य सुरक्षा टोकन: प्रमाणीकरण विफल रहा।"
     )
+
+async def verify_advocate_token_optional(auth_creds: HTTPAuthorizationCredentials = Security(security_scheme)) -> dict | None:
+    """
+    Returns verified user info dictionary if a valid Authorization header is provided,
+    or None if credentials are missing or unparseable, without raising 401.
+    Ideal for public endpoints and telemetry logging.
+    """
+    if not auth_creds or not auth_creds.credentials:
+        return None
+    try:
+        return await verify_advocate_token(auth_creds)
+    except Exception:
+        return None
+
