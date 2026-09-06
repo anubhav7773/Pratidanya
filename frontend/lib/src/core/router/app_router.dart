@@ -14,6 +14,7 @@ import '../../features/04_draft_generator/presentation/screens/draft_studio_scre
 
 import '../../features/05_verify_and_export/presentation/screens/verification_gate_screen.dart';
 import '../../features/billing/presentation/screens/paywall_screen.dart';
+import '../../features/06_high_court/presentation/screens/high_court_studio_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   return GoRouter(
@@ -103,6 +104,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/paywall',
         builder: (context, state) => const PaywallScreen(),
+      ),
+      GoRoute(
+        path: '/high-court',
+        builder: (context, state) => const HighCourtStudioScreen(),
       ),
     ],
   );
