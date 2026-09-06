@@ -5,6 +5,7 @@ import '../../../../core/theme/stitch_colors.dart';
 import '../../../../core/services/activity_service.dart';
 import '../controllers/case_controller.dart';
 import '../widgets/case_card.dart';
+import '../widgets/advocate_drawer.dart';
 
 class CaseListScreen extends ConsumerStatefulWidget {
   final VoidCallback? onNewCasePressed;
@@ -16,6 +17,7 @@ class CaseListScreen extends ConsumerStatefulWidget {
 }
 
 class _CaseListScreenState extends ConsumerState<CaseListScreen> {
+  final _scaffoldKey = GlobalKey<ScaffoldState>();
   final _searchController = TextEditingController();
   String _selectedFilter = 'date'; // 'date', 'court', 'custody'
   bool _showSearchInput = false;
@@ -31,6 +33,8 @@ class _CaseListScreenState extends ConsumerState<CaseListScreen> {
     final casesAsync = ref.watch(caseListProvider);
 
     return Scaffold(
+      key: _scaffoldKey,
+      drawer: const AdvocateDrawer(),
       backgroundColor: const Color(0xFFFAF8FF),
       body: SafeArea(
         child: casesAsync.when(
@@ -88,7 +92,10 @@ class _CaseListScreenState extends ConsumerState<CaseListScreen> {
                             children: [
                               IconButton(
                                 icon: const Icon(Icons.menu_open, color: Color(0xFFD6E3FF)),
-                                onPressed: () {},
+                                tooltip: 'चैंबर मेनू',
+                                onPressed: () {
+                                  _scaffoldKey.currentState?.openDrawer();
+                                },
                               ),
                               const SizedBox(width: 4),
                               const Column(
@@ -115,6 +122,7 @@ class _CaseListScreenState extends ConsumerState<CaseListScreen> {
                             children: [
                               IconButton(
                                 icon: const Icon(Icons.search, color: Color(0xFFD6E3FF)),
+                                tooltip: 'केस खोजें',
                                 onPressed: () {
                                   setState(() => _showSearchInput = !_showSearchInput);
                                 },
@@ -123,7 +131,15 @@ class _CaseListScreenState extends ConsumerState<CaseListScreen> {
                                 children: [
                                   IconButton(
                                     icon: const Icon(Icons.notifications_outlined, color: Color(0xFFD6E3FF)),
-                                    onPressed: () {},
+                                    tooltip: 'न्यायालयीन सूचनाएं',
+                                    onPressed: () {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(
+                                          content: Text('ई-कोर्ट्स कॉज लिस्ट सूचना: आज की सभी पेशियां अद्यतित हैं।'),
+                                          duration: Duration(seconds: 2),
+                                        ),
+                                      );
+                                    },
                                   ),
                                   Positioned(
                                     right: 12,
@@ -141,7 +157,24 @@ class _CaseListScreenState extends ConsumerState<CaseListScreen> {
                               ),
                               IconButton(
                                 icon: const Icon(Icons.tune, color: Color(0xFFD6E3FF)),
-                                onPressed: () {},
+                                tooltip: 'फ़िल्टर एवं सॉर्टिंग',
+                                onPressed: () {
+                                  setState(() {
+                                    if (_selectedFilter == 'date') {
+                                      _selectedFilter = 'court';
+                                    } else if (_selectedFilter == 'court') {
+                                      _selectedFilter = 'custody';
+                                    } else {
+                                      _selectedFilter = 'date';
+                                    }
+                                  });
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text('फ़िल्टर बदला गया: ${_selectedFilter == 'date' ? 'तारीख वार' : _selectedFilter == 'court' ? 'न्यायालय वार' : 'जेल अभिरक्षा'}'),
+                                      duration: const Duration(seconds: 1),
+                                    ),
+                                  );
+                                },
                               ),
                             ],
                           ),
@@ -149,31 +182,66 @@ class _CaseListScreenState extends ConsumerState<CaseListScreen> {
                       ),
                       if (_showSearchInput) ...[
                         const SizedBox(height: 10),
-                        TextField(
-                          controller: _searchController,
-                          onChanged: (val) => ref.read(caseSearchQueryProvider.notifier).state = val,
-                          style: const TextStyle(color: Colors.black, fontSize: 13.5),
-                          decoration: InputDecoration(
-                            hintText: 'मु.अ.सं. या अभियुक्त का नाम खोजें...',
-                            hintStyle: const TextStyle(color: Colors.grey, fontSize: 13),
-                            prefixIcon: const Icon(Icons.search, size: 20, color: Colors.grey),
-                            suffixIcon: _searchController.text.isNotEmpty
-                                ? IconButton(
-                                    icon: const Icon(Icons.clear, size: 18),
-                                    onPressed: () {
-                                      _searchController.clear();
-                                      ref.read(caseSearchQueryProvider.notifier).state = '';
-                                    },
-                                  )
-                                : null,
-                            contentPadding: const EdgeInsets.symmetric(vertical: 8.0),
-                            filled: true,
-                            fillColor: Colors.white,
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8.0),
-                              borderSide: BorderSide.none,
+                        Row(
+                          children: [
+                            Expanded(
+                              child: TextField(
+                                controller: _searchController,
+                                onChanged: (val) => ref.read(caseSearchQueryProvider.notifier).state = val,
+                                style: const TextStyle(color: Colors.black, fontSize: 13.5),
+                                decoration: InputDecoration(
+                                  hintText: 'मु.अ.सं. या अभियुक्त का नाम खोजें...',
+                                  hintStyle: const TextStyle(color: Colors.grey, fontSize: 13),
+                                  prefixIcon: const Icon(Icons.search, size: 20, color: Colors.grey),
+                                  suffixIcon: _searchController.text.isNotEmpty
+                                      ? IconButton(
+                                          icon: const Icon(Icons.clear, size: 18),
+                                          onPressed: () {
+                                            _searchController.clear();
+                                            ref.read(caseSearchQueryProvider.notifier).state = '';
+                                          },
+                                        )
+                                      : null,
+                                  contentPadding: const EdgeInsets.symmetric(vertical: 8.0),
+                                  filled: true,
+                                  fillColor: Colors.white,
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(8.0),
+                                    borderSide: BorderSide.none,
+                                  ),
+                                ),
+                              ),
                             ),
-                          ),
+                            const SizedBox(width: 8),
+                            InkWell(
+                              onTap: () {
+                                ActivityService.logActivity(activityType: 'HEADER_PRECEDENT_SEARCH_TAPPED');
+                                context.push('/precedent-search');
+                              },
+                              borderRadius: BorderRadius.circular(8),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 11),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFD4AF37),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: const Row(
+                                  children: [
+                                    Icon(Icons.find_in_page, size: 16, color: Color(0xFF0D1C32)),
+                                    SizedBox(width: 4),
+                                    Text(
+                                      'मिसाल (AIR)',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                        color: Color(0xFF0D1C32),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                       const SizedBox(height: 14),

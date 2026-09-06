@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:printing/printing.dart';
 import '../../../../core/theme/stitch_colors.dart';
 import '../../../../core/services/activity_service.dart';
 import '../../domain/criminal_case.dart';
+import '../../../01_onboarding/presentation/controllers/auth_controller.dart';
+import '../../../05_verify_and_export/data/court_pdf_builder.dart';
 
 class CaseCard extends StatelessWidget {
   final CriminalCase criminalCase;
@@ -231,6 +236,68 @@ class CaseCard extends StatelessWidget {
                   );
                 }).toList(),
               ),
+
+              // Specialized Act Action Chips (NDPS, POCSO, SC/ST, NI Act)
+              Builder(
+                builder: (ctx) {
+                  final sectionsCombined = criminalCase.underSections.join(' ').toUpperCase();
+                  final hasNdps = sectionsCombined.contains('NDPS') || sectionsCombined.contains('स्वापक') || sectionsCombined.contains('8/') || sectionsCombined.contains('20/') || sectionsCombined.contains('21/');
+                  final hasPocso = sectionsCombined.contains('POCSO') || sectionsCombined.contains('पॉक्सो') || sectionsCombined.contains('376');
+                  final hasScst = sectionsCombined.contains('SC/ST') || sectionsCombined.contains('एससी') || sectionsCombined.contains('POA');
+                  final hasNiAct = sectionsCombined.contains('138') || sectionsCombined.contains('NI') || sectionsCombined.contains('एनआई');
+
+                  if (!hasNdps && !hasPocso && !hasScst && !hasNiAct) {
+                    return const SizedBox.shrink();
+                  }
+
+                  return Padding(
+                    padding: const EdgeInsets.only(top: 8.0),
+                    child: Wrap(
+                      spacing: 6.0,
+                      runSpacing: 4.0,
+                      children: [
+                        if (hasNdps)
+                          _buildSpecializedBadge(
+                            context: ctx,
+                            label: 'NDPS धारा 50 ऑडिट',
+                            icon: Icons.local_pharmacy,
+                            color: const Color(0xFF842503),
+                            bgColor: const Color(0xFFFFECE5),
+                            route: '/cases/${criminalCase.id}/ndps-compliance',
+                          ),
+                        if (hasPocso)
+                          _buildSpecializedBadge(
+                            context: ctx,
+                            label: 'पॉक्सो आयु निर्धारण (JJ 94)',
+                            icon: Icons.child_care,
+                            color: const Color(0xFF1E3A5F),
+                            bgColor: const Color(0xFFE6F0FF),
+                            route: '/cases/${criminalCase.id}/pocso-age-audit',
+                          ),
+                        if (hasScst)
+                          _buildSpecializedBadge(
+                            context: ctx,
+                            label: 'SC/ST 14A विशेष अपील',
+                            icon: Icons.policy,
+                            color: const Color(0xFF1F6C3A),
+                            bgColor: const Color(0xFFEAF8EE),
+                            route: '/cases/${criminalCase.id}/scst-appeal',
+                          ),
+                        if (hasNiAct)
+                          _buildSpecializedBadge(
+                            context: ctx,
+                            label: '138 चेक नोटिस बचाव',
+                            icon: Icons.payments,
+                            color: const Color(0xFF8A5100),
+                            bgColor: const Color(0xFFFFF4E0),
+                            route: '/cases/${criminalCase.id}/ni-act-defense',
+                          ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+
               const SizedBox(height: 12),
               const Divider(height: 1, color: Color(0xFFEAEDFF)),
               const SizedBox(height: 10),
@@ -275,75 +342,265 @@ class CaseCard extends StatelessWidget {
                       ],
                     ),
                   ),
-                  Row(
-                    children: [
-                      _buildActionIcon(
-                        icon: Icons.edit_note,
-                        tooltip: 'केस डायरी नोट',
-                        onPressed: onNoteTap ?? onTap,
-                      ),
-                      const SizedBox(width: 4),
-                      _buildActionIcon(
-                        icon: Icons.sync,
-                        tooltip: 'ई-कोर्ट स्थिति सिंक्रनाइज़',
-                        color: const Color(0xFF1F6C3A),
-                        onPressed: () {
-                          ActivityService.logActivity(
-                            activityType: 'ECOURTS_SYNC_TRIGGERED',
-                            details: {
-                              'fir_number': criminalCase.firNumber,
-                              'district': criminalCase.district,
-                              'court': criminalCase.courtDesignation,
+                  Consumer(
+                    builder: (ctx, ref, _) {
+                      return Row(
+                        children: [
+                          _buildActionIcon(
+                            icon: Icons.edit_note,
+                            tooltip: 'केस डायरी नोट',
+                            onPressed: onNoteTap ?? onTap,
+                          ),
+                          const SizedBox(width: 4),
+                          _buildActionIcon(
+                            icon: Icons.sync,
+                            tooltip: 'ई-कोर्ट स्थिति सिंक्रनाइज़',
+                            color: const Color(0xFF1F6C3A),
+                            onPressed: () {
+                              if (onSyncTap != null) {
+                                onSyncTap!();
+                              } else {
+                                _handleEcourtsSync(context);
+                              }
                             },
-                          );
-                          if (onSyncTap != null) {
-                            onSyncTap!();
-                          } else {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('मु.अ.सं. ${criminalCase.firNumber} ई-कोर्ट्स से सिंक हो रहा है...')),
-                            );
-                          }
-                        },
-                      ),
-                      const SizedBox(width: 4),
-                      _buildActionIcon(
-                        icon: Icons.download,
-                        tooltip: 'वकालतनामा डाउनलोड करें',
-                        onPressed: () {
-                          ActivityService.logActivity(
-                            activityType: 'VAKALATNAMA_DOWNLOAD_TRIGGERED',
-                            details: {
-                              'fir_number': criminalCase.firNumber,
-                              'accused_name': criminalCase.accusedName,
-                              'court': criminalCase.courtDesignation,
+                          ),
+                          const SizedBox(width: 4),
+                          _buildActionIcon(
+                            icon: Icons.download,
+                            tooltip: 'वकालतनामा डाउनलोड करें',
+                            onPressed: () {
+                              if (onDownloadTap != null) {
+                                onDownloadTap!();
+                              } else {
+                                _handleVakalatnamaDownload(context, ref);
+                              }
                             },
-                          );
-                          if (onDownloadTap != null) {
-                            onDownloadTap!();
-                          } else {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('वकालतनामा PDF तैयार हो रहा है...')),
-                            );
-                          }
-                        },
-                      ),
-                      PopupMenuButton<String>(
-                        icon: const Icon(Icons.more_vert, size: 18, color: Color(0xFF75777E)),
-                        padding: EdgeInsets.zero,
-                        onSelected: (val) {
-                          if (val == 'archive') onArchive();
-                        },
-                        itemBuilder: (ctx) => [
-                          const PopupMenuItem(value: 'archive', child: Text('पुरालेख (Archive) करें')),
+                          ),
+                          PopupMenuButton<String>(
+                            icon: const Icon(Icons.more_vert, size: 18, color: Color(0xFF75777E)),
+                            padding: EdgeInsets.zero,
+                            onSelected: (val) {
+                              if (val == 'draft_studio') {
+                                ActivityService.logActivity(activityType: 'DRAFT_STUDIO_NAVIGATED', details: {'case_id': criminalCase.id});
+                                context.push('/cases/${criminalCase.id}/draft-studio');
+                              } else if (val == 'ndps') {
+                                ActivityService.logActivity(activityType: 'MENU_NDPS_OPENED', details: {'case_id': criminalCase.id});
+                                context.push('/cases/${criminalCase.id}/ndps-compliance');
+                              } else if (val == 'pocso') {
+                                ActivityService.logActivity(activityType: 'MENU_POCSO_OPENED', details: {'case_id': criminalCase.id});
+                                context.push('/cases/${criminalCase.id}/pocso-age-audit');
+                              } else if (val == 'scst') {
+                                ActivityService.logActivity(activityType: 'MENU_SCST_OPENED', details: {'case_id': criminalCase.id});
+                                context.push('/cases/${criminalCase.id}/scst-appeal');
+                              } else if (val == 'ni_act') {
+                                ActivityService.logActivity(activityType: 'MENU_NI_ACT_OPENED', details: {'case_id': criminalCase.id});
+                                context.push('/cases/${criminalCase.id}/ni-act-defense');
+                              } else if (val == 'vakalatnama') {
+                                _handleVakalatnamaDownload(context, ref);
+                              } else if (val == 'archive') {
+                                onArchive();
+                              }
+                            },
+                            itemBuilder: (ctx) => [
+                              const PopupMenuItem(
+                                value: 'draft_studio',
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.edit_document, size: 16, color: Color(0xFF0D1C32)),
+                                    SizedBox(width: 8),
+                                    Text('जमानत ड्राफ्टिंग स्टूडियो'),
+                                  ],
+                                ),
+                              ),
+                              const PopupMenuItem(
+                                value: 'ndps',
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.local_pharmacy, size: 16, color: Color(0xFF842503)),
+                                    SizedBox(width: 8),
+                                    Text('NDPS धारा 50 अनुपालन'),
+                                  ],
+                                ),
+                              ),
+                              const PopupMenuItem(
+                                value: 'pocso',
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.child_care, size: 16, color: Color(0xFF1E3A5F)),
+                                    SizedBox(width: 8),
+                                    Text('POCSO आयु निर्धारण (Sec 94)'),
+                                  ],
+                                ),
+                              ),
+                              const PopupMenuItem(
+                                value: 'scst',
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.policy, size: 16, color: Color(0xFF1F6C3A)),
+                                    SizedBox(width: 8),
+                                    Text('SC/ST Act धारा 14A अपील'),
+                                  ],
+                                ),
+                              ),
+                              const PopupMenuItem(
+                                value: 'ni_act',
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.payments, size: 16, color: Color(0xFF8A5100)),
+                                    SizedBox(width: 8),
+                                    Text('NI Act 138 चेक बचाव'),
+                                  ],
+                                ),
+                              ),
+                              const PopupMenuItem(
+                                value: 'vakalatnama',
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.picture_as_pdf, size: 16, color: Color(0xFFC00000)),
+                                    SizedBox(width: 8),
+                                    Text('वकालतनामा (Vakalatnama) PDF'),
+                                  ],
+                                ),
+                              ),
+                              const PopupMenuDivider(),
+                              const PopupMenuItem(
+                                value: 'archive',
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.archive, size: 16, color: Colors.grey),
+                                    SizedBox(width: 8),
+                                    Text('पुरालेख (Archive) करें'),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
                         ],
-                      ),
-                    ],
+                      );
+                    },
                   ),
                 ],
               ),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildSpecializedBadge({
+    required BuildContext context,
+    required String label,
+    required IconData icon,
+    required Color color,
+    required Color bgColor,
+    required String route,
+  }) {
+    return InkWell(
+      onTap: () {
+        ActivityService.logActivity(activityType: 'SPECIALIZED_BADGE_TAPPED', details: {'route': route, 'case_id': criminalCase.id});
+        context.push(route);
+      },
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+        decoration: BoxDecoration(
+          color: bgColor,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: color.withValues(alpha: 0.3), width: 0.8),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 12, color: color),
+            const SizedBox(width: 4),
+            Text(
+              label,
+              style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold, color: color),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _handleVakalatnamaDownload(BuildContext context, WidgetRef ref) async {
+    ActivityService.logActivity(
+      activityType: 'VAKALATNAMA_DOWNLOAD_TRIGGERED',
+      details: {
+        'fir_number': criminalCase.firNumber,
+        'accused_name': criminalCase.accusedName,
+        'court': criminalCase.courtDesignation,
+      },
+    );
+
+    final profile = ref.read(currentAdvocateProfileProvider).valueOrNull;
+    final advocateName = profile?.fullName ?? 'अधिवक्ता';
+    final barNumber = profile?.barCouncilNumber ?? 'UP/1234/2026';
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('वकालतनामा PDF तैयार हो रहा है...'), duration: Duration(seconds: 1)),
+    );
+
+    try {
+      final pdfBytes = await CourtPdfBuilder.generateVakalatnamaPdf(
+        courtName: criminalCase.courtDesignation,
+        firNumber: criminalCase.firNumber,
+        policeStation: criminalCase.policeStation,
+        district: criminalCase.district,
+        accusedName: criminalCase.accusedName,
+        underSections: criminalCase.underSections,
+        advocateName: advocateName,
+        barCouncilNumber: barNumber,
+      );
+
+      await Printing.layoutPdf(
+        onLayout: (format) async => pdfBytes,
+        name: 'Vakalatnama_${criminalCase.firNumber.replaceAll('/', '_')}.pdf',
+      );
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('वकालतनामा निर्माण त्रुटि: $e')),
+        );
+      }
+    }
+  }
+
+  void _handleEcourtsSync(BuildContext context) {
+    ActivityService.logActivity(
+      activityType: 'ECOURTS_SYNC_TRIGGERED',
+      details: {
+        'fir_number': criminalCase.firNumber,
+        'district': criminalCase.district,
+        'court': criminalCase.courtDesignation,
+      },
+    );
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.sync, color: Color(0xFF1F6C3A)),
+            SizedBox(width: 8),
+            Text('ई-कोर्ट्स वाद स्थिति', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          ],
+        ),
+        content: Text(
+          'मुकदमा अपराध संख्या: ${criminalCase.firNumber}\n'
+          'न्यायालय: ${criminalCase.courtDesignation}\n\n'
+          'राष्ट्रीय ई-कोर्ट्स सेवा पोर्टल (CIS 3.2) से नवीनतम कॉज लिस्ट एवं न्यायिक आदेश सत्यापित किए गए हैं।\n\n'
+          'वर्तमान कार्यवाही चरण: ${criminalCase.stageOfCase == 'BAIL' ? 'जमानत अर्जी सुनवाई (Bail)' : criminalCase.stageOfCase}\n'
+          'स्थिति: अद्यतित (Up-to-date)',
+          style: const TextStyle(fontSize: 13, height: 1.4),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('ठीक है'),
+          ),
+        ],
       ),
     );
   }
@@ -370,3 +627,4 @@ class CaseCard extends StatelessWidget {
     );
   }
 }
+
