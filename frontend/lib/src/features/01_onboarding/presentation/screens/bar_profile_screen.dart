@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../core/theme/stitch_colors.dart';
 import '../../../../core/utils/bar_council_validator.dart';
 import '../../../../shared/components/stitch_hindi_text_field.dart';
@@ -45,6 +46,21 @@ class _BarProfileScreenState extends ConsumerState<BarProfileScreen> {
   Widget build(BuildContext context) {
     final authState = ref.watch(authControllerProvider);
     final availableStates = BarCouncilValidator.statePrefixes.keys.toList();
+
+    ref.listen<AsyncValue<void>>(authControllerProvider, (previous, next) {
+      if (next.hasError) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(next.error.toString()),
+            backgroundColor: StitchColors.alertCrimson,
+          ),
+        );
+      } else if (previous?.isLoading == true && !next.isLoading && !next.hasError) {
+        if (context.mounted) {
+          context.go('/cases');
+        }
+      }
+    });
 
     return Scaffold(
       appBar: AppBar(

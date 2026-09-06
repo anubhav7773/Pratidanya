@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../core/theme/stitch_colors.dart';
 import '../controllers/auth_controller.dart';
 
@@ -55,14 +56,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Widget build(BuildContext context) {
     final authState = ref.watch(authControllerProvider);
 
-    ref.listen<AsyncValue<void>>(authControllerProvider, (_, state) {
-      if (state.hasError) {
+    ref.listen<AsyncValue<void>>(authControllerProvider, (previous, next) {
+      if (next.hasError) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(state.error.toString()),
+            content: Text(next.error.toString()),
             backgroundColor: StitchColors.alertCrimson,
           ),
         );
+      } else if (previous?.isLoading == true && !next.isLoading && !next.hasError) {
+        if (context.mounted) {
+          context.go('/dpdp-consent');
+        }
       }
     });
 

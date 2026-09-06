@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../core/theme/stitch_colors.dart';
 import '../controllers/auth_controller.dart';
 
@@ -18,6 +19,21 @@ class _DpdpConsentScreenState extends ConsumerState<DpdpConsentScreen> {
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authControllerProvider);
+
+    ref.listen<AsyncValue<void>>(authControllerProvider, (previous, next) {
+      if (next.hasError) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(next.error.toString()),
+            backgroundColor: StitchColors.alertCrimson,
+          ),
+        );
+      } else if (previous?.isLoading == true && !next.isLoading && !next.hasError) {
+        if (context.mounted) {
+          context.go('/bar-enrollment');
+        }
+      }
+    });
 
     return Scaffold(
       backgroundColor: const Color(0xFFFAF8FF),

@@ -5,6 +5,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as supa;
 
+import '../../features/01_onboarding/presentation/controllers/auth_controller.dart';
 import '../../features/01_onboarding/presentation/screens/login_screen.dart';
 import '../../features/01_onboarding/presentation/screens/dpdp_consent_screen.dart';
 import '../../features/01_onboarding/presentation/screens/bar_profile_screen.dart';
@@ -22,9 +23,25 @@ import '../../features/07_specialized_acts/presentation/screens/scst_appeal_scre
 import '../../features/07_specialized_acts/presentation/screens/ni_act_defense_screen.dart';
 import '../../features/09_compliance_audit/presentation/screens/chamber_privacy_audit_screen.dart';
 
+class RouterNotifier extends ChangeNotifier {
+  final Ref _ref;
+
+  RouterNotifier(this._ref) {
+    _ref.listen(authControllerProvider, (_, __) => notifyListeners());
+    _ref.listen(authStateStreamProvider, (_, __) => notifyListeners());
+  }
+}
+
+final routerNotifierProvider = Provider<RouterNotifier>((ref) {
+  return RouterNotifier(ref);
+});
+
 final routerProvider = Provider<GoRouter>((ref) {
+  final notifier = ref.watch(routerNotifierProvider);
+
   return GoRouter(
     initialLocation: '/cases',
+    refreshListenable: notifier,
     redirect: (BuildContext context, GoRouterState state) async {
       final currentPath = state.matchedLocation;
       final isLoggingIn = currentPath == '/login';
@@ -71,7 +88,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         }
       } catch (e) {
         debugPrint('Router check sync note: $e');
-        return isLoggingIn ? null : '/login';
+        // If an authenticated advocate encounters a query error,
+        // navigate them forward to the DPDP onboarding consent screen, never trap on /login
+        if (isLoggingIn) {
+          return '/dpdp-consent';
+        }
       }
 
       return null;

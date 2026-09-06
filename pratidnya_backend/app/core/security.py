@@ -8,8 +8,14 @@ from app.core.config import settings
 if not firebase_admin._apps:
     creds_dict = settings.get_firebase_credentials_dict()
     if creds_dict:
-        cred = credentials.Certificate(creds_dict)
-        firebase_admin.initialize_app(cred)
+        try:
+            cred = credentials.Certificate(creds_dict)
+            firebase_admin.initialize_app(cred)
+        except Exception:
+            try:
+                firebase_admin.initialize_app(options={"projectId": settings.FIREBASE_PROJECT_ID})
+            except Exception:
+                pass
     else:
         try:
             firebase_admin.initialize_app(options={"projectId": settings.FIREBASE_PROJECT_ID})

@@ -1,8 +1,11 @@
 import os
 import json
+import logging
 from typing import Dict, Any, Optional
 from pydantic_settings import BaseSettings
 from pydantic import Field, field_validator
+
+logger = logging.getLogger(__name__)
 
 class Settings(BaseSettings):
     # Gemini AI Configuration (Live Production Engine)
@@ -63,6 +66,8 @@ class Settings(BaseSettings):
         if not self.FIREBASE_SERVICE_ACCOUNT_JSON:
             return None
         val = self.FIREBASE_SERVICE_ACCOUNT_JSON.strip()
+        if not val or val.lower() in ("none", "null", "undefined", '""', "''", "{}"):
+            return None
         backend_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
         candidate_paths = [val, os.path.join(backend_dir, val)]
         for cp in candidate_paths:
@@ -71,11 +76,12 @@ class Settings(BaseSettings):
                     with open(cp, "r", encoding="utf-8") as f:
                         return json.load(f)
                 except Exception as e:
-                    raise ValueError(f"Failed to read service account file at {cp}: {e}")
+                    logger.warning(f"Failed to read service account file at {cp}: {e}")
         try:
             return json.loads(val)
         except Exception:
-            raise ValueError("FIREBASE_SERVICE_ACCOUNT_JSON is not a valid JSON string or file path.")
+            logger.warning("FIREBASE_SERVICE_ACCOUNT_JSON is not a valid JSON string or file path. Proceeding with default project credentials.")
+            return None
 
 
     class Config:
