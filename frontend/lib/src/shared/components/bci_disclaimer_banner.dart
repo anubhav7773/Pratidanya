@@ -26,7 +26,7 @@ class BciDisclaimerBanner extends StatelessWidget {
               style: TextStyle(
                 color: Colors.white,
                 fontSize: 11.5,
-                height: 1.35,
+                height: 1.40,
                 fontWeight: FontWeight.w500,
               ),
             ),

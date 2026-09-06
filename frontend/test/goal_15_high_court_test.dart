@@ -1,6 +1,4 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:pdf/pdf.dart';
-import 'package:pdf/widgets.dart' as pw;
 import 'package:pratidnya/src/features/06_high_court/domain/high_court_models.dart';
 import 'package:pratidnya/src/features/06_high_court/data/high_court_paper_book_builder.dart';
 
