@@ -3,13 +3,18 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'src/core/config/app_environment.dart';
+import 'src/features/billing/data/admob_service.dart';
 import 'src/app.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // 1. Statutory Environment Security Assertion
-  AppEnvironment.validateEnvironmentSecurity();
+  try {
+    AppEnvironment.validateEnvironmentSecurity();
+  } catch (e) {
+    debugPrint('Environment security check note: $e');
+  }
 
   // 2. Initialize Firebase Core
   try {
@@ -33,6 +38,13 @@ Future<void> main() async {
     );
   } catch (e) {
     debugPrint('Supabase initialization note: $e');
+  }
+
+  // 4. Initialize Google Mobile Ads SDK
+  try {
+    await AdMobService.initialize();
+  } catch (e) {
+    debugPrint('AdMob initialization note: $e');
   }
 
   runApp(

@@ -30,8 +30,21 @@
 # Audio Recording Library (Record)
 -keep class com.llfbandit.record.** { *; }
 
+# FilePicker Plugin
+-keep class com.mr.flutter.plugin.filepicker.** { *; }
+
 # Printing & PDF Rendering Library
 -keep class net.nfet.flutter.printing.** { *; }
+
+# Firebase Core & Auth
+-keep class com.google.firebase.** { *; }
+
+# AndroidX Core & Startup
+-keep class androidx.startup.** { *; }
+-keep class androidx.lifecycle.** { *; }
+
+# Preserve Line Numbers for Crash Reporting
+-keepattributes SourceFile,LineNumberTable
 
 # Suppress harmless warnings during release compilation
 -dontwarn okio.**
