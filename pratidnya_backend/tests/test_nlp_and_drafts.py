@@ -153,3 +153,52 @@ async def test_generate_draft_grounding_enforcement():
         assert citations[0]["citation_id"] == "AIR 1980 SC 785"
         assert citations[0]["verified_source_url"].startswith("https://")
         assert citations[0]["is_grounded_in_record"] is True
+
+
+@patch("app.api.v1.endpoints.drafts.get_supabase_admin_client")
+@patch("app.api.v1.endpoints.drafts.GeminiService")
+def test_generate_draft_endpoint_resilient_to_string_weaknesses_and_objections(mock_gemini_cls, mock_get_supabase):
+    """Verifies that if LLM returns strings instead of lists for weaknesses/objections,
+    the endpoint coerces them to List[str] and succeeds with HTTP 200 without ValidationError."""
+    gemini_inst = mock_gemini_cls.return_value
+    gemini_inst.generate_structured_case_analysis = AsyncMock(return_value={
+        "court_header": "न्यायालय अपर सत्र न्यायाधीश, लखनऊ",
+        "case_title": "राज्य बनाम रमेश कुमार",
+        "statutory_grounds": "1. अभियुक्त निर्दोष है। 2. झूठा फंसाया गया है।",
+        "prosecution_weaknesses": "प्रोसेक्यूशन द्वारा कोई स्वतंत्र साक्षी प्रस्तुत नहीं किया गया है।",
+        "procedural_objections": "एफ.आई.आर. दर्ज करने में 48 घंटे का अकारण विलंब हुआ है।"
+    })
+    gemini_inst.generate_dense_embedding = AsyncMock(return_value=[0.1] * 768)
+
+    mock_supabase = MagicMock()
+    mock_rpc = MagicMock()
+    mock_rpc.execute.return_value = MagicMock(data=[])
+    mock_supabase.rpc.return_value = mock_rpc
+    mock_get_supabase.return_value = mock_supabase
+
+    client = TestClient(app)
+    response = client.post(
+        "/api/v1/drafts/generate-360",
+        json={
+            "case_id": "case-uuid-99",
+            "fir_number": "124/2026",
+            "sections": ["302"],
+            "police_station": "कोतवाली नगर",
+            "district": "लखनऊ",
+            "factual_summary": "अभियुक्त पर धारा 302 का आरोप है।",
+            "custody_status": "JUDICIAL_CUSTODY",
+            "is_dummy_testing": True
+        }
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert isinstance(data["statutory_grounds"], list)
+    assert len(data["statutory_grounds"]) >= 2
+    assert isinstance(data["prosecution_weaknesses"], list)
+    assert len(data["prosecution_weaknesses"]) >= 1
+    assert "प्रोसेक्यूशन द्वारा कोई स्वतंत्र साक्षी प्रस्तुत नहीं किया गया है।" in data["prosecution_weaknesses"][0]
+    assert isinstance(data["procedural_objections"], list)
+    assert len(data["procedural_objections"]) >= 1
+    assert "एफ.आई.आर. दर्ज करने में 48 घंटे का अकारण विलंब हुआ है।" in data["procedural_objections"][0]
+

@@ -115,16 +115,36 @@ class GeminiService:
             "(Devanagari) होनी चाहिए। कभी भी काल्पनिक केस-लॉ या अप्रमाणित निर्णय उद्धृत न करें।"
         )
 
+        dist = facts_payload.get("district", "लखनऊ")
+        fir_no = facts_payload.get("fir_number", "124/2026")
+        accused = facts_payload.get("accused_name") or "अभियुक्त"
+
         user_prompt = f"""
         निम्नलिखित आपराधिक मामले का गहन 360-डिग्री विधिक विश्लेषण करें:
-        - एफ.आई.आर. संख्या: {facts_payload.get('fir_number')}
+        - एफ.आई.आर. संख्या: {fir_no}
         - संबंधित धाराएं: {', '.join(facts_payload.get('sections', []))}
-        - थाना एवं जिला: {facts_payload.get('police_station')}, {facts_payload.get('district')}
+        - थाना एवं जिला: {facts_payload.get('police_station')}, {dist}
         - अभियुक्त की स्थिति: {facts_payload.get('custody_status')}
         - घटना एवं अभियोजन कथानक: {facts_payload.get('factual_summary')}
         
-        प्रतिक्रिया केवल मान्य JSON में दें जिसमें 'court_header', 'case_title', 'statutory_grounds' (कम से कम 3 विधिक आधार), 
-        'prosecution_weaknesses', aur 'procedural_objections' शामिल हों।
+        प्रतिक्रिया केवल निम्नलिखित शुद्ध JSON संरचना में दें। ध्यान दें कि 'statutory_grounds', 'prosecution_weaknesses' और 'procedural_objections' अनिवार्य रूप से स्ट्रिंग्स की सूची (List of Strings) होने चाहिए, न कि एकल पैराग्राफ:
+        {{
+          "court_header": "न्यायालय मुख्य न्यायिक मजिस्ट्रेट, {dist}",
+          "case_title": "राज्य बनाम {accused} (मु.अ.सं. {fir_no})",
+          "statutory_grounds": [
+            "विधिक आधार 1 (यह कि अभियुक्त पूर्णतः निर्दोष है...)",
+            "विधिक आधार 2 (यह कि कथित बरामदगी संदिग्ध है...)",
+            "विधिक आधार 3 (यह कि अभियुक्त का कोई पूर्व आपराधिक इतिहास नहीं है...)"
+          ],
+          "prosecution_weaknesses": [
+            "अभियोजन कथानक की कमजोरी 1 (उदा. स्वतंत्र साक्षियों का अभाव)",
+            "अभियोजन कथानक की कमजोरी 2 (उदा. एफ.आई.आर. दर्ज करने में अकारण विलंब)"
+          ],
+          "procedural_objections": [
+            "प्रक्रियात्मक विधिक आपत्ति 1 (उदा. दंड प्रक्रिया संहिता की धारा 100(4) का उल्लंघन)",
+            "प्रक्रियात्मक विधिक आपत्ति 2 (उदा. धारा 41A के नोटिस का अनुपालन न होना)"
+          ]
+        }}
         """
 
         raw_draft = await LLMGateway.generate_structured_json(
@@ -134,20 +154,51 @@ class GeminiService:
         )
 
         if not raw_draft.get("case_title"):
-            fir_no = facts_payload.get("fir_number", "124/2026")
-            raw_draft["case_title"] = f"राज्य बनाम अभियुक्त (मु.अ.सं. {fir_no})"
+            raw_draft["case_title"] = f"राज्य बनाम {accused} (मु.अ.सं. {fir_no})"
 
         if not raw_draft.get("court_header"):
-            dist = facts_payload.get("district", "लखनऊ")
             raw_draft["court_header"] = f"न्यायालय मुख्य न्यायिक मजिस्ट्रेट, {dist}"
 
-        grounds = raw_draft.get("statutory_grounds", [])
-        if not isinstance(grounds, list) or len(grounds) < 2:
-            default_grounds = [
+        # Defensive Normalization: Guarantee that list fields are always List[str]
+        def _normalize_to_list(val, default_items: List[str]) -> List[str]:
+            if isinstance(val, list):
+                cleaned = [str(item).strip() for item in val if str(item).strip()]
+                return cleaned if cleaned else default_items
+            if isinstance(val, str) and val.strip():
+                import re
+                # Check for numbered points (1., 2., etc.) or newlines
+                numbered = re.split(r'\s*\d+\.\s*', val)
+                numbered = [n.strip("- *• \t\n") for n in numbered if n.strip("- *• \t\n")]
+                if len(numbered) > 1:
+                    return numbered
+                lines = [line.strip("- *• \t") for line in val.split("\n") if line.strip("- *• \t")]
+                return lines if lines else [val.strip()]
+            return default_items
+
+        raw_draft["statutory_grounds"] = _normalize_to_list(
+            raw_draft.get("statutory_grounds"),
+            [
                 "यह कि अभियुक्त निर्दोष है और उसे दुर्भावनापूर्वक झूठे मामले में फंसाया गया है।",
-                "यह कि कथित बरामदगी के समय दंड प्रक्रिया संहिता की धारा 100(4) के आज्ञापक प्रावधानों का पालन नहीं किया गया और कोई निष्पक्ष स्वतंत्र साक्षी उपस्थित नहीं था।"
+                "यह कि कथित बरामदगी के समय दंड प्रक्रिया संहिता की धारा 100(4) के आज्ञापक प्रावधानों का पालन नहीं किया गया और कोई निष्पक्ष स्वतंत्र साक्षी उपस्थित नहीं था।",
+                "यह कि अभियुक्त का कोई पूर्व आपराधिक इतिहास नहीं है और वह न्यायालय के सभी आदेशों का पालन करने हेतु तैयार है।"
             ]
-            raw_draft["statutory_grounds"] = (grounds if isinstance(grounds, list) else []) + default_grounds
+        )
+
+        raw_draft["prosecution_weaknesses"] = _normalize_to_list(
+            raw_draft.get("prosecution_weaknesses"),
+            [
+                "कथित घटना एवं बरामदगी के समय किसी भी स्वतंत्र व निष्पक्ष लोक साक्षी का उपस्थित न होना।",
+                "अभियोजन कथानक में गंभीर विरोधाभास एवं एफ.आई.आर. दर्ज करने में अकारण विलंब होना।"
+            ]
+        )
+
+        raw_draft["procedural_objections"] = _normalize_to_list(
+            raw_draft.get("procedural_objections"),
+            [
+                "दंड प्रक्रिया संहिता की धारा 100(4) (समतुल्य BNSS 103) के अनिवार्य प्रावधानों का अनुपालन न किया जाना।",
+                "गिरफ्तारी एवं तलाशी मेमो तैयार करने में प्रक्रियात्मक विधिक त्रुटि विद्यमान होना।"
+            ]
+        )
 
         self._deduct_user_quota(supabase, advocate_id, quota, 1200)
         return raw_draft

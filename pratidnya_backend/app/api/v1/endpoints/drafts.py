@@ -1,7 +1,8 @@
+import re
 import logging
 from fastapi import APIRouter, HTTPException, Security
-from pydantic import BaseModel, Field
-from typing import List, Optional
+from pydantic import BaseModel, Field, field_validator
+from typing import List, Optional, Any
 from app.core.security import verify_advocate_token
 from app.core.config import settings
 from app.core.database import get_supabase_admin_client
@@ -13,6 +14,31 @@ from app.services.grounding_validator import GroundingValidator
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/drafts", tags=["360 Degree Legal Drafting Engine"])
+
+def _coerce_to_list_of_strings(v: Any) -> List[str]:
+    """Defensively coerces strings, dicts, or lists into clean List[str]."""
+    if isinstance(v, list):
+        cleaned = [str(item).strip() for item in v if str(item).strip()]
+        return cleaned if cleaned else ["विवरण उपलब्ध नहीं"]
+    if isinstance(v, str) and v.strip():
+        # Check for numbered points (1., 2., etc.) or bullet marks
+        numbered = re.split(r'(?:\r?\n|\s*)(?:(?:\d+[\.\)]|\([0-9]+\)|[-*•])\s+)', v)
+        cleaned = [item.strip("- *• \t\r\n") for item in numbered if item.strip("- *• \t\r\n")]
+        if len(cleaned) > 1:
+            return cleaned
+        # Check for newline-delimited lines
+        lines = [line.strip("- *• \t\r\n") for line in v.split("\n") if line.strip("- *• \t\r\n")]
+        if len(lines) > 1:
+            return lines
+        # Check for Devanagari full stop (।) or period sentence splitting if long paragraph
+        sentences = [s.strip() for s in re.split(r'[।\.\n]', v) if len(s.strip()) > 5]
+        if len(sentences) > 1:
+            return sentences
+        return [v.strip()]
+    if isinstance(v, dict):
+        cleaned = [str(val).strip() for val in v.values() if str(val).strip()]
+        return cleaned if cleaned else ["विवरण उपलब्ध नहीं"]
+    return ["विवरण उपलब्ध नहीं"]
 
 class GenerateDraftRequest(BaseModel):
     case_id: str
@@ -42,6 +68,11 @@ class GenerateDraftResponse(BaseModel):
     prosecution_weaknesses: List[str]
     procedural_objections: List[str]
     cited_precedents: List[CitedPrecedentItem]
+
+    @field_validator("statutory_grounds", "prosecution_weaknesses", "procedural_objections", mode="before")
+    @classmethod
+    def ensure_string_list(cls, v: Any) -> List[str]:
+        return _coerce_to_list_of_strings(v)
 
 @router.post("/generate-360", response_model=GenerateDraftResponse)
 async def generate_draft_endpoint(
@@ -145,18 +176,22 @@ async def generate_draft_endpoint(
             retrieved_precedents=retrieved_precedents
         )
 
+        statutory_grounds = _coerce_to_list_of_strings(raw_draft.get("statutory_grounds", []))
+        prosecution_weaknesses = _coerce_to_list_of_strings(raw_draft.get("prosecution_weaknesses", []))
+        procedural_objections = _coerce_to_list_of_strings(raw_draft.get("procedural_objections", []))
+
         logger.info(
             f"✅ [DRAFT_GENERATION_SUCCESS] Advocate UID='{advocate_id}' | "
-            f"FIR='{payload.fir_number}' | Grounds={len(raw_draft.get('statutory_grounds', []))} | "
+            f"FIR='{payload.fir_number}' | Grounds={len(statutory_grounds)} | "
             f"Precedents={len(verified_citations)}"
         )
 
         return GenerateDraftResponse(
             court_header=raw_draft.get("court_header", f"न्यायालय मुख्य न्यायिक मजिस्ट्रेट, {payload.district}"),
             case_title=raw_draft.get("case_title", f"राज्य बनाम {payload.fir_number}"),
-            statutory_grounds=raw_draft.get("statutory_grounds", []),
-            prosecution_weaknesses=raw_draft.get("prosecution_weaknesses", []),
-            procedural_objections=raw_draft.get("procedural_objections", []),
+            statutory_grounds=statutory_grounds,
+            prosecution_weaknesses=prosecution_weaknesses,
+            procedural_objections=procedural_objections,
             cited_precedents=[
                 CitedPrecedentItem(
                     citation_id=c["citation_id"],

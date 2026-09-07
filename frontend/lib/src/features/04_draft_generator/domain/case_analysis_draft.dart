@@ -74,13 +74,29 @@ class CaseAnalysisDraft {
     required this.citedPrecedents,
   });
 
+  static List<String> _parseStringList(dynamic value) {
+    if (value == null) return [];
+    if (value is List) {
+      return value.map((e) => e.toString().trim()).where((e) => e.isNotEmpty).toList();
+    }
+    if (value is String && value.trim().isNotEmpty) {
+      final lines = value
+          .split(RegExp(r'[\r\n]+'))
+          .map((e) => e.replaceAll(RegExp(r'^\s*[-*•\d\.\)]+\s*'), '').trim())
+          .where((e) => e.isNotEmpty)
+          .toList();
+      return lines.isNotEmpty ? lines : [value.trim()];
+    }
+    return [];
+  }
+
   factory CaseAnalysisDraft.fromJson(Map<String, dynamic> json) {
     return CaseAnalysisDraft(
       courtHeader: json['court_header'] as String? ?? 'न्यायालय मुख्य न्यायिक मजिस्ट्रेट, लखनऊ',
       caseTitle: json['case_title'] as String? ?? 'राज्य बनाम अभियुक्त',
-      statutoryGrounds: List<String>.from(json['statutory_grounds'] ?? []),
-      prosecutionWeaknesses: List<String>.from(json['prosecution_weaknesses'] ?? []),
-      proceduralObjections: List<String>.from(json['procedural_objections'] ?? []),
+      statutoryGrounds: _parseStringList(json['statutory_grounds']),
+      prosecutionWeaknesses: _parseStringList(json['prosecution_weaknesses']),
+      proceduralObjections: _parseStringList(json['procedural_objections']),
       citedPrecedents: (json['cited_precedents'] as List<dynamic>?)
               ?.map((e) => CitedPrecedentItem.fromJson(e as Map<String, dynamic>))
               .toList() ??
