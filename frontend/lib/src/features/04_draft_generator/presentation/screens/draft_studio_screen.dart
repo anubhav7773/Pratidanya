@@ -45,13 +45,17 @@ class _DraftStudioScreenState extends ConsumerState<DraftStudioScreen> {
   }
 
   void _triggerDraftGeneration(CriminalCase criminalCase) {
+    final factualSummary = (criminalCase.lastCourtOrder != null && criminalCase.lastCourtOrder!.trim().isNotEmpty)
+        ? criminalCase.lastCourtOrder!
+        : 'अभियुक्त ${criminalCase.accusedName} को थाना ${criminalCase.policeStation}, जनपद ${criminalCase.district} के मु.अ.सं. ${criminalCase.firNumber} अंतर्गत धारा ${criminalCase.underSections.join(', ')} में निरुद्ध किया गया है। आवेदक पूर्णतः निर्दोष है एवं उसे विद्वेषवश झूठा फंसाया गया है। कथित घटना या बरामदगी के समय कोई निष्पक्ष स्वतंत्र साक्षी उपस्थित नहीं था।';
+
     ref.read(draftingControllerProvider.notifier).generateDraft(
           caseId: criminalCase.id,
           firNumber: criminalCase.firNumber,
           sections: criminalCase.underSections,
           policeStation: criminalCase.policeStation,
           district: criminalCase.district,
-          factualSummary: criminalCase.lastCourtOrder ?? 'बरामदगी के समय कोई स्वतंत्र साक्षी उपस्थित नहीं था।',
+          factualSummary: factualSummary,
           custodyStatus: criminalCase.accusedCustodyStatus,
           extractedFacts: _injectedFacts,
         );
@@ -429,26 +433,93 @@ class _DraftStudioScreenState extends ConsumerState<DraftStudioScreen> {
                               );
                             }
 
+                            final sectionsStr = currentCase.underSections.join(' ').toLowerCase();
+                            final isNdps = sectionsStr.contains('ndps') || sectionsStr.contains('8/20') || sectionsStr.contains('एनडीपीएस');
+                            final isHomicide = sectionsStr.contains('302') || sectionsStr.contains('103') || sectionsStr.contains('307') || sectionsStr.contains('109');
+                            final isTheft = sectionsStr.contains('379') || sectionsStr.contains('303') || sectionsStr.contains('chori') || sectionsStr.contains('चोरी');
+
                             return Column(
                               children: [
                                 if (_selectedTabIndex == 0)
                                   ...draft.statutoryGrounds.asMap().entries.map((entry) {
                                     final idx = entry.key;
-                                    final text = entry.value;
+                                    final rawText = entry.value;
+                                    final text = rawText
+                                        .replaceAll(RegExp(r'^(?:विधिक\s*आधार\s*\d+\s*[\(\:\-–\.]?\s*|\d+[\.\)]\s*)'), '')
+                                        .replaceAll(RegExp(r'\)$'), '')
+                                        .trim();
+
+                                    String cardTitle;
+                                    String statutoryChip;
+                                    String tagText = idx == 0 ? 'मानक विधिक आधार' : 'संलग्नक विवरण';
+
+                                    if (isNdps) {
+                                      if (idx == 0) {
+                                        cardTitle = 'निर्दोषिता एवं विधिसम्मत जब्ती का अभाव';
+                                        statutoryChip = 'संविधान अनु. 21 / धारा 480 BNSS / NDPS धारा 37';
+                                      } else if (idx == 1) {
+                                        cardTitle = 'तलाशी एवं जब्ती में धारा 50 NDPS का उल्लंघन';
+                                        statutoryChip = 'धारा 50 / 42 NDPS एक्ट';
+                                        tagText = 'कानूनी सुरक्षा उल्लंघन';
+                                      } else if (idx == 2) {
+                                        cardTitle = 'कोई पूर्व आपराधिक इतिहास नहीं';
+                                        statutoryChip = 'पूर्व स्वच्छ आचरण सत्यापित';
+                                      } else {
+                                        cardTitle = 'विधिक आधार #${idx + 1}';
+                                        statutoryChip = 'NDPS विधिक आधार';
+                                      }
+                                    } else if (isHomicide) {
+                                      if (idx == 0) {
+                                        cardTitle = 'निर्दोषिता एवं मिथ्या फंसाया जाना';
+                                        statutoryChip = 'संविधान अनुच्छेद 21 / BNSS धारा 480';
+                                      } else if (idx == 1) {
+                                        cardTitle = 'चोटों की प्रकृति एवं साक्ष्य का अभाव';
+                                        statutoryChip = 'केस डायरी संदर्भ मु.अ.सं. ${currentCase.firNumber}';
+                                        tagText = 'साक्ष्य अभाव';
+                                      } else if (idx == 2) {
+                                        cardTitle = 'कोई पूर्व आपराधिक इतिहास नहीं';
+                                        statutoryChip = 'पूर्व स्वच्छ आचरण सत्यापित';
+                                      } else {
+                                        cardTitle = 'विधिक आधार #${idx + 1}';
+                                        statutoryChip = 'अभियोग विश्लेषण';
+                                      }
+                                    } else if (isTheft) {
+                                      if (idx == 0) {
+                                        cardTitle = 'निर्दोषिता एवं मिथ्या फंसाया जाना';
+                                        statutoryChip = 'संविधान अनुच्छेद 21 / BNSS धारा 480';
+                                      } else if (idx == 1) {
+                                        cardTitle = 'बरामदगी की विधिक वैधता पर संदेह';
+                                        statutoryChip = 'धारा 379 IPC / 303 BNS';
+                                        tagText = 'बरामदगी संशय';
+                                      } else if (idx == 2) {
+                                        cardTitle = 'कोई पूर्व आपराधिक इतिहास नहीं';
+                                        statutoryChip = 'पूर्व स्वच्छ आचरण सत्यापित';
+                                      } else {
+                                        cardTitle = 'विधिक आधार #${idx + 1}';
+                                        statutoryChip = 'सम्पत्ति साक्ष्य';
+                                      }
+                                    } else {
+                                      if (idx == 0) {
+                                        cardTitle = 'निर्दोषिता एवं मिथ्या फंसाया जाना';
+                                        statutoryChip = 'संविधान अनुच्छेद 21 / BNSS धारा 480';
+                                      } else if (idx == 1) {
+                                        cardTitle = 'तथ्यों एवं प्रत्यक्ष साक्ष्यों का अभाव';
+                                        statutoryChip = 'मु.अ.सं. ${currentCase.firNumber} रिकॉर्ड';
+                                      } else if (idx == 2) {
+                                        cardTitle = 'कोई पूर्व आपराधिक इतिहास नहीं';
+                                        statutoryChip = 'पूर्व स्वच्छ आचरण सत्यापित';
+                                      } else {
+                                        cardTitle = 'विधिक आधार #${idx + 1}';
+                                        statutoryChip = 'विधिक विश्लेषण';
+                                      }
+                                    }
+
                                     return _buildDraftingCard(
                                       indexNumber: _toDevanagariNumber(idx + 1),
-                                      title: idx == 0
-                                          ? 'निर्दोषिता एवं मिथ्या फंसाया जाना'
-                                          : idx == 1
-                                              ? 'चोटों की प्रकृति एवं साक्ष्य का अभाव'
-                                              : 'कोई पूर्व आपराधिक इतिहास नहीं',
+                                      title: cardTitle,
                                       body: text,
-                                      statutoryChip: idx == 0
-                                          ? 'संविधान अनुच्छेद 21 / BNSS धारा 480'
-                                          : idx == 1
-                                              ? 'MLC संदर्भ संख्या 88/2026'
-                                              : 'पूर्व स्वच्छ आचरण सत्यापित',
-                                      tagText: idx == 0 ? 'मानक विधिक आधार' : 'संलग्नक विवरण',
+                                      statutoryChip: statutoryChip,
+                                      tagText: tagText,
                                       onCopy: () => _copyToClipboard(text),
                                       onEdit: () => _editItemDialog(
                                         context: context,
@@ -485,7 +556,7 @@ class _DraftStudioScreenState extends ConsumerState<DraftStudioScreen> {
                                       indexNumber: _toDevanagariNumber(idx + 1),
                                       title: 'प्रक्रियात्मक आपत्ति #${idx + 1}',
                                       body: text,
-                                      statutoryChip: 'धारा 41A CrPC / धारा 35 BNSS',
+                                      statutoryChip: isNdps ? 'धारा 50 / 42 NDPS' : 'धारा 41A CrPC / धारा 35 BNSS',
                                       tagText: 'विधिक आपत्ति',
                                       onCopy: () => _copyToClipboard(text),
                                       onEdit: null,
@@ -514,23 +585,29 @@ class _DraftStudioScreenState extends ConsumerState<DraftStudioScreen> {
                                     color: const Color(0xFFF2F3FF),
                                     borderRadius: BorderRadius.circular(10),
                                   ),
-                                  child: const Column(
+                                  child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
                                       Row(
                                         children: [
-                                          Icon(Icons.warning_amber_rounded, color: StitchColors.alertCrimson, size: 18),
-                                          SizedBox(width: 6),
+                                          const Icon(Icons.warning_amber_rounded, color: StitchColors.alertCrimson, size: 18),
+                                          const SizedBox(width: 6),
                                           Text(
-                                            'प्रक्रियात्मक उल्लंघन (धारा 41A CrPC / धारा 35 BNSS)',
-                                            style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: StitchColors.alertCrimson),
+                                            isNdps
+                                                ? 'प्रक्रियात्मक उल्लंघन (धारा 50 / 42 NDPS एक्ट)'
+                                                : 'प्रक्रियात्मक उल्लंघन (धारा 41A CrPC / धारा 35 BNSS)',
+                                            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: StitchColors.alertCrimson),
                                           ),
                                         ],
                                       ),
-                                      SizedBox(height: 4),
+                                      const SizedBox(height: 4),
                                       Text(
-                                        'गिरफ्तारी पूर्व अनिवार्य विधिक नोटिस का पूर्ण अभाव। माननीय सर्वोच्च न्यायालय द्वारा अर्नेश कुमार बनाम बिहार राज्य मामले में प्रतिपादित दिशानिर्देशों का उल्लंघन।',
-                                        style: TextStyle(fontSize: 11.5, color: Color(0xFF131B2E), height: 1.35),
+                                        draft.proceduralObjections.isNotEmpty
+                                            ? draft.proceduralObjections.first
+                                            : (isNdps
+                                                ? 'तलाशी पूर्व मजिस्ट्रेट या राजपत्रित अधिकारी के समक्ष पेश किए जाने के विधिक अधिकार (धारा 50 NDPS) का पूर्ण उल्लंघन। स्टेट ऑफ राजस्थान बनाम परमानंद (2014) 5 SCC 345 का स्पष्ट उल्लंघन।'
+                                                : 'गिरफ्तारी पूर्व अनिवार्य विधिक नोटिस का पूर्ण अभाव। माननीय सर्वोच्च न्यायालय द्वारा अर्नेश कुमार बनाम बिहार राज्य मामले में प्रतिपादित दिशानिर्देशों का उल्लंघन।'),
+                                        style: const TextStyle(fontSize: 11.5, color: Color(0xFF131B2E), height: 1.35),
                                       ),
                                     ],
                                   ),
@@ -545,26 +622,35 @@ class _DraftStudioScreenState extends ConsumerState<DraftStudioScreen> {
                                     borderRadius: BorderRadius.circular(10),
                                     border: Border.all(color: const Color(0xFFEAEDFF)),
                                   ),
-                                  child: const Column(
+                                  child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
                                       Row(
                                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                         children: [
-                                          Row(
+                                          const Row(
                                             children: [
                                               Icon(Icons.auto_stories, color: Color(0xFF1F6C3A), size: 16),
                                               SizedBox(width: 6),
                                               Text('सर्वोच्च न्यायालय नजीर संदर्भ', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF131B2E))),
                                             ],
                                           ),
-                                          Text('(2012) 1 SCC 40', style: TextStyle(fontSize: 11, fontFamily: 'monospace', color: Color(0xFF75777E))),
+                                          Text(
+                                            draft.citedPrecedents.isNotEmpty
+                                                ? draft.citedPrecedents.first.citationId
+                                                : (isNdps ? '(2014) 5 SCC 345' : '(2012) 1 SCC 40'),
+                                            style: const TextStyle(fontSize: 11, fontFamily: 'monospace', color: Color(0xFF75777E)),
+                                          ),
                                         ],
                                       ),
-                                      SizedBox(height: 6),
+                                      const SizedBox(height: 6),
                                       Text(
-                                        '"संजय चंद्र बनाम सी.बी.आई. — जमानत का प्रदान किया जाना ही सामान्य विधिक नियम है और कारावास केवल अपवाद (Bail is the rule, jail is the exception)।"',
-                                        style: TextStyle(fontSize: 11.5, fontStyle: FontStyle.italic, color: Color(0xFF131B2E), height: 1.35),
+                                        draft.citedPrecedents.isNotEmpty
+                                            ? '"${draft.citedPrecedents.first.caseTitle} — ${draft.citedPrecedents.first.quotedPassage}"'
+                                            : (isNdps
+                                                ? '"स्टेट ऑफ राजस्थान बनाम परमानंद — धारा 50 NDPS एक्ट के तहत व्यक्तिगत तलाशी के अधिकार की सूचना अनिवार्य है। धारा 50 की विफलता पर सम्पूर्ण तलाशी व जब्ती अवैध हो जाती है, जो जमानत का निर्विवाद आधार है।"'
+                                                : '"संजय चंद्र बनाम सी.बी.आई. — जमानत का प्रदान किया जाना ही सामान्य विधिक नियम है और कारावास केवल अपवाद (Bail is the rule, jail is the exception)।"'),
+                                        style: const TextStyle(fontSize: 11.5, fontStyle: FontStyle.italic, color: Color(0xFF131B2E), height: 1.35),
                                       ),
                                     ],
                                   ),

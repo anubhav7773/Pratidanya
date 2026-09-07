@@ -9,8 +9,18 @@ final draftingControllerProvider =
 
 class DraftingController extends StateNotifier<AsyncValue<CaseAnalysisDraft?>> {
   final DraftingRepository _repository;
+  String? _activeCaseId;
 
   DraftingController(this._repository) : super(const AsyncValue.data(null));
+
+  String? get activeCaseId => _activeCaseId;
+
+  void resetForCase(String caseId) {
+    if (_activeCaseId != caseId) {
+      _activeCaseId = caseId;
+      state = const AsyncValue.data(null);
+    }
+  }
 
   Future<void> generateDraft({
     required String caseId,
@@ -22,6 +32,7 @@ class DraftingController extends StateNotifier<AsyncValue<CaseAnalysisDraft?>> {
     required String custodyStatus,
     List<String> extractedFacts = const [],
   }) async {
+    _activeCaseId = caseId;
     state = const AsyncValue.loading();
     state = await AsyncValue.guard(() async {
       return await _repository.generate360Draft(
@@ -38,11 +49,17 @@ class DraftingController extends StateNotifier<AsyncValue<CaseAnalysisDraft?>> {
   }
 
   Future<bool> loadCachedDraft(String caseId) async {
+    if (_activeCaseId != caseId) {
+      _activeCaseId = caseId;
+      state = const AsyncValue.data(null);
+    }
+
     final cached = await _repository.getCachedDraft(caseId);
     if (cached != null) {
       state = AsyncValue.data(cached);
       return true;
     }
+    state = const AsyncValue.data(null);
     return false;
   }
 

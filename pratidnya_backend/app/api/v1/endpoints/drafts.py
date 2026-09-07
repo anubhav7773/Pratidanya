@@ -132,13 +132,19 @@ async def generate_draft_endpoint(
         )
 
         # Clean target section numbers for GIN array filtering
-        cleaned_sections = [
-            s.replace("धारा", "").replace("भा.दं.वि.", "").replace("IPC", "").replace("BNS", "").replace("CrPC", "").strip() 
-            for s in payload.sections
-        ]
-        # Keep only alphanumeric tokens
         import re
-        cleaned_sections = [re.sub(r'[^0-9A-Za-z_]', '', cs) for cs in cleaned_sections if cs]
+        cleaned_sections = []
+        is_ndps_flag = False
+        for s in payload.sections:
+            lower_s = s.lower()
+            if any(term in lower_s for term in ["ndps", "एनडीपीएस", "गांजा", "चरस", "8/20", "8/21"]):
+                is_ndps_flag = True
+            nums = re.findall(r'\b\d+[A-Za-z]?\b', s)
+            cleaned_sections.extend(nums)
+
+        if is_ndps_flag:
+            cleaned_sections.extend(["50", "8", "20", "21", "NDPS"])
+        cleaned_sections = list(set(cleaned_sections))
 
         rpc_res = supabase.rpc("match_verified_precedents", {
             "query_embedding": query_vector,
@@ -158,17 +164,42 @@ async def generate_draft_endpoint(
             }).execute()
             retrieved_precedents = rpc_res.data or []
 
-        # 5. Transform retrieved database records into candidate precedents
+        LIVE_PRECEDENT_URLS = {
+            "2014_AIR_SC_2756_ARNESH_KUMAR": "https://indiankanoon.org/doc/2982624/",
+            "1954_AIR_SC_39_TRIMBAK": "https://indiankanoon.org/doc/816576/",
+            "2014_5_SCC_345_PARMANAND": "https://indiankanoon.org/doc/47101851/",
+            "1984_4_SCC_116_SHARAD_BIRDHICHAND": "https://indiankanoon.org/doc/1454140/",
+            "2012_1_SCC_40_SANJAY_CHANDRA": "https://indiankanoon.org/doc/1922370/",
+            "2009_8_SCC_751_MOHD_IBRAHIM": "https://indiankanoon.org/doc/744040/",
+            "2013_7_SCC_263_JARNAIL_SINGH": "https://indiankanoon.org/doc/191295246/",
+            "2003_8_SCC_300_KR_INDIRA": "https://indiankanoon.org/doc/1959728/",
+            "2021_6_SCC_230_RAMESH_BHAVAN": "https://indiankanoon.org/doc/69796030/",
+            "1994_3_SCC_299_BABU_SINGH": "https://indiankanoon.org/doc/148696/",
+        }
+
+        # 5. Transform retrieved database records into candidate precedents with live reachable URLs
         candidate_citations = []
         for row in retrieved_precedents:
-            candidate_citations.append({
-                "citation_id": row["citation_id"],
-                "case_title": row["case_title"],
-                "quoted_passage": row["verbatim_text"],
-                "verified_source_url": row.get("verified_source_url", ""),
-                "court_name": row["court_name"],
-                "judgment_date": str(row["judgment_date"]),
-            })
+            cid = row.get("citation_id")
+            original_url = (row.get("verified_source_url") or "").strip()
+
+            if cid in LIVE_PRECEDENT_URLS:
+                live_url = LIVE_PRECEDENT_URLS[cid]
+            elif original_url and (original_url.startswith("http://") or original_url.startswith("https://")):
+                live_url = original_url
+            else:
+                live_url = ""
+
+            row["verified_source_url"] = live_url
+            if live_url:
+                candidate_citations.append({
+                    "citation_id": cid,
+                    "case_title": row.get("case_title", ""),
+                    "quoted_passage": row.get("verbatim_text", ""),
+                    "verified_source_url": live_url,
+                    "court_name": row.get("court_name", ""),
+                    "judgment_date": str(row.get("judgment_date", "")),
+                })
 
         # 6. Enforce Non-Negotiable Grounding Verification (Rule 1 & Rule 2)
         verified_citations = GroundingValidator.verify_precedent_citations(

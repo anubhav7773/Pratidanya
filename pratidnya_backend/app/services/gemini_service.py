@@ -119,30 +119,62 @@ class GeminiService:
         fir_no = facts_payload.get("fir_number", "124/2026")
         accused = facts_payload.get("accused_name") or "अभियुक्त"
 
+        sections_str = ', '.join(facts_payload.get('sections', []))
+        is_ndps = any(term in sections_str.lower() or term in (facts_payload.get('factual_summary') or '').lower() for term in ["ndps", "एनडीपीएस", "गांजा", "चरस", "स्मैक", "8/20", "8/21"])
+        is_murder = any(term in sections_str.lower() for term in ["302", "103", "हत्या"])
+        is_theft = any(term in sections_str.lower() for term in ["379", "411", "303", "317", "चोरी"])
+
+        special_instructions = ""
+        court_title = "न्यायालय मुख्य न्यायिक मजिस्ट्रेट"
+        if is_ndps:
+            court_title = "न्यायालय विशेष न्यायाधीश (एन.डी.पी.एस. अधिनियम)"
+            special_instructions = (
+                "विशेष निर्देश (NDPS अधिनियम): यह मामला स्वापक औषधि और मनःप्रभावी पदार्थ (NDPS) अधिनियम से संबंधित है। "
+                "अनिवार्य रूप से धारा 50 (व्यक्तिगत तलाशी में राजपत्रित अधिकारी/मजिस्ट्रेट का विकल्प), धारा 42 (तलाशी प्रक्रिया), "
+                "धारा 37 (मात्रा वर्गीकरण), धारा 52A (मजिस्ट्रेट के समक्ष इन्वेंटरी) के उल्लंघन के विधिक आधार तैयार करें। "
+                "किसी भी स्थिति में चोरी (379 IPC / 303 BNS) या हत्या के प्रावधान न जोड़ें।"
+            )
+        elif is_murder:
+            court_title = "न्यायालय अपर सत्र न्यायाधीश / सत्र न्यायालय"
+            special_instructions = (
+                "विशेष निर्देश (धारा 302 IPC / 103 BNS): यह मामला हत्या के गंभीर आरोप से संबंधित है। "
+                "यदि मामला परिस्थितिजन्य साक्ष्य (Circumstantial Evidence) पर है, तो साक्ष्यों की कड़ी टूटने, "
+                "मृत्यु का प्रत्यक्षदर्शी न होने, पोस्ट-मॉर्टम रिपोर्ट में विरोधाभास, और अकारण प्राथमिकी में विलंब के विधिक आधार तैयार करें।"
+            )
+        elif is_theft:
+            court_title = "न्यायालय मुख्य न्यायिक मजिस्ट्रेट"
+            special_instructions = (
+                "विशेष निर्देश (धारा 379/411 IPC / 303 BNS): यह मामला चोरी/सम्पत्ति बरामदगी से संबंधित है। "
+                "बरामदगी के समय स्वतंत्र पंच साक्षियों का अभाव, शिनाख्तगी (TIP) न होना, और 41A CrPC नोटिस का उल्लंघन के आधार तैयार करें।"
+            )
+
         user_prompt = f"""
         निम्नलिखित आपराधिक मामले का गहन 360-डिग्री विधिक विश्लेषण करें:
         - एफ.आई.आर. संख्या: {fir_no}
-        - संबंधित धाराएं: {', '.join(facts_payload.get('sections', []))}
+        - संबंधित धाराएं: {sections_str}
         - थाना एवं जिला: {facts_payload.get('police_station')}, {dist}
         - अभियुक्त की स्थिति: {facts_payload.get('custody_status')}
         - घटना एवं अभियोजन कथानक: {facts_payload.get('factual_summary')}
         
-        प्रतिक्रिया केवल निम्नलिखित शुद्ध JSON संरचना में दें। ध्यान दें कि 'statutory_grounds', 'prosecution_weaknesses' और 'procedural_objections' अनिवार्य रूप से स्ट्रिंग्स की सूची (List of Strings) होने चाहिए, न कि एकल पैराग्राफ:
+        {special_instructions}
+        
+        महत्वपूर्ण: प्रत्येक विधिक आधार को सीधे न्यायालयीन भाषा में 'यह कि...' से प्रारंभ करें। कभी भी 'विधिक आधार 1' या कोष्ठक '(' जैसे लेबल न लगाएं।
+        प्रतिक्रिया केवल निम्नलिखित शुद्ध JSON संरचना में दें:
         {{
-          "court_header": "न्यायालय मुख्य न्यायिक मजिस्ट्रेट, {dist}",
+          "court_header": "{court_title}, {dist}",
           "case_title": "राज्य बनाम {accused} (मु.अ.सं. {fir_no})",
           "statutory_grounds": [
-            "विधिक आधार 1 (यह कि अभियुक्त पूर्णतः निर्दोष है...)",
-            "विधिक आधार 2 (यह कि कथित बरामदगी संदिग्ध है...)",
-            "विधिक आधार 3 (यह कि अभियुक्त का कोई पूर्व आपराधिक इतिहास नहीं है...)"
+            "यह कि अभियुक्त पूर्णतः निर्दोष है एवं उसे दुर्भावनापूर्वक फंसाया गया है...",
+            "यह कि कथित घटना स्थल या बरामदगी के समय कोई निष्पक्ष स्वतंत्र साक्षी उपस्थित नहीं था...",
+            "यह कि अभियुक्त का कोई पूर्व आपराधिक इतिहास नहीं है..."
           ],
           "prosecution_weaknesses": [
-            "अभियोजन कथानक की कमजोरी 1 (उदा. स्वतंत्र साक्षियों का अभाव)",
-            "अभियोजन कथानक की कमजोरी 2 (उदा. एफ.आई.आर. दर्ज करने में अकारण विलंब)"
+            "घटना स्थल पर निष्पक्ष स्वतंत्र साक्षियों का पूर्ण अभाव।",
+            "अभियोजन कथानक में विधिक विरोधाभास एवं प्राथमिकी दर्ज करने में अकारण विलंब।"
           ],
           "procedural_objections": [
-            "प्रक्रियात्मक विधिक आपत्ति 1 (उदा. दंड प्रक्रिया संहिता की धारा 100(4) का उल्लंघन)",
-            "प्रक्रियात्मक विधिक आपत्ति 2 (उदा. धारा 41A के नोटिस का अनुपालन न होना)"
+            "सांविधिक प्रक्रियात्मक नियमों का उल्लंघन किया जाना।",
+            "गिरफ्तारी एवं तलाशी मेमो तैयार करने में प्रक्रियात्मक विधिक दोष।"
           ]
         }}
         """
@@ -157,22 +189,35 @@ class GeminiService:
             raw_draft["case_title"] = f"राज्य बनाम {accused} (मु.अ.सं. {fir_no})"
 
         if not raw_draft.get("court_header"):
-            raw_draft["court_header"] = f"न्यायालय मुख्य न्यायिक मजिस्ट्रेट, {dist}"
+            raw_draft["court_header"] = f"{court_title}, {dist}"
+
+        import re
+
+        def _clean_placeholder(text: str) -> str:
+            t = text.strip()
+            t = re.sub(
+                r'^(?:विधिक\s*आधार\s*\d+\s*[\(\:\-–\.]?\s*|अभियोजन(?:\s*कथानक)?\s*की\s*कमजोरी\s*\d+\s*[\(\:\-–\.]?\s*|प्रक्रियात्मक(?:\s*विधिक)?\s*आपत्ति\s*\d+\s*[\(\:\-–\.]?\s*|\d+[\.\)]\s*)',
+                '',
+                t,
+                flags=re.IGNORECASE
+            ).strip()
+            if t.startswith('(') and t.endswith(')'):
+                t = t[1:-1].strip()
+            return t
 
         # Defensive Normalization: Guarantee that list fields are always List[str]
         def _normalize_to_list(val, default_items: List[str]) -> List[str]:
             if isinstance(val, list):
-                cleaned = [str(item).strip() for item in val if str(item).strip()]
+                cleaned = [_clean_placeholder(str(item)) for item in val if str(item).strip()]
                 return cleaned if cleaned else default_items
             if isinstance(val, str) and val.strip():
-                import re
                 # Check for numbered points (1., 2., etc.) or newlines
                 numbered = re.split(r'\s*\d+\.\s*', val)
-                numbered = [n.strip("- *• \t\n") for n in numbered if n.strip("- *• \t\n")]
+                numbered = [_clean_placeholder(n.strip("- *• \t\n")) for n in numbered if n.strip("- *• \t\n")]
                 if len(numbered) > 1:
                     return numbered
-                lines = [line.strip("- *• \t") for line in val.split("\n") if line.strip("- *• \t")]
-                return lines if lines else [val.strip()]
+                lines = [_clean_placeholder(line.strip("- *• \t")) for line in val.split("\n") if line.strip("- *• \t")]
+                return lines if lines else [_clean_placeholder(val.strip())]
             return default_items
 
         raw_draft["statutory_grounds"] = _normalize_to_list(

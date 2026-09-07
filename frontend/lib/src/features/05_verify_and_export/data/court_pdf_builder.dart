@@ -92,7 +92,11 @@ class CourtPdfBuilder {
             // 6. Verified Grounded Paragraphs
             ...payload.verifiedGrounds.asMap().entries.map((entry) {
               final index = entry.key + 1;
-              final ground = entry.value;
+              final rawGround = entry.value;
+              final ground = rawGround
+                  .replaceAll(RegExp(r'^(?:विधिक\s*आधार\s*\d+\s*[\(\:\-–\.]?\s*|\d+[\.\)]\s*)'), '')
+                  .replaceAll(RegExp(r'\)$'), '')
+                  .trim();
               return pw.Padding(
                 padding: const pw.EdgeInsets.only(bottom: 8.0),
                 child: pw.Row(

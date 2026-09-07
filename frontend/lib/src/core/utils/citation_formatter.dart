@@ -1,5 +1,19 @@
 /// Utility to format internal precedent identifiers into standard Indian legal citations
+/// and provide permanent, reachable live URLs.
 class CitationFormatter {
+  static final Map<String, String> _knownPrecedentUrls = {
+    '1984_4_SCC_116_SHARAD_BIRDHICHAND': 'https://indiankanoon.org/doc/1454140/',
+    '2014_AIR_SC_2756_ARNESH_KUMAR': 'https://indiankanoon.org/doc/2982624/',
+    '2014_5_SCC_345_PARMANAND': 'https://indiankanoon.org/doc/47101851/',
+    '2012_1_SCC_40_SANJAY_CHANDRA': 'https://indiankanoon.org/doc/1922370/',
+    '1954_AIR_SC_39_TRIMBAK': 'https://indiankanoon.org/doc/816576/',
+    '2009_8_SCC_751_MOHD_IBRAHIM': 'https://indiankanoon.org/doc/744040/',
+    '2013_7_SCC_263_JARNAIL_SINGH': 'https://indiankanoon.org/doc/191295246/',
+    '2003_8_SCC_300_KR_INDIRA': 'https://indiankanoon.org/doc/1959728/',
+    '2021_6_SCC_230_RAMESH_BHAVAN': 'https://indiankanoon.org/doc/69796030/',
+    '1994_3_SCC_299_BABU_SINGH': 'https://indiankanoon.org/doc/148696/',
+  };
+
   /// Formats raw citation slugs like `1984_4_SCC_116_SHARAD_BIRDHICHAND`
   /// into recognized Indian legal citations like `(1984) 4 SCC 116`.
   static String format(String rawCitationId) {
@@ -49,13 +63,18 @@ class CitationFormatter {
     return cleanId.replaceAll('_', ' ');
   }
 
-  /// Returns official source URL fallback if precedent source URL is empty
+  /// Returns permanent, live, mobile-accessible URL for judicial precedent
   static String getOfficialPortalUrl(String rawCitationId, String? existingUrl) {
-    if (existingUrl != null && existingUrl.startsWith('http')) {
+    for (final entry in _knownPrecedentUrls.entries) {
+      if (rawCitationId.contains(entry.key) || entry.key.contains(rawCitationId)) {
+        return entry.value;
+      }
+    }
+    if (existingUrl != null && existingUrl.startsWith('http') && !existingUrl.contains('judis')) {
       return existingUrl;
     }
     final formatted = format(rawCitationId);
     final encodedQuery = Uri.encodeComponent(formatted);
-    return 'https://digiscr.sci.gov.in/search?q=$encodedQuery';
+    return 'https://indiankanoon.org/search/?formInput=$encodedQuery';
   }
 }
