@@ -83,8 +83,8 @@ class DraftingRepository {
 
       // Resilient progressive retry on 502/503/504 (recovering from Render container cold start)
       int retryCount = 0;
-      const maxRetries = 3;
-      final retryDelays = [4000, 7000, 10000];
+      const maxRetries = 6;
+      final retryDelays = [4000, 6000, 8000, 10000, 12000, 15000];
 
       while ((response.statusCode == 502 || response.statusCode == 503 || response.statusCode == 504) &&
           retryCount < maxRetries) {

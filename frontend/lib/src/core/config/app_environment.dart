@@ -53,13 +53,31 @@ class AppEnvironment {
     }
   }
 
+  static bool _isWarmingUp = false;
+
   /// Silently pings /healthz in the background to wake up Render from cold start
   static void warmupBackend() {
-    try {
-      http.get(Uri.parse('$backendBaseUrl/healthz')).timeout(
-        const Duration(seconds: 8),
-        onTimeout: () => http.Response('timeout', 408),
-      ).catchError((_) => http.Response('error', 500));
-    } catch (_) {}
+    if (_isWarmingUp) return;
+    _isWarmingUp = true;
+    Future.microtask(() async {
+      try {
+        final res = await http.get(Uri.parse('$backendBaseUrl/healthz')).timeout(
+          const Duration(seconds: 40),
+          onTimeout: () => http.Response('timeout', 408),
+        ).catchError((_) => http.Response('error', 500));
+
+        if (res.statusCode != 200) {
+          await Future.delayed(const Duration(seconds: 6));
+          await http.get(Uri.parse('$backendBaseUrl/healthz')).timeout(
+            const Duration(seconds: 30),
+            onTimeout: () => http.Response('timeout', 408),
+          ).catchError((_) => http.Response('error', 500));
+        }
+      } catch (_) {
+        // Ignored: silent background warmup
+      } finally {
+        _isWarmingUp = false;
+      }
+    });
   }
 }

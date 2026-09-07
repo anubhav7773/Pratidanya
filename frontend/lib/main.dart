@@ -79,4 +79,7 @@ Future<void> main() async {
       child: PratidnyaApplication(),
     ),
   );
+
+  // 5. Silently warm up Render microservice in background so container is hot
+  AppEnvironment.warmupBackend();
 }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/stitch_colors.dart';
+import '../../../../core/config/app_environment.dart';
 import '../../../../core/services/activity_service.dart';
 import '../../../../core/storage/courtroom_sync_manager.dart';
 import '../../data/case_repository.dart';
@@ -23,6 +24,12 @@ class _CaseListScreenState extends ConsumerState<CaseListScreen> {
   final _searchController = TextEditingController();
   String _selectedFilter = 'date'; // 'date', 'court', 'custody'
   bool _showSearchInput = false;
+
+  @override
+  void initState() {
+    super.initState();
+    AppEnvironment.warmupBackend();
+  }
 
   @override
   void dispose() {

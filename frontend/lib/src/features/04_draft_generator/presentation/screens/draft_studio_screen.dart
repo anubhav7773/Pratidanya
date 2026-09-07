@@ -144,36 +144,45 @@ class _DraftStudioScreenState extends ConsumerState<DraftStudioScreen> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Row(
-                        children: [
-                          IconButton(
-                            icon: const Icon(Icons.arrow_back, color: Color(0xFF131B2E)),
-                            style: IconButton.styleFrom(
-                              backgroundColor: const Color(0xFFEAEDFF),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      Expanded(
+                        child: Row(
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.arrow_back, color: Color(0xFF131B2E)),
+                              style: IconButton.styleFrom(
+                                backgroundColor: const Color(0xFFEAEDFF),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              ),
+                              onPressed: () {
+                                if (Navigator.of(context).canPop()) {
+                                  Navigator.of(context).pop();
+                                }
+                              },
                             ),
-                            onPressed: () {
-                              if (Navigator.of(context).canPop()) {
-                                Navigator.of(context).pop();
-                              }
-                            },
-                          ),
-                          const SizedBox(width: 8),
-                          const Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'जमानत प्रार्थना पत्र प्रारूप',
-                                style: TextStyle(fontSize: 16.5, fontWeight: FontWeight.bold, color: Color(0xFF131B2E)),
+                            const SizedBox(width: 8),
+                            const Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'जमानत प्रार्थना पत्र प्रारूप',
+                                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFF131B2E)),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  Text(
+                                    'सत्र न्यायालय एवं उच्च न्यायालय विधिक प्रपत्र',
+                                    style: TextStyle(fontSize: 10.5, color: Color(0xFF44474D)),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
                               ),
-                              Text(
-                                'सत्र न्यायालय एवं उच्च न्यायालय विधिक प्रपत्र',
-                                style: TextStyle(fontSize: 11, color: Color(0xFF44474D)),
-                              ),
-                            ],
-                          ),
-                        ],
+                            ),
+                          ],
+                        ),
                       ),
+                      const SizedBox(width: 6),
                       Row(
                         children: [
                           IconButton(
