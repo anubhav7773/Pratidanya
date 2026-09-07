@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:sentry_flutter/sentry_flutter.dart';
 import 'dart:ui';
 import 'src/core/config/app_environment.dart';
 import 'src/core/services/activity_service.dart';
+import 'src/core/utils/overflow_error_reporter.dart';
 import 'src/features/billing/data/admob_service.dart';
 import 'src/shared/components/custom_error_screen.dart';
 import 'src/app.dart';
@@ -29,6 +31,7 @@ Future<void> main() async {
       activityType: 'CRITICAL_ISOLATE_ERROR',
       details: {'error': error.toString()},
     );
+    Sentry.captureException(error, stackTrace: stack);
     return true; // prevent application crash
   };
 
@@ -36,50 +39,82 @@ Future<void> main() async {
     return CustomErrorScreen(errorDetails: errorDetails);
   };
 
-  // 1. Statutory Environment Security Assertion
-  try {
-    AppEnvironment.validateEnvironmentSecurity();
-  } catch (e) {
-    debugPrint('Environment security check note: $e');
-  }
+  // Initialize Layout Overflow (Pixel Break) Interceptor
+  OverflowErrorReporter.initialize();
 
-  // 2. Initialize Firebase Core
-  try {
-    await Firebase.initializeApp();
-  } catch (e) {
-    debugPrint('Firebase initialization note: $e');
-  }
+  // Initialize Sentry SDK for Org: asiverticals | Project: pratidnya
+  await SentryFlutter.init(
+    (options) {
+      // DSN pass via compile-time argument (--dart-define=SENTRY_DSN=...) or fallback
+      options.dsn = const String.fromEnvironment(
+        'SENTRY_DSN',
+        defaultValue: 'https://e3a2b1c0d4e5f6a7b8c9d0e1f2a3b4c5@o4508920194826240.ingest.us.sentry.io/4508920204591104',
+      );
 
-  // 3. Initialize Supabase Client
-  try {
-    await Supabase.initialize(
-      url: AppEnvironment.supabaseUrl,
-      // ignore: deprecated_member_use
-      anonKey: AppEnvironment.supabaseAnonKey,
-      authOptions: const FlutterAuthClientOptions(
-        authFlowType: AuthFlowType.pkce,
-      ),
-      realtimeClientOptions: const RealtimeClientOptions(
-        eventsPerSecond: 2,
-      ),
-    );
-  } catch (e) {
-    debugPrint('Supabase initialization note: $e');
-  }
+      // Environment & Release Tracking
+      options.environment = AppEnvironment.appEnv;
+      options.release = 'pratidnya@1.0.0+1';
 
-  // 4. Initialize Google Mobile Ads SDK
-  try {
-    await AdMobService.initialize();
-  } catch (e) {
-    debugPrint('AdMob initialization note: $e');
-  }
+      // Capture screenshots and view hierarchy when pixel overflows or crashes occur
+      options.attachScreenshot = true;
+      // ignore: experimental_member_use
+      options.attachViewHierarchy = true;
 
-  runApp(
-    const ProviderScope(
-      child: PratidnyaApplication(),
-    ),
+      // Tracing and Profiling sample rates
+      options.tracesSampleRate = 1.0;
+      // ignore: experimental_member_use
+      options.profilesSampleRate = 1.0;
+
+      // Enable Automatic User Interaction Tracing (button taps, scroll bottlenecks)
+      options.enableUserInteractionTracing = true;
+    },
+    appRunner: () async {
+      // 1. Statutory Environment Security Assertion
+      try {
+        AppEnvironment.validateEnvironmentSecurity();
+      } catch (e) {
+        debugPrint('Environment security check note: $e');
+      }
+
+      // 2. Initialize Firebase Core
+      try {
+        await Firebase.initializeApp();
+      } catch (e) {
+        debugPrint('Firebase initialization note: $e');
+      }
+
+      // 3. Initialize Supabase Client
+      try {
+        await Supabase.initialize(
+          url: AppEnvironment.supabaseUrl,
+          // ignore: deprecated_member_use
+          anonKey: AppEnvironment.supabaseAnonKey,
+          authOptions: const FlutterAuthClientOptions(
+            authFlowType: AuthFlowType.pkce,
+          ),
+          realtimeClientOptions: const RealtimeClientOptions(
+            eventsPerSecond: 2,
+          ),
+        );
+      } catch (e) {
+        debugPrint('Supabase initialization note: $e');
+      }
+
+      // 4. Initialize Google Mobile Ads SDK
+      try {
+        await AdMobService.initialize();
+      } catch (e) {
+        debugPrint('AdMob initialization note: $e');
+      }
+
+      runApp(
+        const ProviderScope(
+          child: PratidnyaApplication(),
+        ),
+      );
+
+      // 5. Silently warm up Render microservice in background so container is hot
+      AppEnvironment.warmupBackend();
+    },
   );
-
-  // 5. Silently warm up Render microservice in background so container is hot
-  AppEnvironment.warmupBackend();
 }

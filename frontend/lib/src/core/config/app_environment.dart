@@ -1,3 +1,4 @@
+import 'dart:io' show Platform;
 import 'package:http/http.dart' as http;
 
 class AppEnvironment {
@@ -57,6 +58,9 @@ class AppEnvironment {
 
   /// Silently pings /healthz in the background to wake up Render from cold start
   static void warmupBackend() {
+    try {
+      if (Platform.environment.containsKey('FLUTTER_TEST')) return;
+    } catch (_) {}
     if (_isWarmingUp) return;
     _isWarmingUp = true;
     Future.microtask(() async {

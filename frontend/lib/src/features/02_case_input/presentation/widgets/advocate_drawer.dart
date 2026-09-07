@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/services/activity_service.dart';
+import '../../../../shared/components/sentry_test_tile.dart';
 import '../../../01_onboarding/presentation/controllers/auth_controller.dart';
 
 class AdvocateDrawer extends ConsumerWidget {
@@ -190,8 +191,9 @@ class AdvocateDrawer extends ConsumerWidget {
                     context.push('/chamber-privacy-audit');
                   },
                 ),
+                const Divider(height: 16, indent: 16, endIndent: 16),
+                const SentryTestTile(),
               ],
-
             ),
           ),
 

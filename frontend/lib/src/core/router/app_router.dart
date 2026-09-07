@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as supa;
 
 import '../../features/01_onboarding/presentation/controllers/auth_controller.dart';
@@ -42,6 +43,9 @@ final routerProvider = Provider<GoRouter>((ref) {
 
   return GoRouter(
     initialLocation: '/cases',
+    observers: [
+      SentryNavigatorObserver(),
+    ],
     refreshListenable: notifier,
     redirect: (BuildContext context, GoRouterState state) async {
       final currentPath = state.matchedLocation;
