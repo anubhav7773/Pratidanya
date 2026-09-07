@@ -14,6 +14,8 @@ final caseRepositoryProvider = Provider<CriminalCaseRepository>((ref) {
   );
 });
 
+typedef CaseRepository = CriminalCaseRepository;
+
 class CriminalCaseRepository {
   final SupabaseClient _supabase;
   final CourtroomCacheService? _cacheService;
@@ -26,6 +28,18 @@ class CriminalCaseRepository {
   })  : _cacheService = cacheService,
         _ref = ref;
 
+  /// Fixes CAS-01: Strips control characters that break PostgREST .or() URL filter syntax.
+  /// Characters like commas (,), parentheses (), colons (:), and raw percent (%) signs
+  /// disrupt URI parsing and trigger 400 Bad Request.
+  static String sanitizeSearchQuery(String rawInput) {
+    if (rawInput.isEmpty) return '';
+    // Strip characters that disrupt PostgREST query grammar
+    return rawInput
+        .replaceAll(',', ' ')
+        .replaceAll(RegExp(r'[:"\\%\[\]()]'), '')
+        .trim();
+  }
+
   Future<List<CriminalCase>> fetchUpcomingHearingCases({
     required String advocateId,
     String? searchQuery,
@@ -33,6 +47,10 @@ class CriminalCaseRepository {
     int offset = 0,
   }) async {
     try {
+      if (advocateId.isNotEmpty) {
+        _supabase.rest.headers['x-advocate-id'] = advocateId;
+      }
+
       var query = _supabase
           .from('cases')
           .select()
@@ -40,30 +58,120 @@ class CriminalCaseRepository {
           .eq('is_archived', false);
 
       if (searchQuery != null && searchQuery.trim().isNotEmpty) {
-        query = query.or('fir_number.ilike.%${searchQuery.trim()}%,accused_name.ilike.%${searchQuery.trim()}%');
+        final sanitized = sanitizeSearchQuery(searchQuery);
+        if (sanitized.isNotEmpty) {
+          query = query.or('fir_number.ilike.%$sanitized%,accused_name.ilike.%$sanitized%');
+        }
       }
 
       final response = await query
           .order('next_hearing_date', ascending: true, nullsFirst: false)
           .range(offset, offset + limit - 1);
 
-      final cases = (response as List<dynamic>)
+      final remoteCases = (response as List<dynamic>)
           .map((json) => CriminalCase.fromJson(json as Map<String, dynamic>))
           .toList();
 
+      // Retrieve any pending offline CREATE_CASE operations to guarantee newly added cases are visible
+      final pendingActions = await _cacheService?.getPendingActions() ?? [];
+      final pendingLocalCases = <CriminalCase>[];
+      for (final action in pendingActions) {
+        if (action['type'] == 'CREATE_CASE' && action['advocate_id'] == advocateId) {
+          final payload = action['payload'] as Map<String, dynamic>;
+          final localId = action['id'] as String;
+          final alreadyInRemote = remoteCases.any((c) =>
+              c.firNumber.toLowerCase() == (payload['fir_number'] as String).toLowerCase() &&
+              c.policeStation.toLowerCase() == (payload['police_station'] as String).toLowerCase());
+          if (!alreadyInRemote) {
+            pendingLocalCases.add(CriminalCase(
+              id: localId,
+              advocateId: advocateId,
+              firNumber: (payload['fir_number'] as String).trim(),
+              policeStation: (payload['police_station'] as String).trim(),
+              district: (payload['district'] as String).trim(),
+              state: (payload['state'] as String? ?? 'Uttar Pradesh').trim(),
+              accusedName: (payload['accused_name'] as String).trim(),
+              accusedCustodyStatus: payload['accused_custody_status'] as String,
+              complainantName: (payload['complainant_name'] as String?)?.trim(),
+              statuteSystem: payload['statute_system'] as String,
+              underSections: List<String>.from(payload['under_sections'] as List),
+              courtDesignation: (payload['court_designation'] as String).trim(),
+              caseNumber: (payload['case_number'] as String?)?.trim(),
+              cnrNumber: (payload['cnr_number'] as String?)?.trim(),
+              stageOfCase: payload['stage_of_case'] as String,
+              nextHearingDate: payload['next_hearing_date'] != null
+                  ? DateTime.tryParse(payload['next_hearing_date'] as String)
+                  : null,
+              lastCourtOrder: (payload['last_court_order'] as String?)?.trim(),
+              isArchived: false,
+              createdAt: DateTime.tryParse(action['created_at'] as String? ?? '') ?? DateTime.now(),
+              updatedAt: DateTime.now(),
+            ));
+          }
+        }
+      }
+
+      final combinedCases = [...pendingLocalCases, ...remoteCases];
+
+      if (_ref != null) {
+        _ref.read(pendingQueueCountProvider.notifier).state = pendingActions.length;
+        _ref.read(isOfflineModeProvider.notifier).state = pendingActions.isNotEmpty;
+      }
+
       // Only cache full queries (not search filtered queries) to preserve complete offline docket
       if (searchQuery == null || searchQuery.trim().isEmpty) {
-        await _cacheService?.saveCases(advocateId, cases);
+        await _cacheService?.saveCases(advocateId, combinedCases);
       }
-      _ref?.read(isOfflineModeProvider.notifier).state = false;
-      return cases;
+      return combinedCases;
     } catch (e) {
       // Offline fallback: try reading from local courtroom cache
       debugPrint('[CriminalCaseRepository] Supabase fetch failed ($e). Attempting local courtroom cache fallback...');
       final cached = await _cacheService?.getCachedCases(advocateId) ?? [];
-      if (cached.isNotEmpty) {
+      final pendingActions = await _cacheService?.getPendingActions() ?? [];
+
+      final pendingLocalCases = <CriminalCase>[];
+      for (final action in pendingActions) {
+        if (action['type'] == 'CREATE_CASE' && action['advocate_id'] == advocateId) {
+          final payload = action['payload'] as Map<String, dynamic>;
+          final localId = action['id'] as String;
+          final alreadyInCached = cached.any((c) =>
+              c.id == localId ||
+              (c.firNumber.toLowerCase() == (payload['fir_number'] as String).toLowerCase() &&
+               c.policeStation.toLowerCase() == (payload['police_station'] as String).toLowerCase()));
+          if (!alreadyInCached) {
+            pendingLocalCases.add(CriminalCase(
+              id: localId,
+              advocateId: advocateId,
+              firNumber: (payload['fir_number'] as String).trim(),
+              policeStation: (payload['police_station'] as String).trim(),
+              district: (payload['district'] as String).trim(),
+              state: (payload['state'] as String? ?? 'Uttar Pradesh').trim(),
+              accusedName: (payload['accused_name'] as String).trim(),
+              accusedCustodyStatus: payload['accused_custody_status'] as String,
+              complainantName: (payload['complainant_name'] as String?)?.trim(),
+              statuteSystem: payload['statute_system'] as String,
+              underSections: List<String>.from(payload['under_sections'] as List),
+              courtDesignation: (payload['court_designation'] as String).trim(),
+              caseNumber: (payload['case_number'] as String?)?.trim(),
+              cnrNumber: (payload['cnr_number'] as String?)?.trim(),
+              stageOfCase: payload['stage_of_case'] as String,
+              nextHearingDate: payload['next_hearing_date'] != null
+                  ? DateTime.tryParse(payload['next_hearing_date'] as String)
+                  : null,
+              lastCourtOrder: (payload['last_court_order'] as String?)?.trim(),
+              isArchived: false,
+              createdAt: DateTime.tryParse(action['created_at'] as String? ?? '') ?? DateTime.now(),
+              updatedAt: DateTime.now(),
+            ));
+          }
+        }
+      }
+
+      final allCached = [...pendingLocalCases, ...cached];
+      if (allCached.isNotEmpty) {
         _ref?.read(isOfflineModeProvider.notifier).state = true;
-        var filtered = cached.where((c) => !c.isArchived).toList();
+        _ref?.read(pendingQueueCountProvider.notifier).state = pendingActions.length;
+        var filtered = allCached.where((c) => !c.isArchived).toList();
         if (searchQuery != null && searchQuery.trim().isNotEmpty) {
           final q = searchQuery.trim().toLowerCase();
           filtered = filtered.where((c) =>
@@ -101,6 +209,7 @@ class CriminalCaseRepository {
     String? caseNumber,
     String? cnrNumber,
     DateTime? nextHearingDate,
+    DateTime? arrestDate,
     String? lastCourtOrder,
     bool skipOfflineQueue = false,
   }) async {
@@ -121,11 +230,15 @@ class CriminalCaseRepository {
       'cnr_number': (cnrNumber != null && cnrNumber.trim().isNotEmpty) ? cnrNumber.trim() : null,
       'stage_of_case': stageOfCase,
       'next_hearing_date': nextHearingDate?.toIso8601String().split('T').first,
+      'arrest_date': arrestDate?.toIso8601String().split('T').first,
       'last_court_order': lastCourtOrder?.trim(),
       'is_archived': false,
     };
 
     try {
+      if (advocateId.isNotEmpty) {
+        _supabase.rest.headers['x-advocate-id'] = advocateId;
+      }
       final response = await _supabase.from('cases').insert(payload).select().single();
       final createdCase = CriminalCase.fromJson(response);
 
@@ -158,6 +271,7 @@ class CriminalCaseRepository {
         cnrNumber: cnrNumber?.trim(),
         stageOfCase: stageOfCase,
         nextHearingDate: nextHearingDate,
+        arrestDate: arrestDate,
         lastCourtOrder: lastCourtOrder?.trim(),
         isArchived: false,
         createdAt: now,
@@ -199,6 +313,9 @@ class CriminalCaseRepository {
     final dateStr = nextHearingDate.toIso8601String().split('T').first;
 
     try {
+      if (advocateId.isNotEmpty) {
+        _supabase.rest.headers['x-advocate-id'] = advocateId;
+      }
       await _supabase.from('case_proceedings').insert({
         'case_id': caseId,
         'advocate_id': advocateId,
@@ -316,6 +433,9 @@ class CriminalCaseRepository {
     required String advocateId,
   }) async {
     try {
+      if (advocateId.isNotEmpty) {
+        _supabase.rest.headers['x-advocate-id'] = advocateId;
+      }
       await _supabase.from('cases').delete().eq('id', caseId);
       final cached = await _cacheService?.getCachedCases(advocateId) ?? [];
       cached.removeWhere((c) => c.id == caseId);

@@ -29,6 +29,9 @@ class _CaseListScreenState extends ConsumerState<CaseListScreen> {
   void initState() {
     super.initState();
     AppEnvironment.warmupBackend();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(courtroomSyncManagerProvider).refreshPendingCount();
+    });
   }
 
   @override

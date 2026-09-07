@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
@@ -11,6 +12,9 @@ final highCourtRepositoryProvider = Provider<HighCourtRepository>((ref) {
 });
 
 class HighCourtRepository {
+  /// Fixes NET-02: Enforces bounded 60-second timeouts across all High Court endpoints
+  static const Duration kNetworkTimeout = Duration(seconds: 60);
+
   Future<String> uploadAndParseJudgment({
     required File pdfFile,
     required String pleadingType,
@@ -26,14 +30,23 @@ class HighCourtRepository {
       ..fields['pleading_type'] = pleadingType
       ..files.add(await http.MultipartFile.fromPath('file', pdfFile.path));
 
-    final streamedResponse = await request.send();
-    final response = await http.Response.fromStream(streamedResponse);
+    try {
+      final streamedResponse = await request.send().timeout(
+        kNetworkTimeout,
+        onTimeout: () => throw TimeoutException('निर्णय PDF अपलोड समय समाप्त (60s)। कृपया पुनः प्रयास करें।'),
+      );
+      final response = await http.Response.fromStream(streamedResponse);
 
-    if (response.statusCode == 200) {
-      final data = jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
-      return data['pleading_id'] as String;
-    } else {
-      throw Exception('निर्णय पार्सिंग विफलता (${response.statusCode}): ${response.body}');
+      if (response.statusCode == 200) {
+        final data = jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
+        return data['pleading_id'] as String;
+      } else {
+        throw Exception('निर्णय पार्सिंग विफलता (${response.statusCode}): ${response.body}');
+      }
+    } on TimeoutException catch (e) {
+      throw Exception(e.message);
+    } on SocketException {
+      throw Exception('नेटवर्क कनेक्शन अनुपलब्ध है।');
     }
   }
 
@@ -50,27 +63,36 @@ class HighCourtRepository {
     final idToken = await user.getIdToken();
     final url = Uri.parse('${AppEnvironment.backendBaseUrl}/api/v1/high-court/generate-grounds');
 
-    final response = await http.post(
-      url,
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $idToken',
-      },
-      body: jsonEncode({
-        'pleading_id': pleadingId,
-        'statute_system': statuteSystem,
-        'custom_defense_angles': customAngles,
-        'is_interlocutory_order': isInterlocutory,
-        'seeks_acquittal_conversion': seeksAcquittalConversion,
-        'include_section_389_bail_grounds': true,
-      }),
-    );
+    try {
+      final response = await http
+          .post(
+            url,
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer $idToken',
+            },
+            body: jsonEncode({
+              'pleading_id': pleadingId,
+              'statute_system': statuteSystem,
+              'custom_defense_angles': customAngles,
+              'is_interlocutory_order': isInterlocutory,
+              'seeks_acquittal_conversion': seeksAcquittalConversion,
+              'include_section_389_bail_grounds': true,
+            }),
+          )
+          .timeout(
+            kNetworkTimeout,
+            onTimeout: () => throw TimeoutException('हाई कोर्ट आधार निर्माण समय समाप्त (60s)।'),
+          );
 
-    if (response.statusCode == 200) {
-      final data = jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
-      return HighCourtAppealSuite.fromJson(data);
-    } else {
-      throw Exception('आधार निर्माण विफलता (${response.statusCode}): ${response.body}');
+      if (response.statusCode == 200) {
+        final data = jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
+        return HighCourtAppealSuite.fromJson(data);
+      } else {
+        throw Exception('आधार निर्माण विफलता (${response.statusCode}): ${response.body}');
+      }
+    } on TimeoutException catch (e) {
+      throw Exception(e.message);
     }
   }
 
@@ -88,23 +110,25 @@ class HighCourtRepository {
     final idToken = await user.getIdToken();
     final url = Uri.parse('${AppEnvironment.backendBaseUrl}/api/v1/high-court/interlocutory/generate-suspension-bail');
 
-    final response = await http.post(
-      url,
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $idToken',
-      },
-      body: jsonEncode({
-        'pleading_id': suite.pleadingId,
-        'statute_system': statuteSystem,
-        'trial_bail_status': 'ON_BAIL_NEVER_MISUSED',
-        'fine_deposit_status': 'READY_TO_DEPOSIT',
-        'pairokar_name': pairokarName,
-        'pairokar_relation': pairokarRelation,
-        'pairokar_age': pairokarAge,
-        'pairokar_address': pairokarAddress,
-      }),
-    );
+    final response = await http
+        .post(
+          url,
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer $idToken',
+          },
+          body: jsonEncode({
+            'pleading_id': suite.pleadingId,
+            'statute_system': statuteSystem,
+            'trial_bail_status': 'ON_BAIL_NEVER_MISUSED',
+            'fine_deposit_status': 'READY_TO_DEPOSIT',
+            'pairokar_name': pairokarName,
+            'pairokar_relation': pairokarRelation,
+            'pairokar_age': pairokarAge,
+            'pairokar_address': pairokarAddress,
+          }),
+        )
+        .timeout(kNetworkTimeout);
 
     if (response.statusCode == 200) {
       final data = jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
@@ -128,21 +152,23 @@ class HighCourtRepository {
     final idToken = await user.getIdToken();
     final url = Uri.parse('${AppEnvironment.backendBaseUrl}/api/v1/high-court/interlocutory/generate-section-5-delay');
 
-    final response = await http.post(
-      url,
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $idToken',
-      },
-      body: jsonEncode({
-        'pleading_id': suite.pleadingId,
-        'pairokar_name': pairokarName,
-        'pairokar_relation': pairokarRelation,
-        'pairokar_age': pairokarAge,
-        'pairokar_address': pairokarAddress,
-        'primary_delay_reason': delayReasonKey,
-      }),
-    );
+    final response = await http
+        .post(
+          url,
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer $idToken',
+          },
+          body: jsonEncode({
+            'pleading_id': suite.pleadingId,
+            'pairokar_name': pairokarName,
+            'pairokar_relation': pairokarRelation,
+            'pairokar_age': pairokarAge,
+            'pairokar_address': pairokarAddress,
+            'primary_delay_reason': delayReasonKey,
+          }),
+        )
+        .timeout(kNetworkTimeout);
 
     if (response.statusCode == 200) {
       final data = jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;

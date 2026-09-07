@@ -4,6 +4,7 @@ import 'stitch_colors.dart';
 
 class StitchTypography {
   static const List<String> fallbackFonts = [
+    'NotoSansDevanagari',
     'Noto Sans Devanagari',
     'Mangal',
     'Arial Unicode MS',

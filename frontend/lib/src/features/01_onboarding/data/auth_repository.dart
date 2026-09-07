@@ -25,6 +25,13 @@ class AuthRepository {
         _googleSignIn = googleSignIn,
         _supabaseClient = supabaseClient {
     _ensureSupabaseAnonHeaders();
+    _firebaseAuth.authStateChanges().listen((user) {
+      if (user != null && user.uid.isNotEmpty) {
+        _supabaseClient.rest.headers['x-advocate-id'] = user.uid;
+      } else {
+        _supabaseClient.rest.headers.remove('x-advocate-id');
+      }
+    });
   }
 
   fb_auth.User? get currentFirebaseUser => _firebaseAuth.currentUser;
@@ -33,14 +40,18 @@ class AuthRepository {
   void _ensureSupabaseAnonHeaders() {
     _supabaseClient.rest.headers['Authorization'] = 'Bearer ${AppEnvironment.supabaseAnonKey}';
     _supabaseClient.rest.headers['apikey'] = AppEnvironment.supabaseAnonKey;
+    final uid = _firebaseAuth.currentUser?.uid;
+    if (uid != null && uid.isNotEmpty) {
+      _supabaseClient.rest.headers['x-advocate-id'] = uid;
+    } else {
+      _supabaseClient.rest.headers.remove('x-advocate-id');
+    }
   }
 
   Future<void> _injectFirebaseTokenToSupabase(fb_auth.User user) async {
-    // Note: Supabase PostgREST uses Supabase anonKey for public/anon RLS.
-    // Overwriting the Authorization header with Firebase RS256 token causes
-    // PostgREST PGRST301 "No suitable key or wrong key type".
-    // Ensure Supabase client retains its valid anonKey Authorization header.
-    _ensureSupabaseAnonHeaders();
+    _supabaseClient.rest.headers['Authorization'] = 'Bearer ${AppEnvironment.supabaseAnonKey}';
+    _supabaseClient.rest.headers['apikey'] = AppEnvironment.supabaseAnonKey;
+    _supabaseClient.rest.headers['x-advocate-id'] = user.uid;
   }
 
   Future<fb_auth.UserCredential> signInWithGoogle() async {

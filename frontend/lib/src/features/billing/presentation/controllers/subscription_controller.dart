@@ -28,7 +28,68 @@ class SubscriptionController extends StateNotifier<AsyncValue<bool>> {
   List<ProductDetails> availableProducts = [];
 
   SubscriptionController(this._ref) : super(const AsyncValue.data(false)) {
-    _initializeBilling();
+    if (!AppEnvironment.isSandboxPayment) {
+      _initializeBilling();
+    }
+    checkActiveSubscription();
+  }
+
+  /// One-Click Sandbox Simulated Purchase for Development & Pilot Testing
+  Future<bool> executeSandboxTestPurchase() async {
+    state = const AsyncValue.loading();
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        state = AsyncValue.error('लॉगिन अनिवार्य है।', StackTrace.current);
+        return false;
+      }
+
+      final idToken = await user.getIdToken();
+      const baseUrl = AppEnvironment.backendBaseUrl;
+
+      // 1. Create simulated order
+      final orderRes = await http.post(
+        Uri.parse('$baseUrl/api/v1/billing/create-order'),
+        headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer $idToken'},
+        body: jsonEncode({'plan_id': 'pratidnya_chamber_pro_monthly', 'amount_inr': 499}),
+      );
+
+      if (orderRes.statusCode != 200) {
+        throw Exception('ऑर्डर निर्माण विफल: ${orderRes.body}');
+      }
+
+      final orderData = jsonDecode(orderRes.body);
+      final orderId = orderData['order_id'];
+
+      // 2. Verify simulated payment
+      final verifyRes = await http.post(
+        Uri.parse('$baseUrl/api/v1/billing/verify-payment'),
+        headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer $idToken'},
+        body: jsonEncode({
+          'order_id': orderId,
+          'payment_id': 'pay_sandbox_simulated_${DateTime.now().millisecondsSinceEpoch}',
+          'signature': 'sig_sandbox_verified_hash',
+        }),
+      );
+
+      if (verifyRes.statusCode == 200) {
+        _ref.read(isProSubscriberProvider.notifier).state = true;
+        state = const AsyncValue.data(true);
+        ActivityService.logActivity(
+          activityType: 'PRO_SUBSCRIPTION_ACTIVATED_SANDBOX',
+          details: {
+            'order_id': orderId,
+            'plan_id': 'pratidnya_chamber_pro_monthly',
+          },
+        );
+        return true;
+      } else {
+        throw Exception('सत्यापन विफल: ${verifyRes.body}');
+      }
+    } catch (e, st) {
+      state = AsyncValue.error('सैंडबॉक्स भुगतान विफलता: $e', st);
+      return false;
+    }
   }
 
   Future<void> _initializeBilling() async {
@@ -58,10 +119,10 @@ class SubscriptionController extends StateNotifier<AsyncValue<bool>> {
   }
 
   Future<void> checkActiveSubscription() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
-
     try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) return;
+
       final idToken = await user.getIdToken();
       final url = Uri.parse('${AppEnvironment.backendBaseUrl}/api/v1/billing/status');
       final res = await http.get(url, headers: {'Authorization': 'Bearer $idToken'});

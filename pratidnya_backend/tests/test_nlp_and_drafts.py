@@ -52,6 +52,30 @@ def test_nlp_process_chargesheet_fact_extraction():
     assert len(data["facts_extracts"]) > 0
     assert data["total_sentences_processed"] >= 1
 
+def test_analyze_offense_360_ndps_and_arms_detection():
+    """Verify that analyze-offense-360 extracts accurate Special Act & BNS/IPC sections with 360 defense strategy."""
+    client = TestClient(app)
+    sample_facts = "अभियुक्त के पास से 250 ग्राम चरस एवं एक अवैध 315 बोर का तमंचा बरामद हुआ। पुलिस ने रात में बिना स्वतंत्र गवाह के तलाशी ली।"
+    response = client.post(
+        "/api/v1/nlp/analyze-offense-360",
+        json={
+            "incident_narrative": sample_facts,
+            "preferred_statute": "BNS",
+            "is_dummy_testing": True
+        }
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert "applicable_sections" in data
+    assert len(data["applicable_sections"]) >= 2
+    act_codes = [s["act_code"] for s in data["applicable_sections"]]
+    assert "NDPS" in act_codes
+    assert "ARMS" in act_codes
+    assert len(data["defense_strategy_360"]) >= 1
+    assert len(data["prosecution_strategy_360"]) >= 1
+    assert len(data["landmark_precedents"]) >= 1
+
+
 @pytest.mark.asyncio
 async def test_generate_draft_quota_exhaustion_throws_402():
     """Atomic quota check: When quota is 0, throws HTTP 402."""

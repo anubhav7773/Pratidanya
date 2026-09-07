@@ -51,6 +51,7 @@ class CaseFormController extends StateNotifier<AsyncValue<CriminalCase?>> {
     String? caseNumber,
     String? cnrNumber,
     DateTime? nextHearingDate,
+    DateTime? arrestDate,
     String? lastCourtOrder,
   }) async {
     state = const AsyncValue.loading();
@@ -77,6 +78,7 @@ class CaseFormController extends StateNotifier<AsyncValue<CriminalCase?>> {
         caseNumber: caseNumber,
         cnrNumber: cnrNumber,
         nextHearingDate: nextHearingDate,
+        arrestDate: arrestDate,
         lastCourtOrder: lastCourtOrder,
       );
 

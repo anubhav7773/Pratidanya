@@ -1,5 +1,5 @@
 import io
-import pymupdf as fitz  # PyMuPDF with modern import
+import fitz  # PyMuPDF
 import base64
 import httpx
 from typing import List, Tuple
@@ -9,61 +9,92 @@ from app.core.config import settings
 class JudgmentOcrExtractor:
     """
     Dual-Engine PDF Extractor:
-    1. Digital PDFs: Uses PyMuPDF for fast, zero-cost native Devanagari text extraction.
-    2. Photostat/Scanned PDFs: Renders PDF pages to 200/300-DPI images and applies Gemini Flash
-       multimodal vision OCR specialized for degraded Hindi court orders.
+    1. Digital PDFs: Uses PyMuPDF with strict context management (Fixes OCR-02 memory leak).
+    2. Photostat/Scanned PDFs: Head + Tail Smart Sampling prioritizing FIR charges (first 5 pages)
+       and Operative Conviction/Sentencing (last 10 pages) (Fixes OCR-01 truncation).
     """
 
     CANDIDATE_MODELS = [
-        "gemini-3.6-flash",
-        "gemini-3.1-flash-lite",
-        "gemini-flash-latest",
-        "gemini-3.5-flash",
-        "gemini-3.7-flash",
-        "gemini-3.8-flash",
+        "gemini-2.5-flash",
+        "gemini-2.0-flash",
+        "gemini-1.5-flash",
+        "gemini-flash-latest"
     ]
 
     @classmethod
     async def extract_text_from_pdf(cls, pdf_bytes: bytes) -> Tuple[str, int]:
+        if not pdf_bytes or len(pdf_bytes) == 0:
+            raise HTTPException(status_code=400, detail="प्रस्तुत PDF फ़ाइल खाली है।")
+
         try:
-            doc = fitz.open(stream=pdf_bytes, filetype="pdf")
-            total_pages = len(doc)
-            if total_pages == 0:
-                raise HTTPException(status_code=400, detail="प्रस्तुत PDF फ़ाइल खाली है।")
+            # Fixes OCR-02: Strict context manager prevents unclosed C++ document handle leaks
+            with fitz.open(stream=pdf_bytes, filetype="pdf") as doc:
+                total_pages = len(doc)
+                if total_pages == 0:
+                    raise HTTPException(status_code=400, detail="PDF में कोई पृष्ठ नहीं मिला।")
 
-            extracted_pages: List[str] = []
-            scanned_pages_to_ocr: List[Tuple[int, bytes]] = []
+                extracted_pages: List[str] = []
+                scanned_pages_to_ocr: List[Tuple[int, bytes]] = []
 
-            for page_idx in range(total_pages):
-                page = doc[page_idx]
-                page_text = page.get_text("text").strip()
+                for page_idx in range(total_pages):
+                    page = doc[page_idx]
+                    page_text = page.get_text("text").strip()
 
-                # Low character density threshold (< 80 chars per page indicates photostat scan)
-                if len(page_text) < 80:
-                    pix = page.get_pixmap(dpi=200)
-                    img_bytes = pix.tobytes("png")
-                    scanned_pages_to_ocr.append((page_idx + 1, img_bytes))
-                else:
-                    extracted_pages.append(f"[पृष्ठ {page_idx + 1}]\n{page_text}")
+                    # Low character density (< 80 chars per page indicates photostat scan)
+                    if len(page_text) < 80:
+                        pix = page.get_pixmap(dpi=200)
+                        img_bytes = pix.tobytes("png")
+                        scanned_pages_to_ocr.append((page_idx + 1, img_bytes))
+                    else:
+                        extracted_pages.append(f"[पृष्ठ {page_idx + 1}]\n{page_text}")
 
-            # If document has scanned photocopies, execute Multimodal Vision OCR
-            if scanned_pages_to_ocr:
-                ocr_results = await cls._ocr_scanned_pages(scanned_pages_to_ocr)
-                extracted_pages.extend(ocr_results)
+                # If document contains scanned photocopies, execute Smart-Sampled Vision OCR
+                if scanned_pages_to_ocr:
+                    # Fixes OCR-01: Head + Tail Smart Sampling (First 5 pages + Last 10 pages)
+                    sampled_pages = cls._smart_sample_pages(scanned_pages_to_ocr, max_budget=15)
+                    ocr_results = await cls._ocr_scanned_pages(sampled_pages)
+                    extracted_pages.extend(ocr_results)
 
-            full_extracted_text = "\n\n".join(extracted_pages)
-            if len(full_extracted_text.strip()) < 100:
-                raise HTTPException(
-                    status_code=422,
-                    detail="निर्णय की प्रति से सुस्पष्ट पाठ नहीं निकाला जा सका। कृपया उच्च गुणवत्ता की PDF अपलोड करें।"
-                )
+                full_extracted_text = "\n\n".join(extracted_pages)
+                if len(full_extracted_text.strip()) < 80:
+                    raise HTTPException(
+                        status_code=422,
+                        detail="निर्णय की प्रति से सुस्पष्ट पाठ नहीं निकाला जा सका। कृपया स्पष्ट PDF अपलोड करें।"
+                    )
 
-            return full_extracted_text, total_pages
+                return full_extracted_text, total_pages
 
         except Exception as e:
             if isinstance(e, HTTPException):
                 raise e
             raise HTTPException(status_code=500, detail=f"PDF निष्कर्षण विफलता: {str(e)}")
+
+    @classmethod
+    def _smart_sample_pages(cls, pages: List[Tuple[int, bytes]], max_budget: int = 15) -> List[Tuple[int, bytes]]:
+        """
+        Fixes OCR-01: Eliminates blind head-truncation (pages[:15]).
+        In Indian trial court judgments, charges are in first 5 pages and conviction/sentence
+        orders are in the final pages.
+        """
+        total = len(pages)
+        if total <= max_budget:
+            return pages
+
+        # Head 5 pages (FIR, Charges, Prosecution Case)
+        head = pages[:5]
+        # Tail 10 pages (313 examination, analysis, operative sentence & conviction)
+        tail = pages[-10:]
+
+        # Combine uniquely preserving order
+        seen_numbers = set()
+        sampled = []
+        for p in (head + tail):
+            if p[0] not in seen_numbers:
+                seen_numbers.add(p[0])
+                sampled.append(p)
+
+        sampled.sort(key=lambda x: x[0])
+        return sampled
 
     @classmethod
     async def _ocr_scanned_pages(cls, pages: List[Tuple[int, bytes]]) -> List[str]:
@@ -73,22 +104,16 @@ class JudgmentOcrExtractor:
             "x-goog-api-key": settings.GEMINI_API_KEY
         }
 
-        # Process max 15 pages in one request batch to prevent timeout
-        target_pages = pages[:15]
-
         async with httpx.AsyncClient(timeout=60.0) as client:
-            for page_num, img_bytes in target_pages:
+            for page_num, img_bytes in pages:
                 base64_image = base64.b64encode(img_bytes).decode("utf-8")
-                
                 payload = {
                     "contents": [{
                         "parts": [
                             {
                                 "text": (
-                                    "आप भारतीय न्यायालयीन अभिलेखों के लिए विशेष OCR सहायक हैं। "
-                                    "इस न्यायालयीन निर्णय/आदेश के पृष्ठ से समस्त हिंदी (देवनागरी) पाठ को "
-                                    "अक्षरशः (verbatim) निकालें। कानूनी शब्दों, तारीखों, धाराओं (IPC/CrPC/BNS) "
-                                    "और साक्षियों के बयानों को बिना किसी फेरबदल के शुद्ध रूप में प्रस्तुत करें।"
+                                    "भारतीय न्यायालयीन निर्णय के इस पृष्ठ से समस्त हिंदी (देवनागरी) पाठ को "
+                                    "अक्षरशः निकालें। विशेषकर धाराओं, गवाहों के बयानों और दंडादेश को शुद्ध रूप में प्रस्तुत करें।"
                                 )
                             },
                             {

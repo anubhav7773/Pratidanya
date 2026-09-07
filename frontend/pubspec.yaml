@@ -47,6 +47,7 @@ dependencies:
   path_provider: ^2.1.4
   sentry_flutter: ^9.0.0 # Sentry Crash & Layout Overflow Tracking (Kotlin 2.x Support)
   url_launcher: ^6.3.2
+  share_plus: ^13.3.0 # Fixes DPD-01: File-level data bundle export & sharing
 
 dev_dependencies:
   flutter_test:
@@ -57,3 +58,19 @@ flutter:
   uses-material-design: true
   assets:
     - assets/icons/
+    - assets/fonts/
+
+  fonts:
+    - family: NotoSansDevanagari
+      fonts:
+        - asset: assets/fonts/NotoSansDevanagari-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/NotoSansDevanagari-Bold.ttf
+          weight: 700
+    - family: Roboto
+      fonts:
+        - asset: assets/fonts/Roboto-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/Roboto-Bold.ttf
+          weight: 700
+

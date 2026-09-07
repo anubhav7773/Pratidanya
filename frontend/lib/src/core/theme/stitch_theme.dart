@@ -3,10 +3,18 @@ import 'stitch_colors.dart';
 import 'stitch_typography.dart';
 
 class StitchTheme {
+  static const List<String> kDevanagariFontFallback = [
+    'NotoSansDevanagari',
+    'Roboto',
+    'sans-serif',
+  ];
+
   static ThemeData get lightTheme {
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.light,
+      fontFamily: 'NotoSansDevanagari',
+      fontFamilyFallback: kDevanagariFontFallback,
       scaffoldBackgroundColor: StitchColors.legalParchment,
       colorScheme: const ColorScheme.light(
         primary: StitchColors.courtNavy,
@@ -20,6 +28,13 @@ class StitchTheme {
         foregroundColor: Colors.white,
         elevation: 0,
         centerTitle: false,
+        titleTextStyle: TextStyle(
+          fontFamily: 'NotoSansDevanagari',
+          fontFamilyFallback: kDevanagariFontFallback,
+          fontSize: 16.0,
+          fontWeight: FontWeight.bold,
+          color: Colors.white,
+        ),
       ),
       cardTheme: CardThemeData(
         color: Colors.white,
@@ -40,6 +55,8 @@ class StitchTheme {
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.dark,
+      fontFamily: 'NotoSansDevanagari',
+      fontFamilyFallback: kDevanagariFontFallback,
       scaffoldBackgroundColor: StitchColors.darkCanvas,
       colorScheme: const ColorScheme.dark(
         primary: Colors.white,
@@ -53,6 +70,13 @@ class StitchTheme {
         foregroundColor: Colors.white,
         elevation: 0,
         centerTitle: false,
+        titleTextStyle: TextStyle(
+          fontFamily: 'NotoSansDevanagari',
+          fontFamilyFallback: kDevanagariFontFallback,
+          fontSize: 16.0,
+          fontWeight: FontWeight.bold,
+          color: Colors.white,
+        ),
       ),
       cardTheme: CardThemeData(
         color: StitchColors.darkSurface,

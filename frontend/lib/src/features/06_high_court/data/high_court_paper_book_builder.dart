@@ -9,6 +9,25 @@ class HighCourtPaperBookBuilder {
   /// - Mandatory 1.75 Inch (126 pt) Left Binding Margin for heavy cord thread binding.
   /// - Formal Table of Contents / Index Page with columnated Item, Description, Paragraph & Page references.
   /// - Urgent Listing Application, Memo of Appeal/Revision, Sec 389 Stay Petition, Sec 5 Delay Suite.
+  /// Loads TrueType Devanagari Fonts for High Court Paper-Book compilation.
+  /// Fixes PDF-02: Missing font asset caused Helvetica fallback and unreadable petitions.
+  static Future<Map<String, pw.Font>> _loadDevanagariFonts() async {
+    try {
+      final regularData = await rootBundle.load('assets/fonts/NotoSansDevanagari-Regular.ttf');
+      final boldData = await rootBundle.load('assets/fonts/NotoSansDevanagari-Bold.ttf');
+
+      return {
+        'regular': pw.Font.ttf(regularData),
+        'bold': pw.Font.ttf(boldData),
+      };
+    } catch (e) {
+      throw StateError(
+        'CRITICAL HIGH COURT PDF FONT ERROR: NotoSansDevanagari font assets missing. '
+        'Run bash scripts/download_fonts.sh to install font binaries. Details: $e',
+      );
+    }
+  }
+
   static Future<Uint8List> generateHighCourtPaperBook({
     required HighCourtAppealSuite suite,
     required String advocateName,
@@ -16,14 +35,9 @@ class HighCourtPaperBookBuilder {
     required String chamberAddress,
   }) async {
     final pdf = pw.Document();
-
-    pw.Font ttfRegular;
-    try {
-      final fontData = await rootBundle.load("assets/fonts/NotoSansDevanagari-Regular.ttf");
-      ttfRegular = pw.Font.ttf(fontData);
-    } catch (_) {
-      ttfRegular = pw.Font.helvetica();
-    }
+    final fonts = await _loadDevanagariFonts();
+    final ttfRegular = fonts['regular']!;
+    final ttfBold = fonts['bold']!;
 
     // Allahabad High Court Binding Standard: 1.75" Left (126 pt), 0.75" Right (54 pt), 1" Top/Bottom (72 pt)
     final hcPageTheme = pw.PageTheme(
@@ -34,7 +48,11 @@ class HighCourtPaperBookBuilder {
         top: 72.0,
         bottom: 72.0,
       ),
-      theme: pw.ThemeData.withFont(base: ttfRegular, bold: ttfRegular),
+      theme: pw.ThemeData.withFont(
+        base: ttfRegular,
+        bold: ttfBold,
+        fontFallback: [pw.Font.helvetica()],
+      ),
     );
 
     // =========================================================================

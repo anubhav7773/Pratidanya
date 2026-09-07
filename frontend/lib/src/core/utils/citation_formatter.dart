@@ -2,41 +2,41 @@
 /// and provide permanent, reachable live URLs.
 class CitationFormatter {
   static final Map<String, String> _knownPrecedentUrls = {
-    '1984_4_SCC_116_SHARAD_BIRDHICHAND': 'https://indiankanoon.org/doc/1454140/',
+    '1954_AIR_SC_39_TRIMBAK': 'https://indiankanoon.org/doc/858387/',
+    '2024_INSC_26_PERUMAL_RAJA': 'https://indiankanoon.org/doc/91474193/',
+    '2008_15_SCC_133_RAJU': 'https://indiankanoon.org/doc/1921282/',
     '2014_AIR_SC_2756_ARNESH_KUMAR': 'https://indiankanoon.org/doc/2982624/',
-    '2014_5_SCC_345_PARMANAND': 'https://indiankanoon.org/doc/47101851/',
-    '2012_1_SCC_40_SANJAY_CHANDRA': 'https://indiankanoon.org/doc/1922370/',
-    '1954_AIR_SC_39_TRIMBAK': 'https://indiankanoon.org/doc/816576/',
-    '2009_8_SCC_751_MOHD_IBRAHIM': 'https://indiankanoon.org/doc/744040/',
-    '2013_7_SCC_263_JARNAIL_SINGH': 'https://indiankanoon.org/doc/191295246/',
-    '2003_8_SCC_300_KR_INDIRA': 'https://indiankanoon.org/doc/1959728/',
-    '2021_6_SCC_230_RAMESH_BHAVAN': 'https://indiankanoon.org/doc/69796030/',
-    '1994_3_SCC_299_BABU_SINGH': 'https://indiankanoon.org/doc/148696/',
-    '2024_INSC_595_MANISH_SISODIA': 'https://indiankanoon.org/doc/145887258/',
-    '2020_5_SCC_1_SUSHILA_AGGARWAL': 'https://indiankanoon.org/doc/88566418/',
-    '2020_10_SCC_616_BIKRAMJIT_SINGH': 'https://indiankanoon.org/doc/175850937/',
-    '2020_7_SCC_1_ARJUN_KHOTKAR': 'https://indiankanoon.org/doc/77983637/',
-    '2024_INSC_26_PERUMAL_RAJA': 'https://indiankanoon.org/doc/182697843/',
-    '2016_3_SCC_379_MOHANLAL': 'https://indiankanoon.org/doc/171249767/',
-    '2023_INSC_352_MOHD_MUSLIM': 'https://indiankanoon.org/doc/88562329/',
-    '2019_9_SCC_608_PRAMOD_PAWAR': 'https://indiankanoon.org/doc/171569424/',
-    '2022_6_SCC_599_KAHKASHAN_KAUSAR': 'https://indiankanoon.org/doc/161821034/',
-    '2021_6_SCC_1_SATBIR_SINGH': 'https://indiankanoon.org/doc/106316719/',
-    '1998_8_SCC_493_SATISH': 'https://indiankanoon.org/doc/1173934/',
-    '2008_15_SCC_133_RAJU': 'https://indiankanoon.org/doc/1570775/',
-    '2020_10_SCC_710_HITESH_VERMA': 'https://indiankanoon.org/doc/171545625/',
-    '2020_4_SCC_727_PRATHVI_RAJ': 'https://indiankanoon.org/doc/178229871/',
-    '1972_2_SCC_194_GUNWANTLAL': 'https://indiankanoon.org/doc/1218529/',
-    '1989_CriLJ_127_PAWAN_KUMAR': 'https://indiankanoon.org/doc/1359654/',
-    '2022_INSC_514_SHRADDHA_GUPTA': 'https://indiankanoon.org/doc/192237461/',
-    '1967_3_SCR_281_BOOSENNA': 'https://indiankanoon.org/doc/526714/',
-    '2022_INSC_929_VIJAY_MADANLAL': 'https://indiankanoon.org/doc/152912440/',
-    '2021_3_SCC_713_KA_NAJEEB': 'https://indiankanoon.org/doc/69666014/',
+    '1984_4_SCC_116_SHARAD_BIRDHICHAND': 'https://indiankanoon.org/doc/13149785/',
+    '1994_3_SCC_299_BABU_SINGH': 'https://indiankanoon.org/doc/1515744/',
+    '2024_INSC_595_MANISH_SISODIA': 'https://indiankanoon.org/doc/132771982/',
+    '2020_5_SCC_1_SUSHILA_AGGARWAL': 'https://indiankanoon.org/doc/123660783/',
+    '2020_10_SCC_616_BIKRAMJIT_SINGH': 'https://indiankanoon.org/doc/10807134/',
+    '2020_7_SCC_1_ARJUN_KHOTKAR': 'https://indiankanoon.org/doc/172105947/',
+    '2023_INSC_352_MOHD_MUSLIM': 'https://indiankanoon.org/doc/135015744/',
+    '2019_9_SCC_608_PRAMOD_PAWAR': 'https://indiankanoon.org/doc/107689273/',
+    '2022_6_SCC_599_KAHKASHAN_KAUSAR': 'https://indiankanoon.org/doc/76640285/',
+    '2021_6_SCC_1_SATBIR_SINGH': 'https://indiankanoon.org/doc/59224804/',
+    '2020_10_SCC_710_HITESH_VERMA': 'https://indiankanoon.org/doc/111507500/',
+    '2020_4_SCC_727_PRATHVI_RAJ': 'https://indiankanoon.org/doc/31336209/',
+    '2022_INSC_514_SHRADDHA_GUPTA': 'https://indiankanoon.org/doc/49647060/',
+    '2021_3_SCC_713_KA_NAJEEB': 'https://indiankanoon.org/doc/18346623/',
     '2015_5_SCC_1_SHREYA_SINGHAL': 'https://indiankanoon.org/doc/110813550/',
-    '2023_4_SCC_731_NEERAJ_DUTTA': 'https://indiankanoon.org/doc/182882772/',
-    '2019_5_SCC_418_BASALINGAPPA': 'https://indiankanoon.org/doc/171545625/',
-    '2014_9_SCC_772_STATE_SANJAY': 'https://indiankanoon.org/doc/182449767/',
-    '2021_ALLHC_RAHIM': 'https://indiankanoon.org/doc/145887258/',
+    '2014_9_SCC_772_STATE_SANJAY': 'https://indiankanoon.org/doc/76417350/',
+    '2013_7_SCC_263_JARNAIL_SINGH': 'https://indiankanoon.org/doc/70565223/',
+    '2021_6_SCC_230_RAMESH_BHAVAN': 'https://indiankanoon.org/doc/41350772/',
+    '2003_8_SCC_300_KR_INDIRA': 'https://indiankanoon.org/doc/1265791/',
+    '2014_5_SCC_345_PARMANAND': 'https://indiankanoon.org/doc/155481249/',
+    '2022_INSC_929_VIJAY_MADANLAL': 'https://indiankanoon.org/doc/14485072/',
+    '2021_ALLHC_RAHIM': 'https://indiankanoon.org/doc/91621822/',
+    '2019_5_SCC_418_BASALINGAPPA': 'https://indiankanoon.org/doc/37685697/',
+    '1998_8_SCC_493_SATISH': 'https://indiankanoon.org/doc/57663853/',
+    '1989_CriLJ_127_PAWAN_KUMAR': 'https://indiankanoon.org/doc/123800627/',
+    '1972_2_SCC_194_GUNWANTLAL': 'https://indiankanoon.org/doc/178563237/',
+    '1967_3_SCR_281_BOOSENNA': 'https://indiankanoon.org/doc/176021959/',
+    '2023_4_SCC_731_NEERAJ_DUTTA': 'https://indiankanoon.org/doc/152183853/',
+    '2009_8_SCC_751_MOHD_IBRAHIM': 'https://indiankanoon.org/doc/58835166/',
+    '2012_1_SCC_40_SANJAY_CHANDRA': 'https://indiankanoon.org/search/?formInput=Sanjay+Chandra+v.+CBI+2012+1+SCC+40',
+    '2016_3_SCC_379_MOHANLAL': 'https://indiankanoon.org/doc/164577294/',
   };
 
   /// Formats raw citation slugs like `1984_4_SCC_116_SHARAD_BIRDHICHAND`
@@ -88,16 +88,41 @@ class CitationFormatter {
     return cleanId.replaceAll('_', ' ');
   }
 
-  /// Returns permanent, live, mobile-accessible URL for judicial precedent
+  /// Returns permanent, live, mobile-accessible URL for judicial precedent.
+  /// Eliminates incorrect matches and prevents opening unrelated cases.
   static String getOfficialPortalUrl(String rawCitationId, String? existingUrl) {
+    if (rawCitationId.isEmpty) return 'https://indiankanoon.org/';
+
+    final cleanId = rawCitationId.trim().toUpperCase().replaceAll(' ', '_');
+
+    // 1. Direct verified ID lookup
+    if (_knownPrecedentUrls.containsKey(cleanId)) {
+      return _knownPrecedentUrls[cleanId]!;
+    }
+
+    // 2. Exact or prefix match with length threshold to prevent false positive short matches
     for (final entry in _knownPrecedentUrls.entries) {
-      if (rawCitationId.contains(entry.key) || entry.key.contains(rawCitationId)) {
+      final entryKey = entry.key.toUpperCase();
+      if (cleanId == entryKey) {
+        return entry.value;
+      }
+      if (cleanId.length >= 12 && entryKey.startsWith(cleanId)) {
+        return entry.value;
+      }
+      if (entryKey.length >= 12 && cleanId.startsWith(entryKey)) {
         return entry.value;
       }
     }
-    if (existingUrl != null && existingUrl.startsWith('http') && !existingUrl.contains('judis')) {
+
+    // 3. Fallback to existingUrl if valid and not one of the deprecated bad IDs
+    if (existingUrl != null &&
+        existingUrl.startsWith('https://indiankanoon.org/') &&
+        !existingUrl.contains('1570775') && // Nelly Ghosh bad doc ID
+        !existingUrl.contains('816576')) {  // Sadakathulla bad doc ID
       return existingUrl;
     }
+
+    // 4. Targeted search query on Indian Kanoon that ensures exact match at the top
     final formatted = format(rawCitationId);
     final encodedQuery = Uri.encodeComponent(formatted);
     return 'https://indiankanoon.org/search/?formInput=$encodedQuery';

@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'dart:io';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
@@ -72,41 +74,53 @@ class DraftingRepository {
         'is_dummy_testing': AppEnvironment.enforceDummyData,
       });
 
-      http.Response response = await http.post(
-        url,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $idToken',
-        },
-        body: payload,
-      ).timeout(const Duration(seconds: 60));
-
-      // Resilient progressive retry on 502/503/504 (recovering from Render container cold start)
+      http.Response? response;
       int retryCount = 0;
-      const maxRetries = 6;
-      final retryDelays = [4000, 6000, 8000, 10000, 12000, 15000];
+      const maxRetries = 3;
+      final retryDelays = [2000, 4000, 8000];
 
-      while ((response.statusCode == 502 || response.statusCode == 503 || response.statusCode == 504) &&
-          retryCount < maxRetries) {
-        final delayMs = retryDelays[retryCount];
-        retryCount++;
-        debugPrint(
-          '[DraftingRepository] Server returned ${response.statusCode}, Render container waking up... attempt $retryCount/$maxRetries in ${delayMs / 1000}s',
-        );
-        await Future.delayed(Duration(milliseconds: delayMs));
+      // Fixes NET-01: Limits maximum retries to 3 with a hard timeout of 30s per attempt (90s max total)
+      while (retryCount < maxRetries) {
         try {
-          final refreshedToken = await user.getIdToken(true);
+          final token = retryCount == 0 ? idToken : await user.getIdToken(true);
           response = await http.post(
             url,
             headers: {
               'Content-Type': 'application/json',
-              'Authorization': 'Bearer $refreshedToken',
+              'Authorization': 'Bearer $token',
             },
             body: payload,
-          ).timeout(const Duration(seconds: 60));
-        } catch (retryErr) {
-          debugPrint('[DraftingRepository] Retry attempt $retryCount error: $retryErr');
+          ).timeout(const Duration(seconds: 30));
+
+          if (response.statusCode == 200) {
+            break;
+          } else if ((response.statusCode == 502 || response.statusCode == 503 || response.statusCode == 504) &&
+              retryCount + 1 < maxRetries) {
+            final delayMs = retryDelays[retryCount];
+            retryCount++;
+            debugPrint('[DraftingRepository] Server status ${response.statusCode}, retrying ($retryCount/$maxRetries) in ${delayMs / 1000}s...');
+            await Future.delayed(Duration(milliseconds: delayMs));
+            continue;
+          } else {
+            break;
+          }
+        } on TimeoutException {
+          retryCount++;
+          if (retryCount >= maxRetries) {
+            throw Exception('सर्वर से संपर्क समय समाप्त (Timeout): AI इंजन व्यस्त है। कृपया पुनः प्रयास करें।');
+          }
+          await Future.delayed(Duration(milliseconds: retryDelays[retryCount - 1]));
+        } on SocketException {
+          retryCount++;
+          if (retryCount >= maxRetries) {
+            throw Exception('नेटवर्क विफलता: कृपया अपना इंटरनेट कनेक्शन जांचें।');
+          }
+          await Future.delayed(Duration(milliseconds: retryDelays[retryCount - 1]));
         }
+      }
+
+      if (response == null) {
+        throw Exception('ड्राफ्ट निर्माण प्रक्रिया पूरी नहीं हो सकी। सर्वर से संपर्क नहीं हो पाया।');
       }
 
       if (response.statusCode == 200) {

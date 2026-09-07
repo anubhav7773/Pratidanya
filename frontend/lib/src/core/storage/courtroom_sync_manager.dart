@@ -32,6 +32,7 @@ class CourtroomSyncManager {
     final pending = await _cacheService.getPendingActions();
     if (pending.isEmpty) {
       _ref.read(pendingQueueCountProvider.notifier).state = 0;
+      _ref.read(isOfflineModeProvider.notifier).state = false;
       return 0;
     }
 
@@ -89,6 +90,8 @@ class CourtroomSyncManager {
     }
 
     await refreshPendingCount();
+    final remaining = await _cacheService.getPendingActions();
+    _ref.read(isOfflineModeProvider.notifier).state = remaining.isNotEmpty;
     _ref.read(isSyncingProvider.notifier).state = false;
     return syncedCount;
   }

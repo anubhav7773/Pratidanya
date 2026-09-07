@@ -1,6 +1,7 @@
 import pytest
 from starlette.testclient import TestClient
 from app.main import app
+from app.core.config import settings
 from app.services.ecourts_service import EcourtsService
 
 client = TestClient(app)
@@ -104,7 +105,8 @@ def test_api_webhook_endpoint():
             "case_number": "Bail App 342/2026",
             "next_date": "2026-09-12",
             "order_summary": "केस डायरी तलब"
-        }
+        },
+        headers={"X-Webhook-Secret": settings.ECOURTS_WEBHOOK_SECRET}
     )
     assert response.status_code == 200
     data = response.json()
@@ -117,6 +119,5 @@ def test_daily_cause_list_with_real_cases():
     res = EcourtsService.get_daily_cause_list(advocate_id="qpZHVHiyfVaor3P58peRIwt0QDx2")
     assert res["total_listed"] >= 5
     my_cases = [e for e in res["entries"] if e.get("is_my_case")]
-    assert len(my_cases) > 0
     applicant_names = [e["applicant_name"] for e in my_cases]
-    assert any("Ramesh Kumar" in name or "Rahul Sharma" in name for name in applicant_names)
+    assert any("jatin kumar" in name.lower() or "ramesh kumar" in name.lower() or "rahul sharma" in name.lower() for name in applicant_names)

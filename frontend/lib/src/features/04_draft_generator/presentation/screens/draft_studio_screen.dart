@@ -397,12 +397,29 @@ class _DraftStudioScreenState extends ConsumerState<DraftStudioScreen> {
                                               ],
                                             ),
                                           ),
-                                          const Expanded(
+                                          Expanded(
                                             child: Column(
                                               crossAxisAlignment: CrossAxisAlignment.start,
                                               children: [
-                                                Text('न्यायिक अभिरक्षा', style: TextStyle(fontSize: 10.5, color: Color(0xFF75777E))),
-                                                Text('42 दिन (निरोध में)', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF1F6C3A))),
+                                                const Text('न्यायिक अभिरक्षा', style: TextStyle(fontSize: 10.5, color: Color(0xFF75777E))),
+                                                Builder(
+                                                  builder: (context) {
+                                                    final refDate = currentCase.arrestDate ?? currentCase.createdAt;
+                                                    final daysInCustody = DateTime.now().difference(refDate).inDays;
+                                                    final custodyDays = daysInCustody <= 0 ? 1 : daysInCustody;
+                                                    final isDetained = currentCase.accusedCustodyStatus == 'JUDICIAL_CUSTODY' ||
+                                                        currentCase.accusedCustodyStatus == 'POLICE_CUSTODY' ||
+                                                        currentCase.accusedCustodyStatus == 'HOSPITAL_CUSTODY' ||
+                                                        currentCase.accusedCustodyStatus == 'JJB_OBSERVATION_HOME';
+                                                    final custodyLabel = isDetained
+                                                        ? '$custodyDays दिन (${currentCase.accusedCustodyStatus == 'POLICE_CUSTODY' ? 'पुलिस रिमांड' : 'निरोध में'})'
+                                                        : 'निरोध मुक्त / जमानत पर';
+                                                    return Text(
+                                                      custodyLabel,
+                                                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF1F6C3A)),
+                                                    );
+                                                  },
+                                                ),
                                               ],
                                             ),
                                           ),
@@ -598,7 +615,7 @@ class _DraftStudioScreenState extends ConsumerState<DraftStudioScreen> {
                                     if (isNdps) {
                                       if (idx == 0) {
                                         cardTitle = 'निर्दोषिता एवं विधिसम्मत जब्ती का अभाव';
-                                        statutoryChip = 'संविधान अनु. 21 / धारा 480 BNSS / NDPS धारा 37';
+                                        statutoryChip = 'संविधान अनु. 21 / निर्दोषिता की उपधारणा / NDPS धारा 37';
                                       } else if (idx == 1) {
                                         cardTitle = 'तलाशी एवं जब्ती में धारा 50 NDPS का उल्लंघन';
                                         statutoryChip = 'धारा 50 / 42 NDPS एक्ट';
@@ -613,7 +630,7 @@ class _DraftStudioScreenState extends ConsumerState<DraftStudioScreen> {
                                     } else if (isPocso) {
                                       if (idx == 0) {
                                         cardTitle = 'निर्दोषिता एवं सहमति / आयु विवाद';
-                                        statutoryChip = 'धारा 94 JJ Act / धारा 480 BNSS';
+                                        statutoryChip = 'धारा 94 JJ Act / निर्दोषिता की उपधारणा';
                                       } else if (idx == 1) {
                                         cardTitle = 'आयु निर्धारण एवं मेडिकल साक्ष्य में गंभीर विसंगति';
                                         statutoryChip = 'धारा 35 POCSO / धारा 94 JJ Act';
@@ -628,7 +645,7 @@ class _DraftStudioScreenState extends ConsumerState<DraftStudioScreen> {
                                     } else if (isArms) {
                                       if (idx == 0) {
                                         cardTitle = 'निर्दोषिता एवं स्वतंत्र साक्षी का पूर्ण अभाव';
-                                        statutoryChip = 'धारा 100 CrPC / 105 BNSS / धारा 480 BNSS';
+                                        statutoryChip = 'धारा 100 CrPC / 105 BNSS / निर्दोषिता की उपधारणा';
                                       } else if (idx == 1) {
                                         cardTitle = 'कथित बरामदगी फर्द में कानूनी त्रुटियां';
                                         statutoryChip = 'धारा 25/27 Arms Act / धारा 105 BNSS';
@@ -643,7 +660,7 @@ class _DraftStudioScreenState extends ConsumerState<DraftStudioScreen> {
                                     } else if (isGangsters) {
                                       if (idx == 0) {
                                         cardTitle = 'एकल मामले पर नियम-विरुद्ध गैंग-चार्ट';
-                                        statutoryChip = 'UP Gangsters Act धारा 2/3 / धारा 480 BNSS';
+                                        statutoryChip = 'UP Gangsters Act धारा 2/3 / निर्दोषिता की उपधारणा';
                                       } else if (idx == 1) {
                                         cardTitle = 'मूल मामलों में जमानत प्राप्त, गिरोह संचालन का अभाव';
                                         statutoryChip = 'धारा 19(4) UP Gangsters Act';
@@ -661,7 +678,7 @@ class _DraftStudioScreenState extends ConsumerState<DraftStudioScreen> {
                                         statutoryChip = 'धारा 3(1)(r)(s) SC/ST Act / हितेश वर्मा नजीर';
                                       } else if (idx == 1) {
                                         cardTitle = 'निजी विवाद को जातिगत रूप देकर मिथ्या अभियोग';
-                                        statutoryChip = 'धारा 14A SC/ST Act / धारा 480 BNSS';
+                                        statutoryChip = 'धारा 14A SC/ST Act / दुर्भावनापूर्ण मिथ्या नामजदगी';
                                         tagText = 'जातिगत साक्ष्य अभाव';
                                       } else if (idx == 2) {
                                         cardTitle = 'कोई पूर्व आपराधिक इतिहास नहीं';
@@ -676,7 +693,7 @@ class _DraftStudioScreenState extends ConsumerState<DraftStudioScreen> {
                                         statutoryChip = 'धारा 60 UP Excise Act / धारा 105 BNSS';
                                       } else if (idx == 1) {
                                         cardTitle = 'रासायनिक विश्लेषण (FSL) रिपोर्ट का अभाव';
-                                        statutoryChip = 'आबकारी नियम / धारा 480 BNSS';
+                                        statutoryChip = 'आबकारी नियम / साक्ष्य का पूर्ण अभाव';
                                         tagText = 'रासायनिक साक्ष्य अभाव';
                                       } else if (idx == 2) {
                                         cardTitle = 'कोई पूर्व आपराधिक इतिहास नहीं';
@@ -691,7 +708,7 @@ class _DraftStudioScreenState extends ConsumerState<DraftStudioScreen> {
                                         statutoryChip = 'धारा 66D IT Act / धारा 63 BSA';
                                       } else if (idx == 1) {
                                         cardTitle = 'आईपी एड्रेस एवं डिजिटल उपकरण जब्ती में हैश विसंगति';
-                                        statutoryChip = 'धारा 66 IT Act / धारा 480 BNSS';
+                                        statutoryChip = 'धारा 66 IT Act / विधिक तत्वों का अभाव';
                                         tagText = 'डिजिटल साक्ष्य संशय';
                                       } else if (idx == 2) {
                                         cardTitle = 'कोई पूर्व आपराधिक इतिहास नहीं';
@@ -718,7 +735,7 @@ class _DraftStudioScreenState extends ConsumerState<DraftStudioScreen> {
                                     } else if (isNiAct) {
                                       if (idx == 0) {
                                         cardTitle = 'सुरक्षा चेक का दुरुपयोग एवं कोई वैध ऋण दायित्व नहीं';
-                                        statutoryChip = 'धारा 138/139 NI Act / धारा 480 BNSS';
+                                        statutoryChip = 'धारा 138/139 NI Act / विधिक ऋण दायित्व का अभाव';
                                       } else if (idx == 1) {
                                         cardTitle = 'वैध मांग नोटिस की प्राप्ति का अभाव';
                                         statutoryChip = 'धारा 138(b) NI Act';
@@ -733,7 +750,7 @@ class _DraftStudioScreenState extends ConsumerState<DraftStudioScreen> {
                                     } else if (isHomicide) {
                                       if (idx == 0) {
                                         cardTitle = 'निर्दोषिता एवं मिथ्या फंसाया जाना';
-                                        statutoryChip = 'संविधान अनुच्छेद 21 / BNSS धारा 480';
+                                        statutoryChip = 'संविधान अनुच्छेद 21 / निर्दोषिता की उपधारणा';
                                       } else if (idx == 1) {
                                         cardTitle = 'चोटों की प्रकृति एवं साक्ष्य का अभाव';
                                         statutoryChip = 'केस डायरी संदर्भ मु.अ.सं. ${currentCase.firNumber}';
@@ -748,7 +765,7 @@ class _DraftStudioScreenState extends ConsumerState<DraftStudioScreen> {
                                     } else if (isTheft) {
                                       if (idx == 0) {
                                         cardTitle = 'निर्दोषिता एवं मिथ्या फंसाया जाना';
-                                        statutoryChip = 'संविधान अनुच्छेद 21 / BNSS धारा 480';
+                                        statutoryChip = 'संविधान अनुच्छेद 21 / निर्दोषिता की उपधारणा';
                                       } else if (idx == 1) {
                                         cardTitle = 'बरामदगी की विधिक वैधता पर संदेह';
                                         statutoryChip = 'धारा 379 IPC / 303 BNS';
@@ -763,7 +780,7 @@ class _DraftStudioScreenState extends ConsumerState<DraftStudioScreen> {
                                     } else {
                                       if (idx == 0) {
                                         cardTitle = 'निर्दोषिता एवं मिथ्या फंसाया जाना';
-                                        statutoryChip = 'संविधान अनुच्छेद 21 / BNSS धारा 480';
+                                        statutoryChip = 'संविधान अनुच्छेद 21 / निर्दोषिता की उपधारणा';
                                       } else if (idx == 1) {
                                         cardTitle = 'तथ्यों एवं प्रत्यक्ष साक्ष्यों का अभाव';
                                         statutoryChip = 'मु.अ.सं. ${currentCase.firNumber} रिकॉर्ड';

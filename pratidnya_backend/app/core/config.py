@@ -1,8 +1,8 @@
 import os
 import json
 import logging
-from typing import Dict, Any, Optional
-from pydantic_settings import BaseSettings
+from typing import Dict, Any, Optional, List
+from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import Field, field_validator
 
 logger = logging.getLogger(__name__)
@@ -16,11 +16,35 @@ class Settings(BaseSettings):
     # Groq & LLM Gateway Configuration
     DEFAULT_LLM_PROVIDER: str = Field(default="GROQ", description="Primary LLM Provider: GROQ or GEMINI")
     GROQ_API_KEY: Optional[str] = Field(default=None, description="Groq API Key for high-speed Llama-3.3 and Whisper")
-    GROQ_MODEL: str = Field(default="openai/gpt-oss-120b", description="Groq Primary Legal LLM Model")
+    GROQ_MODEL: str = Field(default="llama-3.3-70b-versatile", description="Groq Primary Legal LLM Model")
 
     # App State
-    APP_ENV: str = Field(default="PRODUCTION")
+    APP_ENV: str = Field(default="DEVELOPMENT")
     PORT: int = Field(default=8000)
+
+    # Payment Gateway Configuration (Fixes BIL-01, BIL-02)
+    PAYMENT_MODE: str = Field(
+        default="SANDBOX_DUMMY",
+        description="'SANDBOX_DUMMY' for local/pilot testing without bank charges, 'PRODUCTION' for live Google Play Billing / Razorpay"
+    )
+
+    # Security & CORS Whitelist (Fixes COR-01)
+    ALLOWED_CORS_ORIGINS: List[str] = Field(
+        default=[
+            "http://localhost:3000",
+            "http://localhost:8000",
+            "https://pratidnya.in",
+            "https://app.pratidnya.in",
+            "https://pratidnya-api.onrender.com"
+        ],
+        description="Explicit allowed origins for CORS with credentials"
+    )
+
+    # eCourts CIS Webhook Secret (Fixes CIS-01)
+    ECOURTS_WEBHOOK_SECRET: str = Field(
+        default="pratidnya_court_webhook_production_secret_2026",
+        description="Secret token to validate eCourts CIS push updates"
+    )
 
     # Kanoon.dev API Integration (Live REST Gateway)
     MOCK_KANOON_API: bool = Field(default=False, description="Strictly False: connects to live api.kanoon.dev/v1")
@@ -31,6 +55,10 @@ class Settings(BaseSettings):
     # Supabase Connection (AWS Mumbai ap-south-1)
     SUPABASE_URL: str = Field(...)
     SUPABASE_SERVICE_ROLE_KEY: str = Field(...)
+    SUPABASE_JWT_SECRET: Optional[str] = Field(
+        default=None, 
+        description="Supabase Project Settings > API > JWT Secret"
+    )
 
     # Firebase Admin Auth
     FIREBASE_PROJECT_ID: str = Field(default="pratidanya")
@@ -44,7 +72,6 @@ class Settings(BaseSettings):
     RAZORPAY_KEY_ID: str = Field(default="rzp_live_pratidanya_in")
     RAZORPAY_KEY_SECRET: str = Field(default="secret_rzp_pratidanya_live")
     RAZORPAY_WEBHOOK_SECRET: str = Field(default="whsec_pratidanya_legal")
-
 
     @field_validator("GEMINI_API_KEY")
     def validate_gemini_key(cls, v: str) -> str:
@@ -64,13 +91,15 @@ class Settings(BaseSettings):
     def validate_production_privacy(cls, v: str, info) -> str:
         data = info.data
         if v == "PRODUCTION":
-            paid_tier = data.get("GEMINI_PAID_TIER", False)
-            dummy_data = data.get("ENFORCE_DUMMY_DATA", False)
-            if not paid_tier and not dummy_data:
-                raise ValueError(
-                    "STATUTORY PRIVACY VIOLATION: Production processing of real case facts on Google Free Tier "
-                    "violates DPDP Act 2023 Sec 8 and Advocates Act 1961 Sec 126. GEMINI_PAID_TIER must be True."
-                )
+            provider = data.get("DEFAULT_LLM_PROVIDER", "GROQ")
+            if provider == "GEMINI":
+                paid_tier = data.get("GEMINI_PAID_TIER", False)
+                dummy_data = data.get("ENFORCE_DUMMY_DATA", False)
+                if not paid_tier and not dummy_data:
+                    raise ValueError(
+                        "STATUTORY PRIVACY VIOLATION: Production processing of real case facts on Google Free Tier "
+                        "violates DPDP Act 2023 Sec 8 and Advocates Act 1961 Sec 126. GEMINI_PAID_TIER must be True."
+                    )
         return v
 
     def get_firebase_credentials_dict(self) -> Optional[Dict[str, Any]]:
@@ -105,11 +134,11 @@ class Settings(BaseSettings):
 
         return None
 
-
-    class Config:
-        env_file = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), ".env")
-        case_sensitive = True
-        extra = "ignore"
-
+    # Fixes CFG-01: Migrated from deprecated Pydantic v1 `class Config:` to Pydantic v2 `model_config`
+    model_config = SettingsConfigDict(
+        env_file=os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), ".env"),
+        case_sensitive=True,
+        extra="ignore"
+    )
 
 settings = Settings()

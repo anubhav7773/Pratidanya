@@ -1,53 +1,54 @@
-# Miscellaneous
-*.class
-*.log
-*.pyc
-__pycache__/
-.pytest_cache/
-*.swp
-.DS_Store
-
-# Environment & Secret variables
+# Environment & Secrets
 .env
-*.env
+.env.*
 !.env.example
+*.pem
+*.key
+*.p12
+*.jks
+serviceAccountKey.json
+firebase_service_account.json
 google-services.json
-*serviceAccount*.json
-*credentials*.json
-.atom/
-.buildlog/
-.history
-.svn/
-migrate_working_dir/
 
-# IntelliJ related
-*.iml
-*.ipr
-*.iws
-.idea/
-
-# Visual Studio Code related
-.vscode/
-
-# Flutter/Dart/Pub related
-**/doc/api/
-**/ios/Flutter/.last_build_id
+# Build Outputs
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.pytest_cache/
+build/
+**/build/
 .dart_tool/
 .flutter-plugins
 .flutter-plugins-dependencies
 .packages
 .pub-cache/
 .pub/
-**/build/
 
-# Symbol processing related
-app.*.symbols
-
-# Obfuscation related
-app.*.map.json
-
-# Android Studio will create this file on sync
+# IDE & OS Artifacts
+.DS_Store
+.idea/
+.vscode/
+Thumbs.db
+*.iml
+*.ipr
+*.iws
 local.properties
 
-# Exceptions to above rules.
-!/packages/flutter_tools/test/data/dart_dependencies_test/**/.packages
+# Miscellaneous
+*.class
+*.log
+*.swp
+.atom/
+.buildlog/
+.history
+.svn/
+migrate_working_dir/
+app.*.symbols
+app.*.map.json
+
+# In-Memory & Upload Temp Storage
+*.m4a
+*.mp4
+*.pdf
+!frontend/assets/fonts/*.ttf

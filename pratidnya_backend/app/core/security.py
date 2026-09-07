@@ -1,17 +1,17 @@
 import logging
-import time
+from typing import Dict, Any, Optional
 import jwt
+from fastapi import Header, HTTPException, Security, status
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 import firebase_admin
-from firebase_admin import auth, credentials
+from firebase_admin import auth as firebase_auth, credentials
 from google.oauth2 import id_token as google_id_token
 from google.auth.transport import requests as google_requests
-from fastapi import HTTPException, Security, status
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from app.core.config import settings
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("pratidnya.security")
 
-# Initialize Firebase Admin SDK Once
+# Initialize Firebase Admin app if credentials or project ID are configured
 if not firebase_admin._apps:
     creds_dict = settings.get_firebase_credentials_dict()
     if creds_dict:
@@ -30,101 +30,106 @@ if not firebase_admin._apps:
             pass
 
 security_scheme = HTTPBearer(auto_error=False)
-
 ALLOWED_FIREBASE_PROJECTS = ["pratidanya", "pratidnya-legal-tech", settings.FIREBASE_PROJECT_ID]
 
-async def verify_advocate_token(auth_creds: HTTPAuthorizationCredentials = Security(security_scheme)) -> dict:
+async def verify_advocate_token(
+    auth_creds: Optional[HTTPAuthorizationCredentials] = Security(security_scheme),
+    authorization: Optional[str] = Header(None, alias="Authorization")
+) -> Dict[str, Any]:
     """
-    Decodes Firebase ID Token / JWT, verifies signature, extracts UID and email.
-    Supports multi-project Firebase ('pratidanya', 'pratidnya-legal-tech') and graceful cryptographic fallbacks.
+    Validates caller JWT cryptographically without bypasses.
+    Fixes SEC-01: Removed unsigned JWT decoding (verify_signature=False).
+    Supports:
+    1. Firebase ID Tokens (signed by Google x509 certs).
+    2. Supabase Auth Tokens (signed with SUPABASE_JWT_SECRET).
     """
-    if not auth_creds or not auth_creds.credentials:
-        logger.warning("Authentication rejected: Missing Authorization Bearer token header.")
+    token = None
+    if auth_creds and auth_creds.credentials:
+        token = auth_creds.credentials.strip()
+    elif authorization and authorization.startswith("Bearer "):
+        token = authorization.split("Bearer ")[1].strip()
+
+    if not token:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="प्रमाणीकरण टोकन अनुपस्थित है। कृपया पुनः लॉगिन करें।"
+            detail="प्रमाणीकरण विफल: बियरर टोकन अनिवार्य है।",
+            headers={"WWW-Authenticate": "Bearer"},
         )
 
-    token = auth_creds.credentials.strip()
-
-    # 1. First Attempt: Firebase Admin SDK verification (check_revoked=False to avoid IAM failure without service account)
+    # 1. Primary Route: Verify via Firebase Admin SDK
     try:
-        decoded_token = auth.verify_id_token(token, check_revoked=False)
-        user_info = {
-            "uid": decoded_token["uid"],
-            "email": decoded_token.get("email", ""),
-            "auth_time": decoded_token.get("auth_time"),
-            "project_id": decoded_token.get("aud", settings.FIREBASE_PROJECT_ID)
+        decoded_firebase = firebase_auth.verify_id_token(token, check_revoked=False)
+        return {
+            "uid": decoded_firebase["uid"],
+            "email": decoded_firebase.get("email", ""),
+            "provider": "firebase",
+            "claims": decoded_firebase,
         }
-        logger.info(f"Advocate verified via Firebase Admin: uid={user_info['uid']}, email={user_info['email']}")
-        return user_info
-    except Exception as admin_err:
-        logger.debug(f"Firebase Admin verify_id_token note: {admin_err}")
+    except Exception as fb_err:
+        logger.debug(f"Firebase token verification failed: {fb_err}. Attempting Google x509 certs...")
 
-    # 2. Second Attempt: Google OAuth2 ID Token verification directly with Google x509 certs across allowed projects
+    # 1b. Direct Google OAuth2 ID Token verification via Google public x509 certs
     request_adapter = google_requests.Request()
     for proj_id in ALLOWED_FIREBASE_PROJECTS:
         try:
             claims = google_id_token.verify_firebase_token(token, request_adapter, audience=proj_id)
-            user_info = {
+            return {
                 "uid": claims.get("user_id") or claims.get("sub", ""),
                 "email": claims.get("email", ""),
-                "auth_time": claims.get("auth_time"),
-                "project_id": proj_id
+                "provider": "firebase_google",
+                "claims": claims,
             }
-            logger.info(f"Advocate verified via Google public certs: uid={user_info['uid']}, email={user_info['email']} (project: {proj_id})")
-            return user_info
         except Exception:
             continue
 
-    # 3. Third Attempt: Direct JWT Inspection for valid Google or Supabase token
-    try:
-        unverified_payload = jwt.decode(token, options={"verify_signature": False})
-        iss = unverified_payload.get("iss", "")
-        exp = unverified_payload.get("exp", 0)
-        sub = unverified_payload.get("sub") or unverified_payload.get("user_id") or unverified_payload.get("uid")
-
-        # Verify not expired
-        current_time = time.time()
-        if exp and current_time > exp:
-            logger.warning("Authentication rejected: Token expired.")
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="सत्र समाप्त (Token Expired): टोकन रिफ्रेश करें।"
+    # 2. Secondary Route: Verify via Supabase JWT Secret (if configured)
+    if hasattr(settings, "SUPABASE_JWT_SECRET") and settings.SUPABASE_JWT_SECRET:
+        try:
+            decoded_supabase = jwt.decode(
+                token,
+                settings.SUPABASE_JWT_SECRET,
+                algorithms=["HS256"],
+                options={"verify_signature": True, "verify_exp": True},
             )
+            sub = decoded_supabase.get("sub")
+            if not sub:
+                raise ValueError("Supabase token lacks 'sub' claim.")
 
-        # If issued by Google securetoken or Supabase
-        if ("securetoken.google.com" in iss or "supabase" in iss or sub):
-            user_info = {
-                "uid": str(sub),
-                "email": unverified_payload.get("email", ""),
-                "auth_time": unverified_payload.get("auth_time", int(current_time)),
-                "project_id": unverified_payload.get("aud", "pratidanya")
+            return {
+                "uid": sub,
+                "email": decoded_supabase.get("email", ""),
+                "provider": "supabase",
+                "claims": decoded_supabase,
             }
-            logger.info(f"Advocate verified via JWT Claims fallback: uid={user_info['uid']}, email={user_info['email']}")
-            return user_info
-    except HTTPException:
-        raise
-    except Exception as jwt_err:
-        logger.warning(f"JWT decode error: {jwt_err}")
+        except Exception as sb_err:
+            logger.debug(f"Supabase token verification failed: {sb_err}")
 
-    # If all verification strategies failed
-    logger.error("Authentication rejected: All verification methods failed.")
+    # No unsigned fallbacks permitted (SEC-01)
+    logger.error("Authentication rejected: Token failed cryptographic signature verification.")
     raise HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="अमान्य सुरक्षा टोकन: प्रमाणीकरण विफल रहा।"
+        detail="प्रमाणीकरण विफल: अमान्य अथवा अनधिकृत टोकन।",
+        headers={"WWW-Authenticate": "Bearer"},
     )
 
-async def verify_advocate_token_optional(auth_creds: HTTPAuthorizationCredentials = Security(security_scheme)) -> dict | None:
+async def verify_advocate_token_optional(
+    auth_creds: Optional[HTTPAuthorizationCredentials] = Security(security_scheme),
+    authorization: Optional[str] = Header(None, alias="Authorization")
+) -> Optional[Dict[str, Any]]:
     """
     Returns verified user info dictionary if a valid Authorization header is provided,
     or None if credentials are missing or unparseable, without raising 401.
-    Ideal for public endpoints and telemetry logging.
     """
-    if not auth_creds or not auth_creds.credentials:
-        return None
-    try:
-        return await verify_advocate_token(auth_creds)
-    except Exception:
+    token = None
+    if auth_creds and auth_creds.credentials:
+        token = auth_creds.credentials.strip()
+    elif authorization and authorization.startswith("Bearer "):
+        token = authorization.split("Bearer ")[1].strip()
+
+    if not token:
         return None
 
+    try:
+        return await verify_advocate_token(auth_creds=auth_creds, authorization=authorization)
+    except Exception:
+        return None

@@ -4,7 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pratidnya/src/core/security/advocate_privilege_guard.dart';
-import 'package:pratidnya/src/features/09_compliance_audit/presentation/screens/chamber_privacy_audit_screen.dart';
+import 'package:pratidnya/src/features/10_compliance_audit/presentation/screens/chamber_privacy_audit_screen.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

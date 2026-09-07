@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:pratidnya/src/features/08_ecourts_cis/domain/ecourts_models.dart';
+import 'package:pratidnya/src/features/09_ecourts_cis/domain/ecourts_models.dart';
 
 void main() {
   group('Goal 1: e-Courts CIS 3.2 Domain & Validation Tests', () {

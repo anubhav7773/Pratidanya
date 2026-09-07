@@ -16,6 +16,7 @@ class CriminalCase {
   final String stageOfCase; // 'REMAND', 'BAIL', 'CHARGESHEET', 'CHARGES_FRAMED', 'EVIDENCE'
   final DateTime? nextHearingDate;
   final String? lastCourtOrder;
+  final DateTime? arrestDate;
   final bool isArchived;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -38,6 +39,7 @@ class CriminalCase {
     required this.stageOfCase,
     this.nextHearingDate,
     this.lastCourtOrder,
+    this.arrestDate,
     required this.isArchived,
     required this.createdAt,
     required this.updatedAt,
@@ -64,6 +66,9 @@ class CriminalCase {
           ? DateTime.parse(json['next_hearing_date'] as String)
           : null,
       lastCourtOrder: json['last_court_order'] as String?,
+      arrestDate: json['arrest_date'] != null
+          ? DateTime.tryParse(json['arrest_date'] as String)
+          : null,
       isArchived: json['is_archived'] as bool? ?? false,
       createdAt: DateTime.parse(json['created_at'] as String),
       updatedAt: DateTime.parse(json['updated_at'] as String),
@@ -88,6 +93,7 @@ class CriminalCase {
         'stage_of_case': stageOfCase,
         'next_hearing_date': nextHearingDate?.toIso8601String().split('T').first,
         'last_court_order': lastCourtOrder,
+        'arrest_date': arrestDate?.toIso8601String().split('T').first,
         'is_archived': isArchived,
         'created_at': createdAt.toIso8601String(),
         'updated_at': updatedAt.toIso8601String(),
@@ -97,6 +103,7 @@ class CriminalCase {
     String? stageOfCase,
     DateTime? nextHearingDate,
     String? lastCourtOrder,
+    DateTime? arrestDate,
     bool? isArchived,
   }) {
     return CriminalCase(
@@ -117,6 +124,7 @@ class CriminalCase {
       stageOfCase: stageOfCase ?? this.stageOfCase,
       nextHearingDate: nextHearingDate ?? this.nextHearingDate,
       lastCourtOrder: lastCourtOrder ?? this.lastCourtOrder,
+      arrestDate: arrestDate ?? this.arrestDate,
       isArchived: isArchived ?? this.isArchived,
       createdAt: createdAt,
       updatedAt: DateTime.now().toUtc(),

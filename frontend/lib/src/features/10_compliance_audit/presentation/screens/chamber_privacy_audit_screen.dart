@@ -1,8 +1,11 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 import '../../../../core/config/app_environment.dart';
 import '../../../../core/theme/stitch_colors.dart';
 import '../../../../shared/components/bci_disclaimer_banner.dart';
@@ -33,7 +36,7 @@ class _ChamberPrivacyAuditScreenState extends ConsumerState<ChamberPrivacyAuditS
 
       final idToken = await user.getIdToken();
       final url = Uri.parse('${AppEnvironment.backendBaseUrl}/api/v1/compliance/dpdp/bci-audit-statement');
-      final res = await http.get(url, headers: {'Authorization': 'Bearer $idToken'});
+      final res = await http.get(url, headers: {'Authorization': 'Bearer $idToken'}).timeout(const Duration(seconds: 15));
 
       if (res.statusCode == 200 && mounted) {
         setState(() {
@@ -43,6 +46,8 @@ class _ChamberPrivacyAuditScreenState extends ConsumerState<ChamberPrivacyAuditS
     } catch (_) {}
   }
 
+  /// Fixes DPD-01: Persists complete DPDP Section 11 Data Bundle to file storage
+  /// and opens native platform Share Sheet so the advocate actually receives the file.
   Future<void> _exportDataBundle() async {
     try {
       final user = FirebaseAuth.instance.currentUser;
@@ -51,31 +56,44 @@ class _ChamberPrivacyAuditScreenState extends ConsumerState<ChamberPrivacyAuditS
       setState(() => _isExporting = true);
       final idToken = await user.getIdToken();
       final url = Uri.parse('${AppEnvironment.backendBaseUrl}/api/v1/compliance/dpdp/export-chamber-bundle');
-      final res = await http.get(url, headers: {'Authorization': 'Bearer $idToken'});
+      final res = await http.get(url, headers: {'Authorization': 'Bearer $idToken'}).timeout(const Duration(seconds: 45));
 
-      if (mounted) setState(() => _isExporting = false);
+      if (res.statusCode == 200) {
+        final bytes = res.bodyBytes;
+        final tempDir = await getTemporaryDirectory();
+        final timestamp = DateTime.now().toIso8601String().replaceAll(':', '-').split('.').first;
+        final filePath = '${tempDir.path}/Pratidnya_Chamber_Data_$timestamp.json';
+        final file = File(filePath);
+        await file.writeAsBytes(bytes);
 
-      if (res.statusCode == 200 && mounted) {
-        showDialog(
-          context: context,
-          builder: (ctx) => AlertDialog(
-            title: const Text('डेटा बंडल सफलतापूर्वक तैयार', style: TextStyle(height: 1.42)),
-            content: const Text(
-              'डीपीसपी अधिनियम 2023 की धारा 11 के तहत आपका पूर्ण चैंबर डेटा बंडल तैयार हो गया है। '
-              'इसमें आपके समस्त केस, कार्यवाहियां एवं विधिक ऑडिट लॉग्स शामिल हैं।',
-              style: TextStyle(height: 1.42),
+        if (mounted) setState(() => _isExporting = false);
+
+        if (mounted) {
+          // Trigger system share sheet
+          await Share.shareXFiles(
+            [XFile(filePath, mimeType: 'application/json')],
+            subject: 'प्रतिज्ञा चैंबर विधिक डेटा बंडल (DPDP Act 2023 Sec 11)',
+            text: 'प्रतिज्ञा विधिक प्रणाली द्वारा प्रमाणित आपका चैंबर डेटा बंडल संलग्न है।',
+          );
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('डेटा बंडल फ़ाइल सफलतापूर्वक तैयार व साझा की गई।', style: TextStyle(height: 1.40)),
+              backgroundColor: StitchColors.verifiedGreen,
             ),
-            actions: [
-              TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('ठीक है', style: TextStyle(height: 1.40))),
-            ],
-          ),
-        );
+          );
+        }
+      } else {
+        throw Exception('डेटा बंडल निर्माण विफलता (${res.statusCode}): ${res.body}');
       }
     } catch (e) {
       if (mounted) setState(() => _isExporting = false);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('निर्यात त्रुटि: $e', style: const TextStyle(height: 1.40)), backgroundColor: StitchColors.alertCrimson),
+          SnackBar(
+            content: Text('निर्यात त्रुटि: $e', style: const TextStyle(height: 1.40)),
+            backgroundColor: StitchColors.alertCrimson,
+          ),
         );
       }
     }
@@ -115,7 +133,7 @@ class _ChamberPrivacyAuditScreenState extends ConsumerState<ChamberPrivacyAuditS
       setState(() => _isErasing = true);
       final idToken = await user.getIdToken();
       final url = Uri.parse('${AppEnvironment.backendBaseUrl}/api/v1/compliance/dpdp/execute-erasure');
-      final res = await http.delete(url, headers: {'Authorization': 'Bearer $idToken'});
+      final res = await http.delete(url, headers: {'Authorization': 'Bearer $idToken'}).timeout(const Duration(seconds: 30));
 
       if (mounted) setState(() => _isErasing = false);
 

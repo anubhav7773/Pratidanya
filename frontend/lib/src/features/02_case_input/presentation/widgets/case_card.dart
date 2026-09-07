@@ -4,10 +4,11 @@ import 'package:go_router/go_router.dart';
 import 'package:printing/printing.dart';
 import '../../../../core/theme/stitch_colors.dart';
 import '../../../../core/services/activity_service.dart';
+import '../../../../core/constants/custody_status_registry.dart';
 import '../../domain/criminal_case.dart';
 import '../../../01_onboarding/presentation/controllers/auth_controller.dart';
 import '../../../05_verify_and_export/data/court_pdf_builder.dart';
-import '../../../08_ecourts_cis/presentation/widgets/ecourts_sync_dialog.dart';
+import '../../../09_ecourts_cis/presentation/widgets/ecourts_sync_dialog.dart';
 import '../controllers/case_controller.dart';
 
 class CaseCard extends StatelessWidget {
@@ -31,21 +32,10 @@ class CaseCard extends StatelessWidget {
   });
 
   bool get _isJudicialCustody =>
-      criminalCase.accusedCustodyStatus == 'JUDICIAL_CUSTODY';
+      CustodyStatusRegistry.isPhysicalDetention(criminalCase.accusedCustodyStatus);
 
   String _formatCustodyLabel() {
-    switch (criminalCase.accusedCustodyStatus) {
-      case 'JUDICIAL_CUSTODY':
-        return 'न्यायिक अभिरक्षा';
-      case 'POLICE_CUSTODY':
-        return 'पुलिस रिमांड';
-      case 'ON_BAIL':
-        return 'जमानत पर रिहा';
-      case 'ANTICIPATORY':
-        return 'अंतरिम जमानत पर';
-      default:
-        return criminalCase.accusedCustodyStatus;
-    }
+    return CustodyStatusRegistry.getShortLabel(criminalCase.accusedCustodyStatus);
   }
 
   String _formatHearingDate(DateTime? date) {

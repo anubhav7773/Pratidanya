@@ -12,6 +12,7 @@ import '../../features/01_onboarding/presentation/screens/dpdp_consent_screen.da
 import '../../features/01_onboarding/presentation/screens/bar_profile_screen.dart';
 import '../../features/02_case_input/presentation/screens/case_list_screen.dart';
 import '../../features/02_case_input/presentation/screens/new_case_form_screen.dart';
+import '../../features/02_case_input/presentation/screens/ai_section_advisor_screen.dart';
 import '../../features/03_precedent_search/presentation/screens/precedent_search_screen.dart';
 import '../../features/04_draft_generator/presentation/screens/draft_studio_screen.dart';
 
@@ -22,8 +23,8 @@ import '../../features/07_specialized_acts/presentation/screens/ndps_compliance_
 import '../../features/07_specialized_acts/presentation/screens/pocso_age_audit_screen.dart';
 import '../../features/07_specialized_acts/presentation/screens/scst_appeal_screen.dart';
 import '../../features/07_specialized_acts/presentation/screens/ni_act_defense_screen.dart';
-import '../../features/08_ecourts_cis/presentation/screens/cause_list_screen.dart';
-import '../../features/09_compliance_audit/presentation/screens/chamber_privacy_audit_screen.dart';
+import '../../features/09_ecourts_cis/presentation/screens/cause_list_screen.dart';
+import '../../features/10_compliance_audit/presentation/screens/chamber_privacy_audit_screen.dart';
 
 class RouterNotifier extends ChangeNotifier {
   final Ref _ref;
@@ -122,6 +123,13 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/cases/new',
         builder: (context, state) => const NewCaseFormScreen(),
+      ),
+      GoRoute(
+        path: '/ai-section-advisor',
+        builder: (context, state) {
+          final facts = state.extra as String?;
+          return AiSectionAdvisorScreen(initialFactualMatrix: facts);
+        },
       ),
       GoRoute(
         path: '/cases/:id/draft-studio',

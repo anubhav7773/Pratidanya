@@ -3,11 +3,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/stitch_colors.dart';
 import '../../../../core/services/activity_service.dart';
+import '../../../../core/constants/up_districts_registry.dart';
+import '../../../../core/constants/custody_status_registry.dart';
+import '../../../../core/constants/special_acts_registry.dart';
 import '../../../../shared/components/statute_selector_bar.dart';
 import '../controllers/case_controller.dart';
 import '../../../08_voice_intake/presentation/widgets/court_voice_dictation_sheet.dart';
 import '../../../08_voice_intake/domain/voice_intake_result.dart';
-import '../../../08_ecourts_cis/domain/ecourts_models.dart';
+import '../../../09_ecourts_cis/domain/ecourts_models.dart';
+import 'ai_section_advisor_screen.dart';
 
 class NewCaseFormScreen extends ConsumerStatefulWidget {
   final VoidCallback? onCaseSaved;
@@ -25,26 +29,28 @@ class _NewCaseFormScreenState extends ConsumerState<NewCaseFormScreen> {
   final _firNumberController = TextEditingController();
   final _firYearController = TextEditingController(text: DateTime.now().year.toString());
   final _policeStationController = TextEditingController();
-  final _districtController = TextEditingController();
+  final _districtController = TextEditingController(text: 'लखनऊ');
   final _accusedNameController = TextEditingController();
   final _sectionInputController = TextEditingController();
   final _factualSummaryController = TextEditingController();
 
-
   StatuteSystem _selectedStatute = StatuteSystem.hybrid;
-  String _custodyStatus = 'JUDICIAL_CUSTODY';
+  String _custodyStatus = CustodyStatusRegistry.judicialCustody;
+  DateTime? _arrestDate = DateTime.now();
   String _courtDesignation = 'CJM (मुख्य न्यायिक मजिस्ट्रेट, लखनऊ)';
+  String _selectedSpecialActCode = 'ARMS';
 
   final List<String> _sectionsList = [];
+  List<String> _courts = UpDistrictsRegistry.getCourtDesignationsForDistrict('लखनऊ');
 
-  final List<String> _courts = [
-    'CJM (मुख्य न्यायिक मजिस्ट्रेट, लखनऊ)',
-    'ACJM-I (अपर मुख्य न्यायिक मजिस्ट्रेट-I, लखनऊ)',
-    'JMFC (न्यायिक मजिस्ट्रेट प्रथम श्रेणी)',
-    'विशेष सत्र न्यायालय (Court of Sessions)',
-    'विशेष न्यायाधीश (पॉक्सो / SC-ST कोर्ट)',
-    'विशेष एनडीपीएस न्यायालय (NDPS Court)',
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _courts = UpDistrictsRegistry.getCourtDesignationsForDistrict(_districtController.text);
+    if (_courts.isNotEmpty) {
+      _courtDesignation = _courts.first;
+    }
+  }
 
   @override
   void dispose() {
@@ -52,12 +58,174 @@ class _NewCaseFormScreenState extends ConsumerState<NewCaseFormScreen> {
     _firNumberController.dispose();
     _firYearController.dispose();
     _policeStationController.dispose();
-
     _districtController.dispose();
     _accusedNameController.dispose();
     _sectionInputController.dispose();
     _factualSummaryController.dispose();
     super.dispose();
+  }
+
+  void _onDistrictChanged(String district) {
+    final clean = district.trim();
+    if (clean.isEmpty) return;
+    setState(() {
+      _districtController.text = clean;
+      _courts = UpDistrictsRegistry.getCourtDesignationsForDistrict(clean);
+      if (!_courts.contains(_courtDesignation) && _courts.isNotEmpty) {
+        _courtDesignation = _courts.first;
+      }
+    });
+  }
+
+  void _openDistrictPicker() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        String searchQuery = '';
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            final filtered = UpDistrictsRegistry.allDistricts.where((d) {
+              if (searchQuery.isEmpty) return true;
+              final q = searchQuery.toLowerCase();
+              return d.hindiName.toLowerCase().contains(q) ||
+                  d.englishName.toLowerCase().contains(q);
+            }).toList();
+
+            return Container(
+              height: MediaQuery.of(context).size.height * 0.75,
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+              ),
+              child: Column(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: const BoxDecoration(
+                      color: StitchColors.courtNavy,
+                      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Row(
+                              children: [
+                                Icon(Icons.location_city, color: Colors.amber, size: 22),
+                                SizedBox(width: 8),
+                                Text(
+                                  'उत्तर प्रदेश जनपद चयन (75 Districts)',
+                                  style: TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.close, color: Colors.white70),
+                              onPressed: () => Navigator.pop(ctx),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        TextField(
+                          autofocus: true,
+                          style: const TextStyle(color: Colors.white),
+                          decoration: InputDecoration(
+                            hintText: 'जनपद खोजें (उदा. लखनऊ, मेरठ, गोरखपुर, वाराणसी)...',
+                            hintStyle: const TextStyle(color: Colors.white60, fontSize: 13),
+                            prefixIcon: const Icon(Icons.search, color: Colors.white70),
+                            filled: true,
+                            fillColor: Colors.white.withValues(alpha: 0.15),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              borderSide: BorderSide.none,
+                            ),
+                          ),
+                          onChanged: (val) {
+                            setSheetState(() {
+                              searchQuery = val;
+                            });
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                  Expanded(
+                    child: ListView.separated(
+                      itemCount: filtered.length,
+                      separatorBuilder: (_, __) => const Divider(height: 1),
+                      itemBuilder: (context, idx) {
+                        final dist = filtered[idx];
+                        final isSelected = _districtController.text.trim() == dist.hindiName;
+                        return ListTile(
+                          leading: Icon(
+                            Icons.location_on,
+                            color: isSelected ? StitchColors.courtNavy : const Color(0xFF94A3B8),
+                            size: 20,
+                          ),
+                          title: Text(
+                            dist.hindiName,
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                              color: isSelected ? StitchColors.courtNavy : const Color(0xFF1E293B),
+                            ),
+                          ),
+                          subtitle: Text(
+                            dist.englishName,
+                            style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                          ),
+                          trailing: isSelected
+                              ? const Icon(Icons.check_circle, color: Color(0xFF16A34A), size: 18)
+                              : null,
+                          onTap: () {
+                            _onDistrictChanged(dist.hindiName);
+                            Navigator.pop(ctx);
+                          },
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Future<void> _openAiSectionAdvisor() async {
+    final resultSections = await Navigator.of(context).push<List<String>>(
+      MaterialPageRoute(
+        builder: (ctx) => AiSectionAdvisorScreen(
+          initialFactualMatrix: _factualSummaryController.text.trim(),
+        ),
+      ),
+    );
+    if (resultSections != null && resultSections.isNotEmpty && mounted) {
+      setState(() {
+        for (final sec in resultSections) {
+          if (!_sectionsList.contains(sec)) {
+            _sectionsList.add(sec);
+          }
+        }
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${resultSections.length} विधिक धाराएं केस डायरी में जोड़ी गईं।'),
+          backgroundColor: StitchColors.courtNavy,
+        ),
+      );
+    }
   }
 
   void _addSection() {
@@ -70,25 +238,29 @@ class _NewCaseFormScreenState extends ConsumerState<NewCaseFormScreen> {
     }
   }
 
+  void _addSpecificSection(String sectionText) {
+    // Extract section number / clean text
+    final clean = sectionText.contains('(')
+        ? sectionText.split('(')[0].replaceAll('धारा', '').trim()
+        : sectionText.replaceAll('धारा', '').trim();
+    if (!_sectionsList.contains(clean)) {
+      setState(() {
+        _sectionsList.add(clean);
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('धारा "$clean" जोड़ी गई'),
+          duration: const Duration(seconds: 1),
+          backgroundColor: StitchColors.courtNavy,
+        ),
+      );
+    }
+  }
+
   void _removeSection(String sec) {
     setState(() {
       _sectionsList.remove(sec);
     });
-  }
-
-  String _mapCustodyToLabel(String key) {
-    switch (key) {
-      case 'JUDICIAL_CUSTODY':
-        return 'जेल में (In Judicial Custody)';
-      case 'POLICE_CUSTODY':
-        return 'पुलिस रिमांड (Police Custody)';
-      case 'ON_BAIL':
-        return 'जमानत पर रिहा (On Bail)';
-      case 'ANTICIPATORY':
-        return 'अग्रिम जमानत (Anticipatory Bail)';
-      default:
-        return key;
-    }
   }
 
   void _openVoiceDictationSheet() {
@@ -118,7 +290,7 @@ class _NewCaseFormScreenState extends ConsumerState<NewCaseFormScreen> {
               }
               if (result.extractedEntities.district != null &&
                   result.extractedEntities.district!.isNotEmpty) {
-                _districtController.text = result.extractedEntities.district!;
+                _onDistrictChanged(result.extractedEntities.district!);
               }
               if (result.extractedEntities.accusedNames.isNotEmpty) {
                 _accusedNameController.text = result.extractedEntities.accusedNames.join(', ');
@@ -165,6 +337,7 @@ class _NewCaseFormScreenState extends ConsumerState<NewCaseFormScreen> {
             underSections: _sectionsList,
             courtDesignation: _courtDesignation,
             stageOfCase: 'BAIL',
+            arrestDate: CustodyStatusRegistry.getStatus(_custodyStatus).requiresDate ? _arrestDate : null,
             cnrNumber: _cnrNumberController.text.trim().isNotEmpty ? _cnrNumberController.text.trim().toUpperCase() : null,
             lastCourtOrder: _factualSummaryController.text.trim(),
           );
@@ -222,11 +395,7 @@ class _NewCaseFormScreenState extends ConsumerState<NewCaseFormScreen> {
                       children: [
                         IconButton(
                           icon: const Icon(Icons.arrow_back, color: Colors.white),
-                          onPressed: () {
-                            if (Navigator.of(context).canPop()) {
-                              Navigator.of(context).pop();
-                            }
-                          },
+                          onPressed: () => Navigator.of(context).pop(),
                         ),
                         const SizedBox(width: 8),
                         const Expanded(
@@ -370,6 +539,7 @@ class _NewCaseFormScreenState extends ConsumerState<NewCaseFormScreen> {
                       const SizedBox(height: 14),
 
                       // Statute Selector Segmented Bar
+                      // Statute Selector & Special Acts Card
                       Card(
                         elevation: 0,
                         color: Colors.white,
@@ -387,7 +557,7 @@ class _NewCaseFormScreenState extends ConsumerState<NewCaseFormScreen> {
                                 children: [
                                   Expanded(
                                     child: Text(
-                                      'लागू विधिक संहिता चयन *',
+                                      'लागू विधिक संहिता चयन (Substantive Code) *',
                                       style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF131B2E)),
                                     ),
                                   ),
@@ -422,12 +592,109 @@ class _NewCaseFormScreenState extends ConsumerState<NewCaseFormScreen> {
                                     SizedBox(width: 6),
                                     Expanded(
                                       child: Text(
-                                        'नवीन भारतीय न्याय संहिता (BNS) एवं पूर्व भा.दं.वि. (IPC) दोनों धाराओं के मैपिंग हेतु सक्रिय।',
+                                        'नवीन BNS एवं पूर्व IPC दोनों धाराओं के समकालिक मैपिंग हेतु सक्रिय।',
                                         style: TextStyle(fontSize: 11, color: Color(0xFF44474D)),
                                       ),
                                     ),
                                   ],
                                 ),
+                              ),
+                              const Divider(height: 20),
+
+                              // Special Acts Dropdown & Section Suggestions
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  const Expanded(
+                                    child: Row(
+                                      children: [
+                                        Icon(Icons.category_outlined, size: 16, color: StitchColors.courtNavy),
+                                        SizedBox(width: 6),
+                                        Expanded(
+                                          child: Text(
+                                            'विशेष / स्थानीय अधिनियम (Special Acts)',
+                                            style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold, color: Color(0xFF131B2E)),
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFEEF2FF),
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                    child: const Text(
+                                      'बहु-अधिनियम संलग्नता',
+                                      style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF3730A3)),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              DropdownButtonFormField<String>(
+                                value: _selectedSpecialActCode,
+                                isExpanded: true,
+                                decoration: InputDecoration(
+                                  prefixIcon: const Icon(Icons.menu_book, color: StitchColors.courtNavy, size: 18),
+                                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFFC5C6CD))),
+                                  filled: true,
+                                  fillColor: const Color(0xFFF8FAFC),
+                                ),
+                                items: SpecialActsRegistry.supportedActs
+                                    .where((a) => a.isSpecialAct)
+                                    .map((act) {
+                                  return DropdownMenuItem(
+                                    value: act.actCode,
+                                    child: Text(
+                                      act.actNameHindi,
+                                      style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  );
+                                }).toList(),
+                                onChanged: (val) {
+                                  if (val != null) setState(() => _selectedSpecialActCode = val);
+                                },
+                              ),
+                              const SizedBox(height: 10),
+
+                              // Popular Sections of Selected Special Act
+                              Builder(
+                                builder: (context) {
+                                  final actInfo = SpecialActsRegistry.getActByCode(_selectedSpecialActCode);
+                                  if (actInfo == null) return const SizedBox.shrink();
+                                  return Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        '${actInfo.actNameHindi} की प्रमुख धाराएं (टैप करके जोड़ें):',
+                                        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF475569)),
+                                      ),
+                                      const SizedBox(height: 6),
+                                      Wrap(
+                                        spacing: 6,
+                                        runSpacing: 6,
+                                        children: actInfo.popularSections.map((secStr) {
+                                          return ActionChip(
+                                            backgroundColor: const Color(0xFFF1F5F9),
+                                            side: const BorderSide(color: Color(0xFFCBD5E1)),
+                                            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                                            avatar: const Icon(Icons.add, size: 14, color: StitchColors.courtNavy),
+                                            label: Text(
+                                              secStr,
+                                              style: const TextStyle(fontSize: 11, color: Color(0xFF1E293B)),
+                                            ),
+                                            onPressed: () => _addSpecificSection(secStr),
+                                          );
+                                        }).toList(),
+                                      ),
+                                    ],
+                                  );
+                                },
                               ),
                             ],
                           ),
@@ -546,12 +813,36 @@ class _NewCaseFormScreenState extends ConsumerState<NewCaseFormScreen> {
                           ),
                           const SizedBox(width: 12),
                           Expanded(
-                            child: _buildInputField(
-                              label: 'जनपद (District) *',
-                              icon: Icons.location_on_outlined,
-                              controller: _districtController,
-                              hint: 'लखनऊ',
-                              validator: (val) => val == null || val.isEmpty ? 'जनपद अनिवार्य' : null,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'जनपद (District) *',
+                                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF131B2E)),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                const SizedBox(height: 6),
+                                InkWell(
+                                  onTap: _openDistrictPicker,
+                                  child: IgnorePointer(
+                                    child: TextFormField(
+                                      controller: _districtController,
+                                      validator: (val) => val == null || val.isEmpty ? 'जनपद अनिवार्य' : null,
+                                      style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w500),
+                                      decoration: const InputDecoration(
+                                        prefixIcon: Icon(Icons.location_on_outlined, color: Color(0xFF75777E), size: 18),
+                                        suffixIcon: Icon(Icons.arrow_drop_down, color: Color(0xFF75777E)),
+                                        hintText: 'जनपद चुनें (75 Districts)...',
+                                        hintStyle: TextStyle(fontSize: 12.5, color: Color(0xFF75777E)),
+                                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                                        border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(8)), borderSide: BorderSide(color: Color(0xFFC5C6CD))),
+                                        filled: true,
+                                        fillColor: Colors.white,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ],
@@ -569,6 +860,122 @@ class _NewCaseFormScreenState extends ConsumerState<NewCaseFormScreen> {
                       const SizedBox(height: 12),
 
                       // Row 4: Custody Status
+                      Builder(
+                        builder: (context) {
+                          final currentStatus = CustodyStatusRegistry.getStatus(_custodyStatus);
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  const Expanded(
+                                    child: Text(
+                                      'वर्तमान अभिरक्षा स्थिति (Custody Status) *',
+                                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF131B2E)),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: currentStatus.badgeColor.withValues(alpha: 0.15),
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(Icons.circle, size: 8, color: currentStatus.badgeColor),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          currentStatus.titleHindi,
+                                          style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold, color: currentStatus.badgeColor),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 6),
+                              DropdownButtonFormField<String>(
+                                value: _custodyStatus,
+                                isExpanded: true,
+                                decoration: InputDecoration(
+                                  prefixIcon: Icon(Icons.lock_clock, color: currentStatus.badgeColor, size: 20),
+                                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFFC5C6CD))),
+                                  filled: true,
+                                  fillColor: Colors.white,
+                                ),
+                                items: CustodyStatusRegistry.allStatuses.map((opt) {
+                                  return DropdownMenuItem(
+                                    value: opt.code,
+                                    child: Text(
+                                      opt.titleHindiWithEnglish,
+                                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  );
+                                }).toList(),
+                                onChanged: (val) {
+                                  if (val != null) setState(() => _custodyStatus = val);
+                                },
+                              ),
+                              if (currentStatus.requiresDate) ...[
+                                const SizedBox(height: 8),
+                                InkWell(
+                                  onTap: () async {
+                                    final picked = await showDatePicker(
+                                      context: context,
+                                      initialDate: _arrestDate ?? DateTime.now(),
+                                      firstDate: DateTime(2000),
+                                      lastDate: DateTime.now(),
+                                    );
+                                    if (picked != null) {
+                                      setState(() => _arrestDate = picked);
+                                    }
+                                  },
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                                    decoration: BoxDecoration(
+                                      border: Border.all(color: const Color(0xFFC5C6CD)),
+                                      borderRadius: BorderRadius.circular(8),
+                                      color: Colors.white,
+                                    ),
+                                    child: Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Expanded(
+                                          child: Row(
+                                            children: [
+                                              Icon(Icons.event, color: currentStatus.badgeColor, size: 20),
+                                              const SizedBox(width: 10),
+                                              Expanded(
+                                                child: Text(
+                                                  _arrestDate != null
+                                                      ? 'अभिरक्षा / आदेश दिनांक: ' + '//'
+                                                      : 'अभिरक्षा दिनांक चुनें (Date of Detention/Order)',
+                                                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: Color(0xFF131B2E)),
+                                                  overflow: TextOverflow.ellipsis,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        const Icon(Icons.edit_calendar, size: 18, color: Color(0xFF75777E)),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ],
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 12),
+
+                      // Row 5: Court Designation
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -577,72 +984,19 @@ class _NewCaseFormScreenState extends ConsumerState<NewCaseFormScreen> {
                             children: [
                               const Expanded(
                                 child: Text(
-                                  'वर्तमान अभिरक्षा स्थिति (Custody Status) *',
+                                  'संबंधित न्यायालय पदनाम (Court Designation) *',
                                   style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF131B2E)),
                                 ),
                               ),
-                              const SizedBox(width: 8),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFFFDBD1),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: const Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(Icons.circle, size: 8, color: Color(0xFFD6603B)),
-                                    SizedBox(width: 4),
-                                    Text(
-                                      'न्यायिक अभिरक्षा',
-                                      style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold, color: Color(0xFF842503)),
-                                    ),
-                                  ],
-                                ),
+                              Text(
+                                '${_districtController.text.trim().isEmpty ? "लखनऊ" : _districtController.text.trim()} क्षेत्राधिकार',
+                                style: const TextStyle(fontSize: 11, color: StitchColors.courtNavy, fontWeight: FontWeight.w600),
                               ),
                             ],
                           ),
                           const SizedBox(height: 6),
                           DropdownButtonFormField<String>(
-                            initialValue: _custodyStatus,
-                            isExpanded: true,
-                            decoration: InputDecoration(
-                              prefixIcon: const Icon(Icons.lock_clock, color: Color(0xFFD6603B), size: 20),
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFFC5C6CD))),
-                              filled: true,
-                              fillColor: Colors.white,
-                            ),
-                            items: [
-                              'JUDICIAL_CUSTODY',
-                              'POLICE_CUSTODY',
-                              'ON_BAIL',
-                              'ANTICIPATORY',
-                            ].map((opt) {
-                              return DropdownMenuItem(
-                                value: opt,
-                                child: Text(_mapCustodyToLabel(opt), style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w500)),
-                              );
-                            }).toList(),
-                            onChanged: (val) {
-                              if (val != null) setState(() => _custodyStatus = val);
-                            },
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-
-                      // Row 5: Court Designation
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'संबंधित न्यायालय पदनाम (Court Designation) *',
-                            style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF131B2E)),
-                          ),
-                          const SizedBox(height: 6),
-                          DropdownButtonFormField<String>(
-                            initialValue: _courtDesignation,
+                            value: _courts.contains(_courtDesignation) ? _courtDesignation : (_courts.isNotEmpty ? _courts.first : null),
                             decoration: InputDecoration(
                               prefixIcon: const Icon(Icons.account_balance, color: Color(0xFF75777E), size: 20),
                               contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -662,6 +1016,83 @@ class _NewCaseFormScreenState extends ConsumerState<NewCaseFormScreen> {
                             },
                           ),
                         ],
+                      ),
+                      const SizedBox(height: 14),
+
+                      // AI 360° Legal Strategy Advisor Banner Card
+                      Container(
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFF0D1C32), Color(0xFF1E3A68)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.circular(12),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.08),
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withValues(alpha: 0.12),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(Icons.auto_awesome, color: Colors.amber, size: 20),
+                                ),
+                                const SizedBox(width: 10),
+                                const Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'धारा समझ नहीं आ रही? AI 360° विधिक विश्लेषक',
+                                        style: TextStyle(
+                                          fontSize: 13.5,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                      SizedBox(height: 2),
+                                      Text(
+                                        'घटना बोलें/लिखें • AI सटीक धाराएं, 360° बचाव रणनीति व अभियोजन बिंदु निकालेगा',
+                                        style: TextStyle(fontSize: 11, color: Color(0xFFDAE2FD)),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton.icon(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF2563EB),
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 14),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                ),
+                                icon: const Icon(Icons.psychology_outlined, size: 18),
+                                label: const Text(
+                                  '360° विधिक विश्लेषक खोलें (AI Legal Strategy)',
+                                  style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold),
+                                ),
+                                onPressed: _openAiSectionAdvisor,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                       const SizedBox(height: 14),
 

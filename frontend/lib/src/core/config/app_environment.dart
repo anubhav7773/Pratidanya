@@ -21,6 +21,14 @@ class AppEnvironment {
     defaultValue: 'https://pratidanya-backend.onrender.com',
   );
 
+  // Payment Execution Switch: 'SANDBOX_DUMMY' (Testing) vs 'PRODUCTION' (Google Play Store)
+  static const String paymentMode = String.fromEnvironment(
+    'PAYMENT_MODE',
+    defaultValue: 'SANDBOX_DUMMY',
+  );
+
+  static bool get isSandboxPayment => paymentMode == 'SANDBOX_DUMMY';
+
   // Production AI & Statutory Compliance Flags
   static const bool isGeminiPaidTier = bool.fromEnvironment('GEMINI_PAID_TIER', defaultValue: true);
   static const bool enforceDummyData = bool.fromEnvironment('ENFORCE_DUMMY_DATA', defaultValue: false);
