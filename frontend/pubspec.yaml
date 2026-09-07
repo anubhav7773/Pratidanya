@@ -46,6 +46,7 @@ dependencies:
   record: ^7.1.1
   path_provider: ^2.1.4
   sentry_flutter: ^9.0.0 # Sentry Crash & Layout Overflow Tracking (Kotlin 2.x Support)
+  url_launcher: ^6.3.2
 
 dev_dependencies:
   flutter_test:

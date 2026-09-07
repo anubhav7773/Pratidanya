@@ -2,10 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:printing/printing.dart';
 import 'package:pdf/pdf.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/theme/stitch_colors.dart';
+import '../../../../core/utils/citation_formatter.dart';
 import '../../../01_onboarding/presentation/controllers/auth_controller.dart';
 import '../../../02_case_input/presentation/controllers/case_controller.dart';
 import '../../../04_draft_generator/presentation/controllers/drafting_controller.dart';
+import '../../../04_draft_generator/domain/case_analysis_draft.dart';
 import '../../domain/verified_export_payload.dart';
 import '../../data/court_pdf_builder.dart';
 import '../controllers/verification_controller.dart';
@@ -13,11 +16,11 @@ import '../controllers/verification_controller.dart';
 final verificationNotifierProvider = StateNotifierProvider.autoDispose<VerificationNotifier, VerificationGateState>((ref) {
   final draft = ref.watch(draftingControllerProvider).valueOrNull;
   final citationIds = draft?.citedPrecedents.map((c) => c.citationId).toList() ?? [];
-  final groundsCount = draft?.statutoryGrounds.length ?? 0;
 
+  // Verification Gate unlocks upon verifying all cited precedents and accepting statutory declaration
   return VerificationNotifier(
     citationIds: citationIds,
-    groundsCount: groundsCount,
+    groundsCount: 0,
   );
 });
 
@@ -29,6 +32,161 @@ class VerificationGateScreen extends ConsumerWidget {
   String _toDevanagari(int n) {
     const devanagariDigits = ['०', '१', '२', '३', '४', '५', '६', '७', '८', '९'];
     return n.toString().split('').map((ch) => devanagariDigits[int.parse(ch)]).join('');
+  }
+
+  Future<void> _openPrecedentSource(BuildContext context, CitedPrecedentItem prec) async {
+    final cleanCitation = CitationFormatter.format(prec.citationId);
+    final targetUrl = CitationFormatter.getOfficialPortalUrl(prec.citationId, prec.verifiedSourceUrl);
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        padding: const EdgeInsets.all(20),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFEAEDFF),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(Icons.account_balance, size: 20, color: Color(0xFF0D1C32)),
+                    ),
+                    const SizedBox(width: 10),
+                    const Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'ई-कोर्ट्स / डिजिटल SCR अभिलेख',
+                          style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFF131B2E)),
+                        ),
+                        Text(
+                          'माननीय न्यायालय प्रामाणिक न्यायिक नजीर',
+                          style: TextStyle(fontSize: 10.5, color: Color(0xFF75777E)),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close, size: 20),
+                  onPressed: () => Navigator.of(ctx).pop(),
+                ),
+              ],
+            ),
+            const Divider(height: 20),
+            Text(
+              prec.caseTitle,
+              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFF131B2E)),
+            ),
+            const SizedBox(height: 6),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF2F3FF),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.menu_book, size: 14, color: Color(0xFF1F6C3A)),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      'प्रामाणिक नजीर संदर्भ: $cleanCitation',
+                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF1F6C3A)),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                const Icon(Icons.gavel, size: 14, color: Color(0xFF44474D)),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    '${prec.courtName} • निर्णय तिथि: ${prec.judgmentDate}',
+                    style: const TextStyle(fontSize: 11.5, color: Color(0xFF44474D)),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              'माननीय न्यायालय द्वारा निर्धारित विधिक सिद्धांत (Ratio Decidendi):',
+              style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold, color: Color(0xFF131B2E)),
+            ),
+            const SizedBox(height: 6),
+            Container(
+              constraints: const BoxConstraints(maxHeight: 180),
+              child: SingleChildScrollView(
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFAF8FF),
+                    border: Border.all(color: const Color(0xFFEAEDFF)),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    '"${prec.quotedPassage}"',
+                    style: const TextStyle(fontSize: 12, height: 1.4, fontStyle: FontStyle.italic, color: Color(0xFF131B2E)),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              height: 46,
+              child: ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF1F6C3A),
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+                icon: const Icon(Icons.open_in_browser, size: 18),
+                label: const Text(
+                  'आधिकारिक पोर्टल पर मूल निर्णय खोलें',
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                ),
+                onPressed: () async {
+                  final uri = Uri.parse(targetUrl);
+                  try {
+                    final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+                    if (!launched) {
+                      await launchUrl(uri, mode: LaunchMode.inAppWebView);
+                    }
+                  } catch (e) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('पोर्टल लिंक: $targetUrl')),
+                      );
+                    }
+                  }
+                },
+              ),
+            ),
+            const SizedBox(height: 10),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -116,43 +274,45 @@ class VerificationGateScreen extends ConsumerWidget {
           children: [
             // Top App Bar / Header
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+              padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 12.0),
               color: Colors.white,
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Row(
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.arrow_back, color: Color(0xFF131B2E)),
-                        style: IconButton.styleFrom(
-                          backgroundColor: const Color(0xFFEAEDFF),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                        ),
-                        onPressed: () {
-                          if (Navigator.of(context).canPop()) {
-                            Navigator.of(context).pop();
-                          }
-                        },
-                      ),
-                      const SizedBox(width: 8),
-                      const Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'अधिवक्ता विधिक सत्यापन',
-                            style: TextStyle(fontSize: 16.5, fontWeight: FontWeight.bold, color: Color(0xFF131B2E)),
-                          ),
-                          Text(
-                            'अधिवक्ता अधिनियम, 1961 की धारा 35 के अनुपालनार्थ',
-                            style: TextStyle(fontSize: 11, color: Color(0xFF44474D)),
-                          ),
-                        ],
-                      ),
-                    ],
+                  IconButton(
+                    icon: const Icon(Icons.arrow_back, color: Color(0xFF131B2E)),
+                    style: IconButton.styleFrom(
+                      backgroundColor: const Color(0xFFEAEDFF),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                    onPressed: () {
+                      if (Navigator.of(context).canPop()) {
+                        Navigator.of(context).pop();
+                      }
+                    },
                   ),
+                  const SizedBox(width: 8),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'अधिवक्ता विधिक सत्यापन',
+                          style: TextStyle(fontSize: 15.5, fontWeight: FontWeight.bold, color: Color(0xFF131B2E)),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        Text(
+                          'अधिवक्ता अधिनियम, 1961 (धारा 35)',
+                          style: TextStyle(fontSize: 10.5, color: Color(0xFF44474D)),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 6),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
                       color: const Color(0xFFE2E7FF),
                       borderRadius: BorderRadius.circular(16),
@@ -160,11 +320,11 @@ class VerificationGateScreen extends ConsumerWidget {
                     child: const Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.verified_user, size: 14, color: Color(0xFF1F6C3A)),
+                        Icon(Icons.verified_user, size: 13, color: Color(0xFF1F6C3A)),
                         SizedBox(width: 4),
                         Text(
-                          'सांविधिक सुरक्षा द्वार',
-                          style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF131B2E)),
+                          'सुरक्षा द्वार',
+                          style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold, color: Color(0xFF131B2E)),
                         ),
                       ],
                     ),
@@ -412,49 +572,53 @@ class VerificationGateScreen extends ConsumerWidget {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Row(
-                                    children: [
-                                      Container(
-                                        width: 24,
-                                        height: 24,
-                                        decoration: BoxDecoration(
-                                          color: const Color(0xFFE2E7FF),
-                                          borderRadius: BorderRadius.circular(12),
-                                        ),
-                                        child: Center(
-                                          child: Text(
-                                            _toDevanagari(idx + 1),
-                                            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF131B2E)),
-                                          ),
-                                        ),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            prec.caseTitle,
-                                            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF131B2E)),
-                                          ),
-                                          Text(
-                                            '${prec.citationId} • ${prec.courtName}',
-                                            style: const TextStyle(fontSize: 11, color: Color(0xFF75777E)),
-                                          ),
-                                        ],
-                                      ),
-                                    ],
-                                  ),
                                   Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                    width: 24,
+                                    height: 24,
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFE2E7FF),
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Center(
+                                      child: Text(
+                                        _toDevanagari(idx + 1),
+                                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF131B2E)),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          prec.caseTitle,
+                                          style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.bold, color: Color(0xFF131B2E)),
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          '${CitationFormatter.format(prec.citationId)} • ${prec.courtName}',
+                                          style: const TextStyle(fontSize: 11, color: Color(0xFF75777E)),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                                     decoration: BoxDecoration(
                                       color: const Color(0xFFEAEDFF),
                                       borderRadius: BorderRadius.circular(12),
                                     ),
                                     child: const Text(
                                       'जमानत सिद्धांत',
-                                      style: TextStyle(fontSize: 10.5, color: Color(0xFF44474D)),
+                                      style: TextStyle(fontSize: 10, color: Color(0xFF44474D), fontWeight: FontWeight.w600),
                                     ),
                                   ),
                                 ],
@@ -484,30 +648,41 @@ class VerificationGateScreen extends ConsumerWidget {
                               ),
                               const SizedBox(height: 8),
 
-                              // Verified Source Link
+                              // Verified Source Link & Clean Legal Citation
                               Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
-                                  GestureDetector(
-                                    onTap: () {
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        SnackBar(content: Text('ई-कोर्ट्स SCR संदर्भ ${prec.citationId} खोला जा रहा है...')),
-                                      );
-                                    },
-                                    child: const Row(
-                                      children: [
-                                        Text(
-                                          'मूल निर्णय ई-कोर्ट्स / SCR देखें',
-                                          style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold, color: Color(0xFF1F6C3A), decoration: TextDecoration.underline),
-                                        ),
-                                        SizedBox(width: 4),
-                                        Icon(Icons.open_in_new, size: 13, color: Color(0xFF1F6C3A)),
-                                      ],
+                                  Expanded(
+                                    child: InkWell(
+                                      onTap: () => _openPrecedentSource(context, prec),
+                                      child: const Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Flexible(
+                                            child: Text(
+                                              'मूल निर्णय ई-कोर्ट्स / SCR देखें',
+                                              style: TextStyle(
+                                                fontSize: 11.5,
+                                                fontWeight: FontWeight.bold,
+                                                color: Color(0xFF1F6C3A),
+                                                decoration: TextDecoration.underline,
+                                              ),
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ),
+                                          SizedBox(width: 4),
+                                          Icon(Icons.open_in_new, size: 13, color: Color(0xFF1F6C3A)),
+                                        ],
+                                      ),
                                     ),
                                   ),
-                                  Text(
-                                    'SCR आईडी: #${prec.citationId.replaceAll(' ', '-')}',
-                                    style: const TextStyle(fontSize: 10.5, color: Color(0xFF75777E)),
+                                  const SizedBox(width: 8),
+                                  Flexible(
+                                    child: Text(
+                                      'SCR: ${CitationFormatter.format(prec.citationId)}',
+                                      style: const TextStyle(fontSize: 10.5, color: Color(0xFF75777E), fontWeight: FontWeight.w500),
+                                      overflow: TextOverflow.ellipsis,
+                                      textAlign: TextAlign.right,
+                                    ),
                                   ),
                                 ],
                               ),

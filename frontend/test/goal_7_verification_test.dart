@@ -7,6 +7,7 @@ import 'package:pratidnya/src/features/05_verify_and_export/data/court_pdf_build
 import 'package:pratidnya/src/features/billing/data/admob_service.dart';
 import 'package:pratidnya/src/features/billing/presentation/controllers/subscription_controller.dart';
 import 'package:pratidnya/src/shared/components/court_inline_banner_ad.dart';
+import 'package:pratidnya/src/core/utils/citation_formatter.dart';
 import 'package:pratidnya/src/features/billing/presentation/screens/paywall_screen.dart';
 
 void main() {
@@ -48,6 +49,43 @@ void main() {
       notifier.toggleGround(0, false);
       expect(notifier.state.isReadyForExport, false);
       expect(notifier.state.pendingItemsCount, 1);
+    });
+
+    test('Section 35 Verification Gate: Unlocks when cited precedents and declaration are verified (groundsCount = 0)', () {
+      final notifier = VerificationNotifier(
+        citationIds: ['1984_4_SCC_116_SHARAD_BIRDHICHAND'],
+        groundsCount: 0,
+      );
+
+      expect(notifier.state.isReadyForExport, false);
+
+      // Tick citation checkbox
+      notifier.toggleCitation('1984_4_SCC_116_SHARAD_BIRDHICHAND', true);
+      expect(notifier.state.isReadyForExport, false);
+
+      // Tick advocate statutory declaration checkbox
+      notifier.setStatutoryDeclaration(true);
+      // Both checked -> Unlocked!
+      expect(notifier.state.isReadyForExport, true);
+    });
+
+    test('CitationFormatter: Cleans raw database slugs into standard Indian legal citations', () {
+      expect(
+        CitationFormatter.format('1984_4_SCC_116_SHARAD_BIRDHICHAND'),
+        '(1984) 4 SCC 116',
+      );
+      expect(
+        CitationFormatter.format('2014_AIR_SC_2756_ARNESH_KUMAR'),
+        'AIR 2014 SC 2756',
+      );
+      expect(
+        CitationFormatter.format('2012_1_SCC_40_SANJAY_CHANDRA'),
+        '(2012) 1 SCC 40',
+      );
+      expect(
+        CitationFormatter.format('1954_AIR_SC_39_TRIMBAK'),
+        'AIR 1954 SC 39',
+      );
     });
   });
 

@@ -39,9 +39,6 @@ Future<void> main() async {
     return CustomErrorScreen(errorDetails: errorDetails);
   };
 
-  // Initialize Layout Overflow (Pixel Break) Interceptor
-  OverflowErrorReporter.initialize();
-
   // Initialize Sentry SDK for Org: asiverticals | Project: pratidnya
   await SentryFlutter.init(
     (options) {
@@ -60,6 +57,9 @@ Future<void> main() async {
       // ignore: experimental_member_use
       options.attachViewHierarchy = true;
 
+      // Report framework layout overflows and silent errors
+      options.reportSilentFlutterErrors = true;
+
       // Tracing and Profiling sample rates
       options.tracesSampleRate = 1.0;
       // ignore: experimental_member_use
@@ -69,6 +69,9 @@ Future<void> main() async {
       options.enableUserInteractionTracing = true;
     },
     appRunner: () async {
+      // 0. Initialize Layout Overflow (Pixel Break) Interceptor after Sentry init
+      OverflowErrorReporter.initialize();
+
       // 1. Statutory Environment Security Assertion
       try {
         AppEnvironment.validateEnvironmentSecurity();

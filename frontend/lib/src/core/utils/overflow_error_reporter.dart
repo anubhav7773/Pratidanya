@@ -6,15 +6,20 @@ class OverflowErrorReporter {
   static void initialize() {
     final originalOnError = FlutterError.onError;
 
-    FlutterError.onError = (FlutterErrorDetails details) async {
+    FlutterError.onError = (FlutterErrorDetails details) {
       // 1. Check if the error is a RenderFlex overflow (Yellow-Black stripes / Pixel Break)
-      final bool isOverflow = details.exceptionAsString().contains('A RenderFlex overflowed by') ||
-          details.exceptionAsString().contains('RenderFlex overflowed');
+      final exceptionStr = details.exceptionAsString();
+      final summaryStr = details.summary.name;
+      final bool isOverflow = exceptionStr.contains('RenderFlex overflowed') ||
+          exceptionStr.contains('A RenderFlex overflowed by') ||
+          (summaryStr?.contains('overflowed') == true) ||
+          (details.exception is FlutterError &&
+              (details.exception as FlutterError).message.contains('overflowed'));
 
       if (isOverflow) {
-        debugPrint('[Pratidnya Layout Guard] ⚠️ PIXEL OVERFLOW DETECTED: ${details.exceptionAsString()}');
+        debugPrint('[Pratidnya Layout Guard] ⚠️ PIXEL OVERFLOW DETECTED: $exceptionStr');
 
-        await Sentry.captureEvent(
+        Sentry.captureEvent(
           SentryEvent(
             level: SentryLevel.warning,
             message: SentryMessage('UI Layout Pixel Overflow: ${details.summary}'),
