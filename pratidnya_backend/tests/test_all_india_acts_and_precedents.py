@@ -102,6 +102,11 @@ def test_llm_gateway_emergency_statutory_draft_all_acts():
         ("एफ.आई.आर. संख्या : 108/2026\nथाना एवं जिला : गोमती नगर, लखनऊ\nधारा : 420/467 धोखाधड़ी कूटकरण", "मोहम्मद इब्राहिम"),
         ("एफ.आई.आर. संख्या : 109/2026\nथाना एवं जिला : ट्रांस यमुना, आगरा\nधारा : 498A/304B दहेज विवाहिता", "कहकशां कौसर"),
         ("एफ.आई.आर. संख्या : 110/2026\nथाना एवं जिला : सदर, गोरखपुर\nधारा : 302 हत्या कत्ल murder", "परिस्थितिजन्य साक्ष्य"),
+        ("एफ.आई.आर. संख्या : 111/2026\nथाना एवं जिला : बंथरा, लखनऊ\nधारा : 135 Electricity Act विद्युत अधिनियम बिजली चोरी", "विद्युत अधिनियम"),
+        ("एफ.आई.आर. संख्या : 112/2026\nथाना एवं जिला : कोतवाली, वाराणसी\nधारा : 3/4 Public Gambling Act जुआ अधिनियम सट्टा", "जुआ अधिनियम"),
+        ("एफ.आई.आर. संख्या : 113/2026\nथाना एवं जिला : सरोजनी नगर, लखनऊ\nधारा : 279/304A Motor Vehicles Act मोटर वाहन दुर्घटना", "दुर्घटना"),
+        ("एफ.आई.आर. संख्या : 114/2026\nथाना एवं जिला : दुधवा, लखीमपुर\nधारा : 9/51 Wildlife Protection Act वन्यजीव संरक्षण शिकार", "वन्यजीव संरक्षण अधिनियम"),
+        ("एफ.आई.आर. संख्या : 115/2026\nथाना एवं जिला : मंडी, कानपुर\nधारा : 3/7 Essential Commodities Act आवश्यक वस्तु अधिनियम कालाबाजारी", "आवश्यक वस्तु"),
     ]
 
     for prompt, expected_keyword in scenarios:
@@ -114,3 +119,26 @@ def test_llm_gateway_emergency_statutory_draft_all_acts():
         assert expected_keyword in all_text, (
             f"Expected '{expected_keyword}' in draft for prompt:\n{prompt}\nGot:\n{all_text}"
         )
+
+
+def test_llm_gateway_universal_handling_of_completely_unknown_acts():
+    """Verify that any unknown act or section receives dynamic Devanagari legal grounds without failing."""
+    novel_prompt = (
+        "एफ.आई.आर. संख्या : 999/2026\n"
+        "थाना एवं जिला : डिब्रूगढ़, असम\n"
+        "धारा : Section 18/27 Drugs and Cosmetics Act औषधि एवं प्रसाधन सामग्री अधिनियम\n"
+        "तथ्य / सारांश : प्रार्थी की मेडिकल स्टोर से बिना वैध प्रक्रिया के नमूना जब्त करने का आरोप है।"
+    )
+    draft = LLMGateway._build_emergency_statutory_draft(novel_prompt)
+    assert "court_header" in draft
+    assert "case_title" in draft
+    assert len(draft["statutory_grounds"]) >= 5
+    assert len(draft["prosecution_weaknesses"]) >= 4
+
+    grounds_text = " ".join(draft["statutory_grounds"])
+    # Must dynamically reflect the novel section / act and statutory defenses
+    assert "Drugs and Cosmetics Act" in grounds_text or "18/27" in grounds_text
+    assert "धारा 35 बी.एन.एस.एस." in grounds_text or "धारा 41A" in grounds_text
+    assert "अनुच्छेद 21" in grounds_text
+    assert "बाबू सिंह बनाम स्टेट ऑफ यू.पी." in grounds_text or "संजय चंद्र" in grounds_text
+

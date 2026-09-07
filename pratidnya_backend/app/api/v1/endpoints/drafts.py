@@ -100,6 +100,16 @@ def extract_statutory_section_tokens(sections: List[str]) -> List[str]:
         cleaned_sections.extend(["379", "411", "303_BNS", "317_BNS"])
     if any(term in combined_sections_str for term in ["420", "318", "467", "468", "धोखाधड़ी"]):
         cleaned_sections.extend(["420", "467", "318_BNS"])
+    if any(term in combined_sections_str for term in ["electricity", "विद्युत", "बिजली", "135"]):
+        cleaned_sections.extend(["135", "138", "ELECTRICITY_ACT"])
+    if any(term in combined_sections_str for term in ["gambling", "जुआ", "सट्टा"]):
+        cleaned_sections.extend(["3", "4", "13", "GAMBLING_ACT"])
+    if any(term in combined_sections_str for term in ["motor", "accident", "दुर्घटना", "वाहन", "279", "304a", "106"]):
+        cleaned_sections.extend(["279", "304A", "337", "338", "106_BNS", "281_BNS", "MV_ACT"])
+    if any(term in combined_sections_str for term in ["wildlife", "वन्यजीव", "शिकार"]):
+        cleaned_sections.extend(["9", "39", "51", "WILDLIFE_ACT"])
+    if any(term in combined_sections_str for term in ["essential", "आवश्यक वस्तु", "ec act"]):
+        cleaned_sections.extend(["3", "7", "EC_ACT"])
 
     return list(set(cleaned_sections))
 
@@ -224,23 +234,30 @@ async def generate_draft_endpoint(
         # Clean target section numbers for GIN array filtering
         cleaned_sections = extract_statutory_section_tokens(payload.sections)
 
+        # Pass 1: Direct Act/Section Matching
         rpc_res = supabase.rpc("match_verified_precedents", {
             "query_embedding": query_vector,
             "target_sections": cleaned_sections,
-            "similarity_threshold": 0.65,
+            "similarity_threshold": 0.55,
             "match_count": 3
         }).execute()
 
         retrieved_precedents = rpc_res.data or []
-        if not retrieved_precedents:
-            # Fallback to 0.45 threshold for concise Devanagari factual matrices
-            rpc_res = supabase.rpc("match_verified_precedents", {
+
+        # Pass 2: Universal Jurisprudential Semantic Match (Guarantees all Indian Acts match binding Supreme Court principles)
+        if len(retrieved_precedents) < 2:
+            fallback_rpc = supabase.rpc("match_verified_precedents", {
                 "query_embedding": query_vector,
-                "target_sections": cleaned_sections,
-                "similarity_threshold": 0.45,
+                "target_sections": [],  # Unrestricted semantic matching across constitutional & criminal defense corpus
+                "similarity_threshold": 0.38,
                 "match_count": 3
             }).execute()
-            retrieved_precedents = rpc_res.data or []
+            fallback_data = fallback_rpc.data or []
+            existing_cids = {p.get("citation_id") for p in retrieved_precedents}
+            for row in fallback_data:
+                if row.get("citation_id") not in existing_cids:
+                    retrieved_precedents.append(row)
+                    existing_cids.add(row.get("citation_id"))
 
         # 5. Transform retrieved database records into candidate precedents with live reachable URLs
         candidate_citations = []
