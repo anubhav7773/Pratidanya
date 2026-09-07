@@ -48,7 +48,7 @@ Future<void> main() async {
       // DSN pass via compile-time argument (--dart-define=SENTRY_DSN=...) or fallback
       options.dsn = const String.fromEnvironment(
         'SENTRY_DSN',
-        defaultValue: 'https://e3a2b1c0d4e5f6a7b8c9d0e1f2a3b4c5@o4508920194826240.ingest.us.sentry.io/4508920204591104',
+        defaultValue: 'https://3edaa68c2f469fcdc88b178bbe53a72c@o4511946639015936.ingest.us.sentry.io/4512042881056768',
       );
 
       // Environment & Release Tracking
