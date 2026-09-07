@@ -16,7 +16,7 @@ class Settings(BaseSettings):
     # Groq & LLM Gateway Configuration
     DEFAULT_LLM_PROVIDER: str = Field(default="GROQ", description="Primary LLM Provider: GROQ or GEMINI")
     GROQ_API_KEY: Optional[str] = Field(default=None, description="Groq API Key for high-speed Llama-3.3 and Whisper")
-    GROQ_MODEL: str = Field(default="llama-3.3-70b-versatile", description="Groq Primary Legal LLM Model")
+    GROQ_MODEL: str = Field(default="openai/gpt-oss-120b", description="Groq Primary Legal LLM Model")
 
     # App State
     APP_ENV: str = Field(default="PRODUCTION")

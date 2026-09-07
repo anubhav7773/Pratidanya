@@ -25,11 +25,11 @@ class LLMGateway:
     _groq_client: Optional[Any] = None
 
     CANDIDATE_GEMINI_MODELS = [
-        "gemini-2.5-flash",
-        "gemini-2.0-flash",
-        "gemini-1.5-flash",
-        "gemini-1.5-pro",
         "gemini-flash-latest",
+        "gemini-pro-latest",
+        "gemini-2.5-pro",
+        "gemini-2.5-flash-lite",
+        "gemini-2.5-flash",
     ]
 
     @classmethod
@@ -46,10 +46,11 @@ class LLMGateway:
         return None
 
     CANDIDATE_GROQ_MODELS = [
+        "openai/gpt-oss-120b",
+        "qwen/qwen3.6-27b",
+        "qwen/qwen3.8-27b",
+        "groq/compound",
         "llama-3.3-70b-versatile",
-        "llama-3.1-8b-instant",
-        "mixtral-8x7b-32768",
-        "gemma2-9b-it",
     ]
 
     @classmethod
