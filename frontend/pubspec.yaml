@@ -45,7 +45,7 @@ dependencies:
   file_picker: ^12.2.0
   record: ^7.1.1
   path_provider: ^2.1.4
-  sentry_flutter: ^8.9.0 # Sentry Crash & Layout Overflow Tracking
+  sentry_flutter: ^9.0.0 # Sentry Crash & Layout Overflow Tracking (Kotlin 2.x Support)
 
 dev_dependencies:
   flutter_test:
