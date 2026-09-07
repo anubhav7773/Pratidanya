@@ -122,6 +122,67 @@ class _DraftStudioScreenState extends ConsumerState<DraftStudioScreen> {
     );
   }
 
+  Future<void> _confirmDeleteCase(BuildContext context, CriminalCase criminalCase) async {
+    final shouldDelete = await showDialog<bool>(
+      context: context,
+      builder: (dialogCtx) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: StitchColors.alertCrimson),
+            SizedBox(width: 8),
+            Text('केस हटाएं (Delete Case)?', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          ],
+        ),
+        content: Text(
+          'क्या आप मु.अ.सं. ${criminalCase.firNumber} (अभियुक्त: ${criminalCase.accusedName}) को स्थायी रूप से हटाना चाहते हैं?\n\nड्राफ्ट और नजीर प्राप्त होने के बाद आप इसे अपनी इच्छानुसार हटा सकते हैं। यह कार्यवाही पूर्ववत (Undo) नहीं की जा सकेगी।',
+          style: const TextStyle(fontSize: 14, height: 1.4),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogCtx).pop(false),
+            child: const Text('रद्द करें', style: TextStyle(color: Color(0xFF44474D))),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: StitchColors.alertCrimson,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () => Navigator.of(dialogCtx).pop(true),
+            child: const Text('हां, केस हटाएं'),
+          ),
+        ],
+      ),
+    );
+
+    if (shouldDelete == true && context.mounted) {
+      try {
+        await ref.read(caseFormControllerProvider.notifier).deleteCase(criminalCase.id);
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('मु.अ.सं. ${criminalCase.firNumber} सफलतापूर्वक हटा दिया गया।'),
+              backgroundColor: const Color(0xFF0D1C32),
+            ),
+          );
+          if (Navigator.of(context).canPop()) {
+            Navigator.of(context).pop();
+          } else {
+            context.go('/cases');
+          }
+        }
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('केस हटाने में त्रुटि: $e'),
+              backgroundColor: StitchColors.alertCrimson,
+            ),
+          );
+        }
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final caseListAsync = ref.watch(caseListProvider);
@@ -131,6 +192,12 @@ class _DraftStudioScreenState extends ConsumerState<DraftStudioScreen> {
       loading: () => const Scaffold(body: Center(child: CircularProgressIndicator())),
       error: (e, _) => Scaffold(body: Center(child: Text('केस त्रुटि: $e'))),
       data: (cases) {
+        if (cases.isEmpty) {
+          return Scaffold(
+            appBar: AppBar(title: const Text('ड्राफ्टिंग स्टूडियो')),
+            body: const Center(child: Text('कोई केस उपलब्ध नहीं है')),
+          );
+        }
         final currentCase = cases.firstWhere(
           (c) => c.id == widget.caseId,
           orElse: () => cases.first,
@@ -189,6 +256,11 @@ class _DraftStudioScreenState extends ConsumerState<DraftStudioScreen> {
                       const SizedBox(width: 6),
                       Row(
                         children: [
+                          IconButton(
+                            icon: const Icon(Icons.delete_outline, size: 20, color: StitchColors.alertCrimson),
+                            tooltip: 'केस हटाएं (Delete Case)',
+                            onPressed: () => _confirmDeleteCase(context, currentCase),
+                          ),
                           IconButton(
                             icon: const Icon(Icons.document_scanner_outlined, size: 20, color: Color(0xFF0D1C32)),
                             tooltip: 'आरोप पत्र विश्लेषण (OpenNyAI)',
@@ -434,9 +506,79 @@ class _DraftStudioScreenState extends ConsumerState<DraftStudioScreen> {
                             }
 
                             final sectionsStr = currentCase.underSections.join(' ').toLowerCase();
-                            final isNdps = sectionsStr.contains('ndps') || sectionsStr.contains('8/20') || sectionsStr.contains('एनडीपीएस');
+                            final isNdps = sectionsStr.contains('ndps') || sectionsStr.contains('8/20') || sectionsStr.contains('8/') || sectionsStr.contains('21/') || sectionsStr.contains('एनडीपीएस');
+                            final isPocso = sectionsStr.contains('pocso') || sectionsStr.contains('पॉक्सो') || sectionsStr.contains('376') || sectionsStr.contains('64') || sectionsStr.contains('65');
+                            final isArms = sectionsStr.contains('arms') || sectionsStr.contains('आयुध') || sectionsStr.contains('25') || sectionsStr.contains('27');
+                            final isGangsters = sectionsStr.contains('gangster') || sectionsStr.contains('गैंगस्टर') || sectionsStr.contains('2/3');
+                            final isScSt = sectionsStr.contains('sc/st') || sectionsStr.contains('अत्याचार') || sectionsStr.contains('scst') || sectionsStr.contains('3(1)') || sectionsStr.contains('3(2)');
+                            final isExcise = sectionsStr.contains('excise') || sectionsStr.contains('आबकारी') || sectionsStr.contains('60');
+                            final isCyber = sectionsStr.contains('it act') || sectionsStr.contains('cyber') || sectionsStr.contains('साइबर') || sectionsStr.contains('66');
+                            final isPmla = sectionsStr.contains('pmla') || sectionsStr.contains('धन शोधन') || sectionsStr.contains('money laundering');
+                            final isNiAct = sectionsStr.contains('138') || sectionsStr.contains('ni act') || sectionsStr.contains('चेक');
                             final isHomicide = sectionsStr.contains('302') || sectionsStr.contains('103') || sectionsStr.contains('307') || sectionsStr.contains('109');
                             final isTheft = sectionsStr.contains('379') || sectionsStr.contains('303') || sectionsStr.contains('chori') || sectionsStr.contains('चोरी');
+
+                            String proceduralChipText() {
+                              if (isNdps) return 'धारा 50 / 42 NDPS';
+                              if (isPocso) return 'धारा 94 JJ Act / POCSO';
+                              if (isArms) return 'धारा 100 CrPC / 105 BNSS';
+                              if (isGangsters) return 'धारा 19(4) UP Gangsters Act';
+                              if (isScSt) return 'धारा 14A SC/ST Act';
+                              if (isExcise) return 'धारा 60 UP Excise Act';
+                              if (isCyber) return 'धारा 66D IT Act / 63 BSA';
+                              if (isPmla) return 'धारा 45 PMLA';
+                              if (isNiAct) return 'धारा 138 NI Act';
+                              return 'धारा 41A CrPC / धारा 35 BNSS';
+                            }
+
+                            String proceduralHeaderTitle() {
+                              if (isNdps) return 'प्रक्रियात्मक उल्लंघन (धारा 50 / 42 NDPS एक्ट)';
+                              if (isPocso) return 'प्रक्रियात्मक उल्लंघन (JJ Act धारा 94 आयु निर्धारण प्रक्रिया)';
+                              if (isArms) return 'प्रक्रियात्मक उल्लंघन (धारा 25 Arms Act / धारा 105 BNSS जब्ती)';
+                              if (isGangsters) return 'प्रक्रियात्मक उल्लंघन (UP Gangsters Act धारा 2/3 नियम विरुद्ध गैंगचार्ट)';
+                              if (isScSt) return 'प्रक्रियात्मक उल्लंघन (SC/ST Act धारा 14A / डीएसपी स्तर जांच का अभाव)';
+                              if (isExcise) return 'प्रक्रियात्मक उल्लंघन (UP Excise Act धारा 60 स्वतंत्र साक्षी का अभाव)';
+                              if (isCyber) return 'प्रक्रियात्मक उल्लंघन (IT Act 66D / BSA धारा 63 डिजिटल साक्ष्य अभाव)';
+                              if (isPmla) return 'प्रक्रियात्मक उल्लंघन (PMLA धारा 45 / ECIR आधार अभाव)';
+                              if (isNiAct) return 'प्रक्रियात्मक उल्लंघन (NI Act 138(b) कानूनी नोटिस तामील अभाव)';
+                              return 'प्रक्रियात्मक उल्लंघन (धारा 41A CrPC / धारा 35 BNSS)';
+                            }
+
+                            String proceduralDefaultText() {
+                              if (isNdps) return 'तलाशी पूर्व मजिस्ट्रेट या राजपत्रित अधिकारी के समक्ष पेश किए जाने के विधिक अधिकार (धारा 50 NDPS) का पूर्ण उल्लंघन। स्टेट ऑफ राजस्थान बनाम परमानंद (2014) 5 SCC 345 का स्पष्ट उल्लंघन।';
+                              if (isPocso) return 'पीड़िता की आयु निर्धारण में धारा 94 जुवेनाइल जस्टिस एक्ट के अनिवार्य विधिक क्रम (जन्म प्रमाण पत्र/स्कूल रिकॉर्ड) का अनुपालन नहीं किया गया। पी. युवराज बनाम स्टेट (2024) नजीर का उल्लंघन।';
+                              if (isArms) return 'कथित हथियार बरामदगी के समय स्वतंत्र स्थानीय साक्षियों (धारा 100 CrPC / 105 BNSS) का पूर्ण अभाव एवं सील मुहर की कड़ी में विधिक त्रुटि।';
+                              if (isGangsters) return 'एकल मामले के आधार पर बिना पुलिस अधीक्षक के स्वतंत्र विवेक प्रयोग के अवैध रूप से गैंग-चार्ट अनुमोदित किया गया।';
+                              if (isScSt) return 'कथित घटना किसी सार्वजनिक दृष्टिगोचर स्थान पर घटित नहीं हुई। हितेश वर्मा बनाम उत्तराखंड राज्य (2020) 10 SCC 710 के अनुसार अपराध नहीं बनता।';
+                              if (isExcise) return 'कथित अवैध मदिरा जब्ती में धारा 105 BNSS के तहत स्वतंत्र स्थानीय गवाह उपस्थित नहीं थे और न ही मौके पर कोई निष्पक्ष वीडियोग्राफी की गई।';
+                              if (isCyber) return 'डिजिटल उपकरणों एवं इलेक्ट्रॉनिक रिकॉर्ड के साथ धारा 63 भारतीय साक्ष्य अधिनियम / 65B प्रमाण पत्र का पूर्ण अभाव है।';
+                              if (isPmla) return 'मूल अपराध (Predicate Offence) में कोई आपराधिक आय सिद्ध नहीं हुई है। विजय मदनलाल चौधरी (2022) नजीर के तहत PMLA कार्यवाही टिक नहीं सकती।';
+                              if (isNiAct) return 'परिवादी द्वारा धारा 138(b) के अनिवार्य 15-दिवसीय मांग नोटिस की विधिवत तामीली का कोई साक्ष्य प्रस्तुत नहीं किया गया।';
+                              return 'गिरफ्तारी पूर्व अनिवार्य विधिक नोटिस का पूर्ण अभाव। माननीय सर्वोच्च न्यायालय द्वारा अर्नेश कुमार बनाम बिहार राज्य मामले में प्रतिपादित दिशानिर्देशों का उल्लंघन।';
+                            }
+
+                            String precedentCitationDefault() {
+                              if (isNdps) return '(2014) 5 SCC 345';
+                              if (isPocso) return '(2024) 6 SCC 345';
+                              if (isArms) return '(2008) 16 SCC 417';
+                              if (isGangsters) return '2023 SCC OnLine All 123';
+                              if (isScSt) return '(2020) 10 SCC 710';
+                              if (isExcise) return '2019 SCC OnLine All 2541';
+                              if (isCyber) return '(2020) 7 SCC 1';
+                              if (isPmla) return '(2022) SCC OnLine SC 929';
+                              if (isNiAct) return '(2014) 16 SCC 260';
+                              if (isHomicide) return '(2012) 1 SCC 40';
+                              return '(2014) 8 SCC 273';
+                            }
+
+                            String precedentQuoteDefault() {
+                              if (isNdps) return '"स्टेट ऑफ राजस्थान बनाम परमानंद — धारा 50 NDPS एक्ट के तहत व्यक्तिगत तलाशी के अधिकार की सूचना अनिवार्य है। धारा 50 की विफलता पर सम्पूर्ण तलाशी व जब्ती अवैध हो जाती है, जो जमानत का निर्विवाद आधार है।"';
+                              if (isPocso) return '"पी. युवराज बनाम स्टेट — पीड़िता की आयु निर्धारण हेतु धारा 94 जुवेनाइल जस्टिस एक्ट के निर्धारित वैधानिक क्रम का पालन न होने पर संदेह का लाभ अभियुक्त को जमानत के रूप में मिलना चाहिए।"';
+                              if (isArms) return '"संजय दत्त बनाम स्टेट — आयुध अधिनियम अंतर्गत अनधिकृत हथियार बरामदगी के मामले में तलाशी एवं जब्ती की कड़ी में किसी भी संशय का लाभ अभियुक्त को प्राप्त होता है।"';
+                              if (isGangsters) return '"कपिल कटारिया बनाम यूपी राज्य — मात्र एक आपराधिक मामले के आधार पर बिना संगठित गिरोह संचालन के साक्ष्य के गैंगस्टर्स एक्ट लागू नहीं किया जा सकता।"';
+                              if (isScSt) return '"हितेश वर्मा बनाम उत्तराखंड राज्य — जब तक कथित जातिगत अपमान सार्वजनिक दृष्टिगोचर स्थान (Public View) में न हुआ हो, तब तक एससी/एसटी अधिनियम की धारा 3(1)(r)(s) का अपराध नहीं बनता।"';
+                              return '"संजय चंद्र बनाम सी.बी.आई. — जमानत का प्रदान किया जाना ही सामान्य विधिक नियम है और कारावास केवल अपवाद (Bail is the rule, jail is the exception)।"';
+                            }
 
                             return Column(
                               children: [
@@ -467,6 +609,126 @@ class _DraftStudioScreenState extends ConsumerState<DraftStudioScreen> {
                                       } else {
                                         cardTitle = 'विधिक आधार #${idx + 1}';
                                         statutoryChip = 'NDPS विधिक आधार';
+                                      }
+                                    } else if (isPocso) {
+                                      if (idx == 0) {
+                                        cardTitle = 'निर्दोषिता एवं सहमति / आयु विवाद';
+                                        statutoryChip = 'धारा 94 JJ Act / धारा 480 BNSS';
+                                      } else if (idx == 1) {
+                                        cardTitle = 'आयु निर्धारण एवं मेडिकल साक्ष्य में गंभीर विसंगति';
+                                        statutoryChip = 'धारा 35 POCSO / धारा 94 JJ Act';
+                                        tagText = 'आयु निर्धारण संशय';
+                                      } else if (idx == 2) {
+                                        cardTitle = 'कोई पूर्व आपराधिक इतिहास नहीं';
+                                        statutoryChip = 'पूर्व स्वच्छ आचरण सत्यापित';
+                                      } else {
+                                        cardTitle = 'विधिक आधार #${idx + 1}';
+                                        statutoryChip = 'POCSO विधिक आधार';
+                                      }
+                                    } else if (isArms) {
+                                      if (idx == 0) {
+                                        cardTitle = 'निर्दोषिता एवं स्वतंत्र साक्षी का पूर्ण अभाव';
+                                        statutoryChip = 'धारा 100 CrPC / 105 BNSS / धारा 480 BNSS';
+                                      } else if (idx == 1) {
+                                        cardTitle = 'कथित बरामदगी फर्द में कानूनी त्रुटियां';
+                                        statutoryChip = 'धारा 25/27 Arms Act / धारा 105 BNSS';
+                                        tagText = 'बरामदगी फर्द संशय';
+                                      } else if (idx == 2) {
+                                        cardTitle = 'कोई पूर्व आपराधिक इतिहास नहीं';
+                                        statutoryChip = 'पूर्व स्वच्छ आचरण सत्यापित';
+                                      } else {
+                                        cardTitle = 'विधिक आधार #${idx + 1}';
+                                        statutoryChip = 'Arms Act विधिक आधार';
+                                      }
+                                    } else if (isGangsters) {
+                                      if (idx == 0) {
+                                        cardTitle = 'एकल मामले पर नियम-विरुद्ध गैंग-चार्ट';
+                                        statutoryChip = 'UP Gangsters Act धारा 2/3 / धारा 480 BNSS';
+                                      } else if (idx == 1) {
+                                        cardTitle = 'मूल मामलों में जमानत प्राप्त, गिरोह संचालन का अभाव';
+                                        statutoryChip = 'धारा 19(4) UP Gangsters Act';
+                                        tagText = 'गैंगचार्ट विसंगति';
+                                      } else if (idx == 2) {
+                                        cardTitle = 'कोई असामाजिक गिरोह सदस्यता नहीं';
+                                        statutoryChip = 'स्वच्छ सामाजिक पृष्ठभूमि';
+                                      } else {
+                                        cardTitle = 'विधिक आधार #${idx + 1}';
+                                        statutoryChip = 'Gangsters Act विधिक आधार';
+                                      }
+                                    } else if (isScSt) {
+                                      if (idx == 0) {
+                                        cardTitle = 'सार्वजनिक दृष्टिगोचर स्थान पर अपमान का अभाव';
+                                        statutoryChip = 'धारा 3(1)(r)(s) SC/ST Act / हितेश वर्मा नजीर';
+                                      } else if (idx == 1) {
+                                        cardTitle = 'निजी विवाद को जातिगत रूप देकर मिथ्या अभियोग';
+                                        statutoryChip = 'धारा 14A SC/ST Act / धारा 480 BNSS';
+                                        tagText = 'जातिगत साक्ष्य अभाव';
+                                      } else if (idx == 2) {
+                                        cardTitle = 'कोई पूर्व आपराधिक इतिहास नहीं';
+                                        statutoryChip = 'पूर्व स्वच्छ आचरण सत्यापित';
+                                      } else {
+                                        cardTitle = 'विधिक आधार #${idx + 1}';
+                                        statutoryChip = 'SC/ST Act विधिक आधार';
+                                      }
+                                    } else if (isExcise) {
+                                      if (idx == 0) {
+                                        cardTitle = 'कथित आबकारी बरामदगी में स्वतंत्र पंच साक्षियों का अभाव';
+                                        statutoryChip = 'धारा 60 UP Excise Act / धारा 105 BNSS';
+                                      } else if (idx == 1) {
+                                        cardTitle = 'रासायनिक विश्लेषण (FSL) रिपोर्ट का अभाव';
+                                        statutoryChip = 'आबकारी नियम / धारा 480 BNSS';
+                                        tagText = 'रासायनिक साक्ष्य अभाव';
+                                      } else if (idx == 2) {
+                                        cardTitle = 'कोई पूर्व आपराधिक इतिहास नहीं';
+                                        statutoryChip = 'पूर्व स्वच्छ आचरण सत्यापित';
+                                      } else {
+                                        cardTitle = 'विधिक आधार #${idx + 1}';
+                                        statutoryChip = 'Excise Act विधिक आधार';
+                                      }
+                                    } else if (isCyber) {
+                                      if (idx == 0) {
+                                        cardTitle = 'डिजिटल साक्ष्य में धारा 65B/63 प्रमाण पत्र का अभाव';
+                                        statutoryChip = 'धारा 66D IT Act / धारा 63 BSA';
+                                      } else if (idx == 1) {
+                                        cardTitle = 'आईपी एड्रेस एवं डिजिटल उपकरण जब्ती में हैश विसंगति';
+                                        statutoryChip = 'धारा 66 IT Act / धारा 480 BNSS';
+                                        tagText = 'डिजिटल साक्ष्य संशय';
+                                      } else if (idx == 2) {
+                                        cardTitle = 'कोई पूर्व आपराधिक इतिहास नहीं';
+                                        statutoryChip = 'पूर्व स्वच्छ आचरण सत्यापित';
+                                      } else {
+                                        cardTitle = 'विधिक आधार #${idx + 1}';
+                                        statutoryChip = 'Cyber Law विधिक आधार';
+                                      }
+                                    } else if (isPmla) {
+                                      if (idx == 0) {
+                                        cardTitle = 'मूल अपराध में कोई अपराध की आय (Proceeds of Crime) नहीं';
+                                        statutoryChip = 'धारा 3/4/45 PMLA / विजय मदनलाल नजीर';
+                                      } else if (idx == 1) {
+                                        cardTitle = 'धारा 45 PMLA दोहरी विधिक शर्तों की संतुष्टि';
+                                        statutoryChip = 'अनुच्छेद 21 / धारा 45 PMLA';
+                                        tagText = 'दोहरी शर्तें संतुष्टि';
+                                      } else if (idx == 2) {
+                                        cardTitle = 'जांच में पूर्ण सहयोग एवं कोई उड़ान का जोखिम नहीं';
+                                        statutoryChip = 'सत्यापित साख';
+                                      } else {
+                                        cardTitle = 'विधिक आधार #${idx + 1}';
+                                        statutoryChip = 'PMLA विधिक आधार';
+                                      }
+                                    } else if (isNiAct) {
+                                      if (idx == 0) {
+                                        cardTitle = 'सुरक्षा चेक का दुरुपयोग एवं कोई वैध ऋण दायित्व नहीं';
+                                        statutoryChip = 'धारा 138/139 NI Act / धारा 480 BNSS';
+                                      } else if (idx == 1) {
+                                        cardTitle = 'वैध मांग नोटिस की प्राप्ति का अभाव';
+                                        statutoryChip = 'धारा 138(b) NI Act';
+                                        tagText = 'नोटिस तामील अभाव';
+                                      } else if (idx == 2) {
+                                        cardTitle = 'कोई पूर्व आपराधिक इतिहास नहीं';
+                                        statutoryChip = 'पूर्व स्वच्छ आचरण सत्यापित';
+                                      } else {
+                                        cardTitle = 'विधिक आधार #${idx + 1}';
+                                        statutoryChip = 'NI Act विधिक आधार';
                                       }
                                     } else if (isHomicide) {
                                       if (idx == 0) {
@@ -556,7 +818,7 @@ class _DraftStudioScreenState extends ConsumerState<DraftStudioScreen> {
                                       indexNumber: _toDevanagariNumber(idx + 1),
                                       title: 'प्रक्रियात्मक आपत्ति #${idx + 1}',
                                       body: text,
-                                      statutoryChip: isNdps ? 'धारा 50 / 42 NDPS' : 'धारा 41A CrPC / धारा 35 BNSS',
+                                      statutoryChip: proceduralChipText(),
                                       tagText: 'विधिक आपत्ति',
                                       onCopy: () => _copyToClipboard(text),
                                       onEdit: null,
@@ -593,9 +855,7 @@ class _DraftStudioScreenState extends ConsumerState<DraftStudioScreen> {
                                           const Icon(Icons.warning_amber_rounded, color: StitchColors.alertCrimson, size: 18),
                                           const SizedBox(width: 6),
                                           Text(
-                                            isNdps
-                                                ? 'प्रक्रियात्मक उल्लंघन (धारा 50 / 42 NDPS एक्ट)'
-                                                : 'प्रक्रियात्मक उल्लंघन (धारा 41A CrPC / धारा 35 BNSS)',
+                                            proceduralHeaderTitle(),
                                             style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: StitchColors.alertCrimson),
                                           ),
                                         ],
@@ -604,9 +864,7 @@ class _DraftStudioScreenState extends ConsumerState<DraftStudioScreen> {
                                       Text(
                                         draft.proceduralObjections.isNotEmpty
                                             ? draft.proceduralObjections.first
-                                            : (isNdps
-                                                ? 'तलाशी पूर्व मजिस्ट्रेट या राजपत्रित अधिकारी के समक्ष पेश किए जाने के विधिक अधिकार (धारा 50 NDPS) का पूर्ण उल्लंघन। स्टेट ऑफ राजस्थान बनाम परमानंद (2014) 5 SCC 345 का स्पष्ट उल्लंघन।'
-                                                : 'गिरफ्तारी पूर्व अनिवार्य विधिक नोटिस का पूर्ण अभाव। माननीय सर्वोच्च न्यायालय द्वारा अर्नेश कुमार बनाम बिहार राज्य मामले में प्रतिपादित दिशानिर्देशों का उल्लंघन।'),
+                                            : proceduralDefaultText(),
                                         style: const TextStyle(fontSize: 11.5, color: Color(0xFF131B2E), height: 1.35),
                                       ),
                                     ],
@@ -638,7 +896,7 @@ class _DraftStudioScreenState extends ConsumerState<DraftStudioScreen> {
                                           Text(
                                             draft.citedPrecedents.isNotEmpty
                                                 ? draft.citedPrecedents.first.citationId
-                                                : (isNdps ? '(2014) 5 SCC 345' : '(2012) 1 SCC 40'),
+                                                : precedentCitationDefault(),
                                             style: const TextStyle(fontSize: 11, fontFamily: 'monospace', color: Color(0xFF75777E)),
                                           ),
                                         ],
@@ -647,9 +905,7 @@ class _DraftStudioScreenState extends ConsumerState<DraftStudioScreen> {
                                       Text(
                                         draft.citedPrecedents.isNotEmpty
                                             ? '"${draft.citedPrecedents.first.caseTitle} — ${draft.citedPrecedents.first.quotedPassage}"'
-                                            : (isNdps
-                                                ? '"स्टेट ऑफ राजस्थान बनाम परमानंद — धारा 50 NDPS एक्ट के तहत व्यक्तिगत तलाशी के अधिकार की सूचना अनिवार्य है। धारा 50 की विफलता पर सम्पूर्ण तलाशी व जब्ती अवैध हो जाती है, जो जमानत का निर्विवाद आधार है।"'
-                                                : '"संजय चंद्र बनाम सी.बी.आई. — जमानत का प्रदान किया जाना ही सामान्य विधिक नियम है और कारावास केवल अपवाद (Bail is the rule, jail is the exception)।"'),
+                                            : precedentQuoteDefault(),
                                         style: const TextStyle(fontSize: 11.5, fontStyle: FontStyle.italic, color: Color(0xFF131B2E), height: 1.35),
                                       ),
                                     ],

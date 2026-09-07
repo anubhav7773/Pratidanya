@@ -8,11 +8,13 @@ import '../../domain/criminal_case.dart';
 import '../../../01_onboarding/presentation/controllers/auth_controller.dart';
 import '../../../05_verify_and_export/data/court_pdf_builder.dart';
 import '../../../08_ecourts_cis/presentation/widgets/ecourts_sync_dialog.dart';
+import '../controllers/case_controller.dart';
 
 class CaseCard extends StatelessWidget {
   final CriminalCase criminalCase;
   final VoidCallback onTap;
   final VoidCallback onArchive;
+  final VoidCallback? onDelete;
   final VoidCallback? onNoteTap;
   final VoidCallback? onSyncTap;
   final VoidCallback? onDownloadTap;
@@ -22,6 +24,7 @@ class CaseCard extends StatelessWidget {
     required this.criminalCase,
     required this.onTap,
     required this.onArchive,
+    this.onDelete,
     this.onNoteTap,
     this.onSyncTap,
     this.onDownloadTap,
@@ -400,6 +403,12 @@ class CaseCard extends StatelessWidget {
                                 _handleVakalatnamaDownload(context, ref);
                               } else if (val == 'archive') {
                                 onArchive();
+                              } else if (val == 'delete') {
+                                if (onDelete != null) {
+                                  onDelete!();
+                                } else {
+                                  _confirmDelete(context, ref, criminalCase);
+                                }
                               }
                             },
                             itemBuilder: (ctx) => [
@@ -409,7 +418,7 @@ class CaseCard extends StatelessWidget {
                                   children: [
                                     Icon(Icons.edit_document, size: 16, color: Color(0xFF0D1C32)),
                                     SizedBox(width: 8),
-                                    Text('जमानत ड्राफ्टिंग स्टूडियो'),
+                                    Expanded(child: Text('जमानत ड्राफ्टिंग स्टूडियो')),
                                   ],
                                 ),
                               ),
@@ -419,7 +428,7 @@ class CaseCard extends StatelessWidget {
                                   children: [
                                     Icon(Icons.local_pharmacy, size: 16, color: Color(0xFF842503)),
                                     SizedBox(width: 8),
-                                    Text('NDPS धारा 50 अनुपालन'),
+                                    Expanded(child: Text('NDPS धारा 50 अनुपालन')),
                                   ],
                                 ),
                               ),
@@ -429,7 +438,7 @@ class CaseCard extends StatelessWidget {
                                   children: [
                                     Icon(Icons.child_care, size: 16, color: Color(0xFF1E3A5F)),
                                     SizedBox(width: 8),
-                                    Text('POCSO आयु निर्धारण (Sec 94)'),
+                                    Expanded(child: Text('POCSO आयु निर्धारण (Sec 94)')),
                                   ],
                                 ),
                               ),
@@ -439,7 +448,7 @@ class CaseCard extends StatelessWidget {
                                   children: [
                                     Icon(Icons.policy, size: 16, color: Color(0xFF1F6C3A)),
                                     SizedBox(width: 8),
-                                    Text('SC/ST Act धारा 14A अपील'),
+                                    Expanded(child: Text('SC/ST Act धारा 14A अपील')),
                                   ],
                                 ),
                               ),
@@ -449,7 +458,7 @@ class CaseCard extends StatelessWidget {
                                   children: [
                                     Icon(Icons.payments, size: 16, color: Color(0xFF8A5100)),
                                     SizedBox(width: 8),
-                                    Text('NI Act 138 चेक बचाव'),
+                                    Expanded(child: Text('NI Act 138 चेक बचाव')),
                                   ],
                                 ),
                               ),
@@ -459,7 +468,7 @@ class CaseCard extends StatelessWidget {
                                   children: [
                                     Icon(Icons.picture_as_pdf, size: 16, color: Color(0xFFC00000)),
                                     SizedBox(width: 8),
-                                    Text('वकालतनामा (Vakalatnama) PDF'),
+                                    Expanded(child: Text('वकालतनामा (Vakalatnama) PDF')),
                                   ],
                                 ),
                               ),
@@ -470,7 +479,22 @@ class CaseCard extends StatelessWidget {
                                   children: [
                                     Icon(Icons.archive, size: 16, color: Colors.grey),
                                     SizedBox(width: 8),
-                                    Text('पुरालेख (Archive) करें'),
+                                    Expanded(child: Text('पुरालेख (Archive) करें')),
+                                  ],
+                                ),
+                              ),
+                              const PopupMenuItem(
+                                value: 'delete',
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.delete_forever, size: 16, color: StitchColors.alertCrimson),
+                                    SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        'केस हटाएं (Delete Case)',
+                                        style: TextStyle(color: StitchColors.alertCrimson, fontWeight: FontWeight.w600),
+                                      ),
+                                    ),
                                   ],
                                 ),
                               ),
@@ -579,6 +603,62 @@ class CaseCard extends StatelessWidget {
     );
 
     EcourtsSyncDialog.show(context, criminalCase);
+  }
+
+  Future<void> _confirmDelete(BuildContext context, WidgetRef ref, CriminalCase criminalCase) async {
+    final shouldDelete = await showDialog<bool>(
+      context: context,
+      builder: (dialogCtx) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: StitchColors.alertCrimson),
+            SizedBox(width: 8),
+            Text('केस हटाएं (Delete Case)?', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          ],
+        ),
+        content: Text(
+          'क्या आप मु.अ.सं. ${criminalCase.firNumber} (अभियुक्त: ${criminalCase.accusedName}) को स्थायी रूप से हटाना चाहते हैं?\n\nड्राफ्ट और नजीर तैयार होने के बाद यदि आप चाहें तो यह केस हमेशा के लिए हटाया जा सकता है। यह प्रक्रिया अपरिवर्तनीय है।',
+          style: const TextStyle(fontSize: 14, height: 1.4),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogCtx).pop(false),
+            child: const Text('रद्द करें', style: TextStyle(color: Color(0xFF44474D))),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: StitchColors.alertCrimson,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () => Navigator.of(dialogCtx).pop(true),
+            child: const Text('हां, केस हटाएं'),
+          ),
+        ],
+      ),
+    );
+
+    if (shouldDelete == true && context.mounted) {
+      try {
+        await ref.read(caseFormControllerProvider.notifier).deleteCase(criminalCase.id);
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('मु.अ.सं. ${criminalCase.firNumber} सफलतापूर्वक हटा दिया गया।'),
+              backgroundColor: const Color(0xFF0D1C32),
+            ),
+          );
+        }
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('केस हटाने में त्रुटि: $e'),
+              backgroundColor: StitchColors.alertCrimson,
+            ),
+          );
+        }
+      }
+    }
   }
 
 

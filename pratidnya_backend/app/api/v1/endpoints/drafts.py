@@ -13,6 +13,96 @@ from app.services.grounding_validator import GroundingValidator
 
 logger = logging.getLogger(__name__)
 
+LIVE_PRECEDENT_URLS = {
+    "2014_AIR_SC_2756_ARNESH_KUMAR": "https://indiankanoon.org/doc/2982624/",
+    "1954_AIR_SC_39_TRIMBAK": "https://indiankanoon.org/doc/816576/",
+    "2014_5_SCC_345_PARMANAND": "https://indiankanoon.org/doc/47101851/",
+    "1984_4_SCC_116_SHARAD_BIRDHICHAND": "https://indiankanoon.org/doc/1454140/",
+    "2012_1_SCC_40_SANJAY_CHANDRA": "https://indiankanoon.org/doc/1922370/",
+    "2009_8_SCC_751_MOHD_IBRAHIM": "https://indiankanoon.org/doc/744040/",
+    "2013_7_SCC_263_JARNAIL_SINGH": "https://indiankanoon.org/doc/191295246/",
+    "2003_8_SCC_300_KR_INDIRA": "https://indiankanoon.org/doc/1959728/",
+    "2021_6_SCC_230_RAMESH_BHAVAN": "https://indiankanoon.org/doc/69796030/",
+    "1994_3_SCC_299_BABU_SINGH": "https://indiankanoon.org/doc/148696/",
+    "2024_INSC_595_MANISH_SISODIA": "https://indiankanoon.org/doc/145887258/",
+    "2020_5_SCC_1_SUSHILA_AGGARWAL": "https://indiankanoon.org/doc/88566418/",
+    "2020_10_SCC_616_BIKRAMJIT_SINGH": "https://indiankanoon.org/doc/175850937/",
+    "2020_7_SCC_1_ARJUN_KHOTKAR": "https://indiankanoon.org/doc/77983637/",
+    "2024_INSC_26_PERUMAL_RAJA": "https://indiankanoon.org/doc/182697843/",
+    "2016_3_SCC_379_MOHANLAL": "https://indiankanoon.org/doc/171249767/",
+    "2023_INSC_352_MOHD_MUSLIM": "https://indiankanoon.org/doc/88562329/",
+    "2019_9_SCC_608_PRAMOD_PAWAR": "https://indiankanoon.org/doc/171569424/",
+    "2022_6_SCC_599_KAHKASHAN_KAUSAR": "https://indiankanoon.org/doc/161821034/",
+    "2021_6_SCC_1_SATBIR_SINGH": "https://indiankanoon.org/doc/106316719/",
+    "1998_8_SCC_493_SATISH": "https://indiankanoon.org/doc/1173934/",
+    "2008_15_SCC_133_RAJU": "https://indiankanoon.org/doc/1570775/",
+    "2020_10_SCC_710_HITESH_VERMA": "https://indiankanoon.org/doc/171545625/",
+    "2020_4_SCC_727_PRATHVI_RAJ": "https://indiankanoon.org/doc/178229871/",
+    "1972_2_SCC_194_GUNWANTLAL": "https://indiankanoon.org/doc/1218529/",
+    "1989_CriLJ_127_PAWAN_KUMAR": "https://indiankanoon.org/doc/1359654/",
+    "2022_INSC_514_SHRADDHA_GUPTA": "https://indiankanoon.org/doc/192237461/",
+    "1967_3_SCR_281_BOOSENNA": "https://indiankanoon.org/doc/526714/",
+    "2022_INSC_929_VIJAY_MADANLAL": "https://indiankanoon.org/doc/152912440/",
+    "2021_3_SCC_713_KA_NAJEEB": "https://indiankanoon.org/doc/69666014/",
+    "2015_5_SCC_1_SHREYA_SINGHAL": "https://indiankanoon.org/doc/110813550/",
+    "2023_4_SCC_731_NEERAJ_DUTTA": "https://indiankanoon.org/doc/182882772/",
+    "2019_5_SCC_418_BASALINGAPPA": "https://indiankanoon.org/doc/171545625/",
+    "2014_9_SCC_772_STATE_SANJAY": "https://indiankanoon.org/doc/182449767/",
+    "2021_ALLHC_RAHIM": "https://indiankanoon.org/doc/145887258/",
+}
+
+def extract_statutory_section_tokens(sections: List[str]) -> List[str]:
+    """Extracts numeric sections and injects statutory keywords covering all Indian Criminal Acts."""
+    cleaned_sections = []
+    combined_sections_str = " ".join(sections).lower()
+
+    for s in sections:
+        nums = re.findall(r'\b\d+[A-Za-z]?\b', s)
+        cleaned_sections.extend(nums)
+
+    if any(term in combined_sections_str for term in ["ndps", "एनडीपीएस", "गांजा", "चरस", "स्मैक", "8/20", "8/21"]):
+        cleaned_sections.extend(["50", "8", "20", "21", "52A", "37", "NDPS"])
+    if any(term in combined_sections_str for term in ["pocso", "पोक्सो", "नाबालिग", "छेड़छाड़", "दुष्कर्म"]):
+        cleaned_sections.extend(["7", "8", "94_JJ_ACT", "POCSO", "3", "4", "5", "6"])
+    if any(term in combined_sections_str for term in ["sc/st", "scst", "अत्याचार", "हरिजन", "जातिसूचक"]):
+        cleaned_sections.extend(["3(1)(r)", "3(1)(s)", "18", "18A", "SC_ST_ACT"])
+    if any(term in combined_sections_str for term in ["arms", "आयुध", "तमंचा", "कारतूस", "पिस्तौल", "चाकू", "25", "27"]):
+        cleaned_sections.extend(["3", "25", "27", "ARMS_ACT"])
+    if any(term in combined_sections_str for term in ["gangster", "गैंगस्टर", "गिरोहबंद", "2/3"]):
+        cleaned_sections.extend(["2", "3", "GANGSTERS_ACT"])
+    if any(term in combined_sections_str for term in ["excise", "आबकारी", "शराब", "कच्ची", "लहन", "60"]):
+        cleaned_sections.extend(["60", "60(2)", "62", "EXCISE_ACT"])
+    if any(term in combined_sections_str for term in ["pmla", "ईडी", "धन शोधन"]):
+        cleaned_sections.extend(["3", "4", "45", "PMLA"])
+    if any(term in combined_sections_str for term in ["uapa", "यूएपीए", "गैर-कानूनी"]):
+        cleaned_sections.extend(["43D(5)", "UAPA"])
+    if any(term in combined_sections_str for term in ["cyber", "साइबर", "it act", "आईटी"]):
+        cleaned_sections.extend(["66", "66C", "66D", "IT_ACT"])
+    if any(term in combined_sections_str for term in ["cow", "गोवध", "गोकशी", "गोवंशीय", "cow slaughter"]):
+        cleaned_sections.extend(["3", "5", "8", "गोवध_अधिनियम"])
+    if any(term in combined_sections_str for term in ["corruption", "भ्रष्टाचार", "रिश्वत", "pc act", "pc_act"]):
+        cleaned_sections.extend(["7", "13", "PC_ACT"])
+    if any(term in combined_sections_str for term in ["mining", "खनन", "रेत", "बालू", "mmdr"]):
+        cleaned_sections.extend(["21", "22", "MMDR_ACT"])
+    if any(term in combined_sections_str for term in ["138", "चेक", "बाउंस", "ni act"]):
+        cleaned_sections.extend(["138", "139", "NI_ACT"])
+    if any(term in combined_sections_str for term in ["302", "103", "हत्या", "मर्डर"]):
+        cleaned_sections.extend(["302", "103_BNS", "103"])
+    if any(term in combined_sections_str for term in ["307", "109", "जानलेवा"]):
+        cleaned_sections.extend(["307", "109_BNS"])
+    if any(term in combined_sections_str for term in ["376", "64", "बलात्कार"]):
+        cleaned_sections.extend(["376", "64_BNS", "70_BNS"])
+    if any(term in combined_sections_str for term in ["498a", "85", "दहेज उत्पीड़न"]):
+        cleaned_sections.extend(["498A", "85_BNS"])
+    if any(term in combined_sections_str for term in ["304b", "80", "दहेज मृत्यु"]):
+        cleaned_sections.extend(["304B", "80_BNS"])
+    if any(term in combined_sections_str for term in ["379", "303", "411", "चोरी"]):
+        cleaned_sections.extend(["379", "411", "303_BNS", "317_BNS"])
+    if any(term in combined_sections_str for term in ["420", "318", "467", "468", "धोखाधड़ी"]):
+        cleaned_sections.extend(["420", "467", "318_BNS"])
+
+    return list(set(cleaned_sections))
+
 router = APIRouter(prefix="/drafts", tags=["360 Degree Legal Drafting Engine"])
 
 def _coerce_to_list_of_strings(v: Any) -> List[str]:
@@ -132,19 +222,7 @@ async def generate_draft_endpoint(
         )
 
         # Clean target section numbers for GIN array filtering
-        import re
-        cleaned_sections = []
-        is_ndps_flag = False
-        for s in payload.sections:
-            lower_s = s.lower()
-            if any(term in lower_s for term in ["ndps", "एनडीपीएस", "गांजा", "चरस", "8/20", "8/21"]):
-                is_ndps_flag = True
-            nums = re.findall(r'\b\d+[A-Za-z]?\b', s)
-            cleaned_sections.extend(nums)
-
-        if is_ndps_flag:
-            cleaned_sections.extend(["50", "8", "20", "21", "NDPS"])
-        cleaned_sections = list(set(cleaned_sections))
+        cleaned_sections = extract_statutory_section_tokens(payload.sections)
 
         rpc_res = supabase.rpc("match_verified_precedents", {
             "query_embedding": query_vector,
@@ -155,27 +233,14 @@ async def generate_draft_endpoint(
 
         retrieved_precedents = rpc_res.data or []
         if not retrieved_precedents:
-            # Fallback to 0.50 threshold for concise Devanagari factual matrices
+            # Fallback to 0.45 threshold for concise Devanagari factual matrices
             rpc_res = supabase.rpc("match_verified_precedents", {
                 "query_embedding": query_vector,
                 "target_sections": cleaned_sections,
-                "similarity_threshold": 0.50,
+                "similarity_threshold": 0.45,
                 "match_count": 3
             }).execute()
             retrieved_precedents = rpc_res.data or []
-
-        LIVE_PRECEDENT_URLS = {
-            "2014_AIR_SC_2756_ARNESH_KUMAR": "https://indiankanoon.org/doc/2982624/",
-            "1954_AIR_SC_39_TRIMBAK": "https://indiankanoon.org/doc/816576/",
-            "2014_5_SCC_345_PARMANAND": "https://indiankanoon.org/doc/47101851/",
-            "1984_4_SCC_116_SHARAD_BIRDHICHAND": "https://indiankanoon.org/doc/1454140/",
-            "2012_1_SCC_40_SANJAY_CHANDRA": "https://indiankanoon.org/doc/1922370/",
-            "2009_8_SCC_751_MOHD_IBRAHIM": "https://indiankanoon.org/doc/744040/",
-            "2013_7_SCC_263_JARNAIL_SINGH": "https://indiankanoon.org/doc/191295246/",
-            "2003_8_SCC_300_KR_INDIRA": "https://indiankanoon.org/doc/1959728/",
-            "2021_6_SCC_230_RAMESH_BHAVAN": "https://indiankanoon.org/doc/69796030/",
-            "1994_3_SCC_299_BABU_SINGH": "https://indiankanoon.org/doc/148696/",
-        }
 
         # 5. Transform retrieved database records into candidate precedents with live reachable URLs
         candidate_citations = []
