@@ -951,13 +951,13 @@ class _NewCaseFormScreenState extends ConsumerState<NewCaseFormScreen> {
                                               Icon(Icons.event, color: currentStatus.badgeColor, size: 20),
                                               const SizedBox(width: 10),
                                               Expanded(
-                                                child: Text(
-                                                  _arrestDate != null
-                                                      ? 'अभिरक्षा / आदेश दिनांक: ' + '//'
-                                                      : 'अभिरक्षा दिनांक चुनें (Date of Detention/Order)',
-                                                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: Color(0xFF131B2E)),
-                                                  overflow: TextOverflow.ellipsis,
-                                                ),
+                                                  child: Text(
+                                                    _arrestDate != null
+                                                        ? 'अभिरक्षा / आदेश दिनांक: ${_arrestDate!.day.toString().padLeft(2, '0')}/${_arrestDate!.month.toString().padLeft(2, '0')}/${_arrestDate!.year} (${DateTime.now().difference(_arrestDate!).inDays} दिन पूर्व)'
+                                                        : 'अभिरक्षा दिनांक चुनें (Date of Detention/Order)',
+                                                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: Color(0xFF131B2E)),
+                                                    overflow: TextOverflow.ellipsis,
+                                                  ),
                                               ),
                                             ],
                                           ),

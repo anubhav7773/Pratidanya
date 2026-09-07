@@ -1,11 +1,10 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from slowapi.errors import RateLimitExceeded
 from app.core.config import settings
 from app.core.security_headers import ProductionSecurityHeadersMiddleware
 from app.core.sanitized_logger import configure_production_logging
-from app.core.rate_limiter import limiter, rate_limit_exceeded_handler
+from app.core.rate_limiter import limiter, rate_limit_exceeded_handler, RateLimitExceeded, SLOWAPI_AVAILABLE
 from app.services.opennyai_engine import OpenNyAIEngine
 from app.api.v1.endpoints import (
     health,
@@ -45,8 +44,9 @@ app = FastAPI(
 )
 
 # Attach SlowAPI Limiter state (Points 6, 11, 12)
-app.state.limiter = limiter
-app.add_exception_handler(RateLimitExceeded, rate_limit_exceeded_handler)
+if SLOWAPI_AVAILABLE:
+    app.state.limiter = limiter
+    app.add_exception_handler(RateLimitExceeded, rate_limit_exceeded_handler)
 
 # 1. Register OWASP Production Security Headers & HTTPS Middleware (Points 9, 18, 19)
 app.add_middleware(ProductionSecurityHeadersMiddleware)
