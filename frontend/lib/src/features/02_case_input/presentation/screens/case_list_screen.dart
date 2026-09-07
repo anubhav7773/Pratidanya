@@ -123,37 +123,47 @@ class _CaseListScreenState extends ConsumerState<CaseListScreen> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Row(
-                            children: [
-                              IconButton(
-                                icon: const Icon(Icons.menu_open, color: Color(0xFFD6E3FF)),
-                                tooltip: 'चैंबर मेनू',
-                                onPressed: () {
-                                  _scaffoldKey.currentState?.openDrawer();
-                                },
-                              ),
-                              const SizedBox(width: 4),
-                              const Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'सक्रिय आपराधिक डॉकेट',
-                                    style: TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold,
-                                      color: Color(0xFFFAF8FF),
-                                      letterSpacing: -0.2,
-                                    ),
+                          Expanded(
+                            child: Row(
+                              children: [
+                                IconButton(
+                                  icon: const Icon(Icons.menu_open, color: Color(0xFFD6E3FF)),
+                                  tooltip: 'चैंबर मेनू',
+                                  onPressed: () {
+                                    _scaffoldKey.currentState?.openDrawer();
+                                  },
+                                ),
+                                const SizedBox(width: 4),
+                                const Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'सक्रिय आपराधिक डॉकेट',
+                                        style: TextStyle(
+                                          fontSize: 17,
+                                          fontWeight: FontWeight.bold,
+                                          color: Color(0xFFFAF8FF),
+                                          letterSpacing: -0.2,
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                      Text(
+                                        'जिला एवं सत्र न्यायालय (District & Sessions Court)',
+                                        style: TextStyle(fontSize: 10.5, color: Color(0xFFB9C7E4)),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ],
                                   ),
-                                  Text(
-                                    'जिला एवं सत्र न्यायालय (District & Sessions Court)',
-                                    style: TextStyle(fontSize: 11, color: Color(0xFFB9C7E4)),
-                                  ),
-                                ],
-                              ),
-                            ],
+                                ),
+                              ],
+                            ),
                           ),
+                          const SizedBox(width: 4),
                           Row(
+                            mainAxisSize: MainAxisSize.min,
                             children: [
                               IconButton(
                                 icon: const Icon(Icons.search, color: Color(0xFFD6E3FF)),
