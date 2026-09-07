@@ -62,12 +62,16 @@ async def ping(request: Request):
         return Response(status_code=status.HTTP_200_OK)
     return {"ping": "pong", "status": "ok"}
 
+@router.head("/healthz", tags=["System Diagnostics"], status_code=status.HTTP_200_OK)
 @router.get("/healthz", tags=["System Diagnostics"])
-async def health_check_probe():
+async def health_check_probe(request: Request):
     """
     Health check probe for Render orchestrator and uptime monitors.
-    Validates configuration, OpenNyAI pipeline availability, and Supabase connectivity.
+    Supports HEAD (zero payload, fast) and GET (full diagnostics).
     """
+    if request.method == "HEAD":
+        return Response(status_code=status.HTTP_200_OK)
+
     diagnostics = {
         "status": "HEALTHY",
         "app_env": settings.APP_ENV,
