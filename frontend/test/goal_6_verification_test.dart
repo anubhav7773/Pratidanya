@@ -42,6 +42,38 @@ class MockDraftingRepository implements DraftingRepository {
       ],
     );
   }
+
+  @override
+  CaseAnalysisDraft synthesizeEmergencyLocalDraft({
+    required String caseId,
+    required String firNumber,
+    required String district,
+    required List<String> sections,
+    String? accusedName,
+    String? policeStation,
+    int? daysInCustody,
+    String? factualSummary,
+  }) {
+    return CaseAnalysisDraft(
+      courtHeader: 'न्यायालय मुख्य न्यायिक मजिस्ट्रेट, $district',
+      caseTitle: 'राज्य बनाम ${accusedName ?? "अभियुक्त"}',
+      statutoryGrounds: ['अभियुक्त का कोई आपराधिक इतिहास नहीं है।', 'आरोपित अपराध जमानती प्रकृति का है।'],
+      prosecutionWeaknesses: ['बरामदगी के समय कोई स्वतंत्र गवाह नहीं था।'],
+      proceduralObjections: ['धारा 100(4) दंड प्रक्रिया संहिता का उल्लंघन हुआ है।'],
+      citedPrecedents: [
+        CitedPrecedentItem(
+          citationId: 'AIR 1980 SC 785',
+          caseTitle: 'बाबू सिंह बनाम उत्तर प्रदेश राज्य',
+          courtName: 'सर्वोच्च न्यायालय',
+          judgmentDate: '1978-01-31',
+          quotedPassage: 'जमानत एक सामान्य नियम है एवं जेल केवल अपवाद स्वरूप है।',
+          verifiedSourceUrl: 'https://indiankanoon.org/doc/1515744/',
+          isGroundedInRecord: true,
+          isManuallyVerified: false,
+        ),
+      ],
+    );
+  }
 }
 
 void main() {

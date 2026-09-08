@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:url_launcher/url_launcher.dart';
+import '../../../../core/utils/citation_formatter.dart';
 import '../../domain/precedent_citation.dart';
 
 class PrecedentCitationCard extends StatelessWidget {
@@ -201,10 +203,21 @@ class PrecedentCitationCard extends StatelessWidget {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           GestureDetector(
-                            onTap: () {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text('ई-कोर्ट रिकॉर्ड ${citation.citationId} खोला जा रहा है...')),
-                              );
+                            onTap: () async {
+                              final targetUrl = CitationFormatter.getOfficialPortalUrl(citation.citationId, citation.verifiedSourceUrl);
+                              final uri = Uri.parse(targetUrl);
+                              try {
+                                final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+                                if (!launched) {
+                                  await launchUrl(uri, mode: LaunchMode.inAppWebView);
+                                }
+                              } catch (e) {
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text('ई-कोर्ट रिकॉर्ड लिंक: $targetUrl')),
+                                  );
+                                }
+                              }
                             },
                             child: const Row(
                               children: [

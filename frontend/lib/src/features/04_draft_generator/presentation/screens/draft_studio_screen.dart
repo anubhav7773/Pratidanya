@@ -2,12 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/theme/stitch_colors.dart';
 import '../../../../core/config/app_environment.dart';
 import '../../../../core/security/advocate_privilege_guard.dart';
 import '../../../../core/services/activity_service.dart';
+import '../../../../core/utils/citation_formatter.dart';
 import '../../../02_case_input/domain/criminal_case.dart';
 import '../../../02_case_input/presentation/controllers/case_controller.dart';
+import '../../domain/case_analysis_draft.dart';
 import '../controllers/drafting_controller.dart';
 import '../widgets/chargesheet_deconstruct_modal.dart';
 
@@ -73,6 +76,162 @@ class _DraftStudioScreenState extends ConsumerState<DraftStudioScreen> {
             SnackBar(content: Text('${facts.length} तथ्य ड्राफ्ट संदर्भ में जोड़े गए।')),
           );
         },
+      ),
+    );
+  }
+
+  
+  Future<void> _openPrecedentSource(BuildContext context, CitedPrecedentItem prec) async {
+    final cleanCitation = CitationFormatter.format(prec.citationId);
+    final targetUrl = CitationFormatter.getOfficialPortalUrl(prec.citationId, prec.verifiedSourceUrl);
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        padding: const EdgeInsets.all(20),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFEAEDFF),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(Icons.account_balance, size: 20, color: Color(0xFF0D1C32)),
+                    ),
+                    const SizedBox(width: 10),
+                    const Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'ई-कोर्ट्स / डिजिटल SCR अभिलेख',
+                          style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFF131B2E)),
+                        ),
+                        Text(
+                          'माननीय न्यायालय प्रामाणिक न्यायिक नजीर',
+                          style: TextStyle(fontSize: 10.5, color: Color(0xFF75777E)),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close, size: 20),
+                  onPressed: () => Navigator.of(ctx).pop(),
+                ),
+              ],
+            ),
+            const Divider(height: 20),
+            Text(
+              prec.caseTitle,
+              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFF131B2E)),
+            ),
+            const SizedBox(height: 6),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF2F3FF),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.menu_book, size: 14, color: Color(0xFF1F6C3A)),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      'प्रामाणिक नजीर संदर्भ: $cleanCitation',
+                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF1F6C3A)),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                const Icon(Icons.gavel, size: 14, color: Color(0xFF44474D)),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    '${prec.courtName} • निर्णय तिथि: ${prec.judgmentDate}',
+                    style: const TextStyle(fontSize: 11.5, color: Color(0xFF44474D)),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              'माननीय न्यायालय द्वारा निर्धारित विधिक सिद्धांत (Ratio Decidendi):',
+              style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold, color: Color(0xFF131B2E)),
+            ),
+            const SizedBox(height: 6),
+            Container(
+              constraints: const BoxConstraints(maxHeight: 180),
+              child: SingleChildScrollView(
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFAF8FF),
+                    border: Border.all(color: const Color(0xFFEAEDFF)),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    '"${prec.quotedPassage}"',
+                    style: const TextStyle(fontSize: 12, height: 1.4, fontStyle: FontStyle.italic, color: Color(0xFF131B2E)),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              height: 46,
+              child: ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF1F6C3A),
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+                icon: const Icon(Icons.open_in_browser, size: 18),
+                label: const Text(
+                  'आधिकारिक पोर्टल पर मूल निर्णय खोलें',
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                ),
+                onPressed: () async {
+                  final uri = Uri.parse(targetUrl);
+                  try {
+                    final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+                    if (!launched) {
+                      await launchUrl(uri, mode: LaunchMode.inAppWebView);
+                    }
+                  } catch (e) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('पोर्टल लिंक: $targetUrl')),
+                      );
+                    }
+                  }
+                },
+              ),
+            ),
+            const SizedBox(height: 10),
+          ],
+        ),
       ),
     );
   }
@@ -852,7 +1011,8 @@ class _DraftStudioScreenState extends ConsumerState<DraftStudioScreen> {
                                       statutoryChip: prec.citationId,
                                       tagText: 'सुप्रीम कोर्ट नजीर',
                                       onCopy: () => _copyToClipboard('${prec.caseTitle}\n${prec.quotedPassage}'),
-                                      onEdit: null,
+                                       onEdit: null,
+                                       onReviewUrl: () => _openPrecedentSource(context, prec),
                                     );
                                   }),
 
@@ -925,6 +1085,27 @@ class _DraftStudioScreenState extends ConsumerState<DraftStudioScreen> {
                                             : precedentQuoteDefault(),
                                         style: const TextStyle(fontSize: 11.5, fontStyle: FontStyle.italic, color: Color(0xFF131B2E), height: 1.35),
                                       ),
+                                       if (draft.citedPrecedents.isNotEmpty) ...[
+                                         const SizedBox(height: 8),
+                                         InkWell(
+                                           onTap: () => _openPrecedentSource(context, draft.citedPrecedents.first),
+                                           child: const Row(
+                                             children: [
+                                               Icon(Icons.open_in_new, size: 13, color: Color(0xFF0D1C32)),
+                                               SizedBox(width: 4),
+                                               Text(
+                                                 'सत्यापित मूल निर्णय समीक्षा करें ↗',
+                                                 style: TextStyle(
+                                                   fontSize: 11.5,
+                                                   fontWeight: FontWeight.bold,
+                                                   color: Color(0xFF0D1C32),
+                                                   decoration: TextDecoration.underline,
+                                                 ),
+                                               ),
+                                             ],
+                                           ),
+                                         ),
+                                       ],
                                     ],
                                   ),
                                 ),
@@ -1046,6 +1227,7 @@ class _DraftStudioScreenState extends ConsumerState<DraftStudioScreen> {
     required String tagText,
     required VoidCallback onCopy,
     VoidCallback? onEdit,
+    VoidCallback? onReviewUrl,
   }) {
     return Card(
       elevation: 0,
@@ -1116,15 +1298,46 @@ class _DraftStudioScreenState extends ConsumerState<DraftStudioScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFEAEDFF),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Text(
-                    statutoryChip,
-                    style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.w600, color: Color(0xFF131B2E)),
+                Expanded(
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFEAEDFF),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          statutoryChip,
+                          style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.w600, color: Color(0xFF131B2E)),
+                        ),
+                      ),
+                      if (onReviewUrl != null) ...[
+                        const SizedBox(width: 8),
+                        InkWell(
+                          onTap: onReviewUrl,
+                          borderRadius: BorderRadius.circular(4),
+                          child: const Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                            child: Row(
+                              children: [
+                                Icon(Icons.open_in_new, size: 12, color: Color(0xFF0D1C32)),
+                                SizedBox(width: 3),
+                                Text(
+                                  'निर्णय समीक्षा करें ↗',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                    color: Color(0xFF0D1C32),
+                                    decoration: TextDecoration.underline,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                 ),
                 Row(

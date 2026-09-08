@@ -38,6 +38,7 @@ local.properties
 # Miscellaneous
 *.class
 *.log
+scratch/
 *.swp
 .atom/
 .buildlog/

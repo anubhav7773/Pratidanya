@@ -274,7 +274,7 @@ class DraftingRepository {
           'court_name': 'उच्चतम न्यायालय',
           'judgment_date': '2018',
           'quoted_passage': 'धारा 50 एन.डी.पी.एस. अधिनियम का अनुपालन आज्ञापक (Mandatory) है; भले ही अभियुक्त तलाशी से इनकार करे।',
-          'verified_source_url': 'https://indiankanoon.org/doc/155481249/',
+          'verified_source_url': 'https://indiankanoon.org/doc/173720727/',
           'is_grounded_in_record': true,
         },
         {
@@ -283,16 +283,16 @@ class DraftingRepository {
           'court_name': 'उच्चतम न्यायालय (संविधान पीठ)',
           'judgment_date': '2011',
           'quoted_passage': 'मजिस्ट्रेट या राजपत्रित अधिकारी के समक्ष तलाशी का अधिकार सांविधिक है।',
-          'verified_source_url': 'https://indiankanoon.org/doc/1749714/',
+          'verified_source_url': 'https://indiankanoon.org/doc/1145861/',
           'is_grounded_in_record': true,
         },
         {
-          'citation_id': 'sc-mohanlal-2016',
+          'citation_id': 'sc-mohanlal-2018',
           'case_title': 'मोहनलाल बनाम पंजाब राज्य (2018 17 SCC 627)',
           'court_name': 'उच्चतम न्यायालय',
           'judgment_date': '2018',
           'quoted_passage': 'शिकायतकर्ता पुलिस अधिकारी स्वयं अन्वेषण अधिकारी (I.O.) नहीं हो सकता; निष्पक्ष अन्वेषण न्याय का मूल आधार है।',
-          'verified_source_url': 'https://indiankanoon.org/doc/164577294/',
+          'verified_source_url': 'https://indiankanoon.org/doc/38505268/',
           'is_grounded_in_record': true,
         },
       ];
@@ -332,6 +332,52 @@ class DraftingRepository {
           'judgment_date': '2019',
           'quoted_passage': 'सहमति एवं विवाह के वादे के बीच अंतर को स्पष्ट करते हुए न्यायालय ने जमानत सिद्धांतों को पुष्ट किया।',
           'verified_source_url': 'https://indiankanoon.org/doc/107689273/',
+          'is_grounded_in_record': true,
+        },
+        {
+          'citation_id': 'sc-sushila-aggarwal-2020',
+          'case_title': 'सुशीला अग्रवाल बनाम राज्य (NCT of Delhi) (2020 5 SCC 1)',
+          'court_name': 'उच्चतम न्यायालय (संविधान पीठ)',
+          'judgment_date': '2020',
+          'quoted_passage': 'व्यक्तिगत स्वतंत्रता का अधिकार संविधान के अनुच्छेद 21 के तहत सर्वोपरि है; बिना पुष्ट विधिक साक्ष्य गिरफ्तारी अनुचित है।',
+          'verified_source_url': 'https://indiankanoon.org/doc/123660783/',
+          'is_grounded_in_record': true,
+        },
+      ];
+    } else if (isArms) {
+      courtHeader = 'न्यायालय मुख्य न्यायिक मजिस्ट्रेट, $dist';
+      statutoryGrounds = [
+        'यह कि कथित आयुध/कारतूस की बरामदगी के समय अभियुक्त के सचेत आधिपत्य (Conscious Possession) का कोई वैधानिक साक्ष्य उपलब्ध नहीं है।',
+        'यह कि कथित जब्ती के समय धारा 100(4) CrPC / धारा 103 BNSS के तहत स्वतंत्र लोक साक्षियों को सम्मिलित नहीं किया गया।',
+        'यह कि कथित आयुध का कोई बैलिस्टिक या FSL परीक्षण अभिलेख पर संलग्न नहीं है।',
+        'यह कि धारा 35 BNSS (समतुल्य 41A CrPC) नोटिस का उल्लंघन करते हुए अनधिकृत गिरफ्तारी की गई है।',
+        'यह कि अभियुक्त का कोई पूर्व आपराधिक इतिहास नहीं है तथा वह न्यायालय द्वारा निर्धारित सभी बंधपत्र शर्तों का पालन करने को तत्पर है।',
+      ];
+      prosecutionWeaknesses = [
+        'कथित बरामदगी के समय स्वतंत्र निष्पक्ष लोक साक्षियों का पूर्ण अभाव।',
+        'आयुध की सीलिंग एवं थाने की जीडी रवानगी/वापसी में प्रक्रियात्मक विसंगति।',
+      ];
+      proceduralObjections = [
+        'धारा 100(4) CrPC (स्वतंत्र साक्षी) के आज्ञापक नियम का उल्लंघन।',
+        'सचेत आधिपत्य (Conscious Possession) स्थापित करने हेतु प्राथमिक साक्ष्य का अभाव।',
+      ];
+      precedents = [
+        {
+          'citation_id': '1972_2_SCC_194_GUNWANTLAL',
+          'case_title': 'गुणवंतलाल बनाम मध्य प्रदेश राज्य (1972 2 SCC 194)',
+          'court_name': 'उच्चतम न्यायालय',
+          'judgment_date': '1972',
+          'quoted_passage': 'आयुध अधिनियम के तहत दोषसिद्धि के लिए सचेत आधिपत्य (Conscious Possession) और नियंत्रण का प्रत्यक्ष साक्ष्य आवश्यक है।',
+          'verified_source_url': 'https://indiankanoon.org/doc/1332361/',
+          'is_grounded_in_record': true,
+        },
+        {
+          'citation_id': '1989_CriLJ_127_PAWAN_KUMAR',
+          'case_title': 'पवन कुमार बनाम दिल्ली प्रशासन (1989 CriLJ 127)',
+          'court_name': 'उच्चतम न्यायालय',
+          'judgment_date': '1989',
+          'quoted_passage': 'बरामदगी के समय स्वतंत्र लोक साक्षियों को सम्मिलित न करने का कोई उचित स्पष्टीकरण न होना अभियोजन पर गंभीर संशय उत्पन्न करता है।',
+          'verified_source_url': 'https://indiankanoon.org/doc/1928699/',
           'is_grounded_in_record': true,
         },
       ];

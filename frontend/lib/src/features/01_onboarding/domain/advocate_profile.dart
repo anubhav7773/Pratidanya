@@ -23,6 +23,8 @@ class AdvocateProfile {
     this.dpdpConsentTimestamp,
   });
 
+  String? get district => primaryCourtName.isNotEmpty ? primaryCourtName : null;
+
   factory AdvocateProfile.fromJson(Map<String, dynamic> json) {
     return AdvocateProfile(
       id: json['id'] as String,

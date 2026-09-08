@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:printing/printing.dart';
 import 'package:pdf/pdf.dart';
 import 'package:url_launcher/url_launcher.dart';
-import '../../../../core/theme/stitch_colors.dart';
 import '../../../../core/utils/citation_formatter.dart';
 import '../../../01_onboarding/presentation/controllers/auth_controller.dart';
 import '../../../02_case_input/presentation/controllers/case_controller.dart';
