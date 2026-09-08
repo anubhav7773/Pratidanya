@@ -263,6 +263,168 @@ class _NewCaseFormScreenState extends ConsumerState<NewCaseFormScreen> {
     });
   }
 
+  void _openSpecialActSectionPicker(StatutoryActInfo actInfo) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        String searchQuery = '';
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            final allSections = actInfo.popularSections;
+            final filtered = searchQuery.isEmpty
+                ? allSections
+                : allSections.where((s) => s.toLowerCase().contains(searchQuery.toLowerCase())).toList();
+
+            return Container(
+              height: MediaQuery.of(context).size.height * 0.75,
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+              ),
+              child: Column(
+                children: [
+                  Container(
+                    width: 40,
+                    height: 4,
+                    margin: const EdgeInsets.only(top: 12, bottom: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade300,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                actInfo.actNameHindi,
+                                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFF131B2E)),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              Text(
+                                '${actInfo.popularSections.length} कुल सांविधिक धाराएं उपलब्ध',
+                                style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+                              ),
+                            ],
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close),
+                          onPressed: () => Navigator.pop(context),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Divider(height: 1),
+                  Padding(
+                    padding: const EdgeInsets.all(12.0),
+                    child: TextField(
+                      decoration: InputDecoration(
+                        hintText: 'धारा संख्या या विवरण खोजें (उदा. 8/20, 25, 37, 50)...',
+                        hintStyle: const TextStyle(fontSize: 12.5),
+                        prefixIcon: const Icon(Icons.search, size: 20),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                        filled: true,
+                        fillColor: const Color(0xFFF8FAFC),
+                      ),
+                      onChanged: (val) {
+                        setModalState(() {
+                          searchQuery = val.trim();
+                        });
+                      },
+                    ),
+                  ),
+                  Expanded(
+                    child: filtered.isEmpty
+                        ? const Center(
+                            child: Text(
+                              'कोई धारा नहीं मिली',
+                              style: TextStyle(color: Colors.grey, fontSize: 13),
+                            ),
+                          )
+                        : ListView.separated(
+                            itemCount: filtered.length,
+                            separatorBuilder: (_, __) => const Divider(height: 1),
+                            itemBuilder: (context, idx) {
+                              final secStr = filtered[idx];
+                              final clean = secStr.contains('(')
+                                  ? secStr.split('(')[0].replaceAll('धारा', '').trim()
+                                  : secStr.replaceAll('धारा', '').trim();
+                              final isAdded = _sectionsList.contains(clean);
+
+                              return ListTile(
+                                dense: true,
+                                title: Text(
+                                  secStr,
+                                  style: TextStyle(
+                                    fontSize: 12.5,
+                                    fontWeight: isAdded ? FontWeight.bold : FontWeight.normal,
+                                    color: isAdded ? StitchColors.courtNavy : const Color(0xFF1E293B),
+                                  ),
+                                ),
+                                trailing: isAdded
+                                    ? const Chip(
+                                        label: Text('जोड़ी गई', style: TextStyle(fontSize: 10, color: Colors.white)),
+                                        backgroundColor: Color(0xFF1F6C3A),
+                                        padding: EdgeInsets.zero,
+                                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                      )
+                                    : IconButton(
+                                        icon: const Icon(Icons.add_circle_outline, color: StitchColors.courtNavy, size: 22),
+                                        onPressed: () {
+                                          _addSpecificSection(secStr);
+                                          setModalState(() {});
+                                        },
+                                      ),
+                                onTap: () {
+                                  if (!isAdded) {
+                                    _addSpecificSection(secStr);
+                                    setModalState(() {});
+                                  } else {
+                                    _removeSection(clean);
+                                    setModalState(() {});
+                                  }
+                                },
+                              );
+                            },
+                          ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.all(12.0),
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: StitchColors.courtNavy,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                        ),
+                        onPressed: () => Navigator.pop(context),
+                        child: Text(
+                          'पूर्ण करें (${_sectionsList.length} धाराएं चयनित)',
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
   void _openVoiceDictationSheet() {
     ActivityService.logActivity(
       activityType: 'VOICE_DICTATION_OPENED',
@@ -662,37 +824,28 @@ class _NewCaseFormScreenState extends ConsumerState<NewCaseFormScreen> {
                               ),
                               const SizedBox(height: 10),
 
-                              // Popular Sections of Selected Special Act
+                              // Clean Section Search / Picker (Eliminates screen clutter)
                               Builder(
                                 builder: (context) {
                                   final actInfo = SpecialActsRegistry.getActByCode(_selectedSpecialActCode);
                                   if (actInfo == null) return const SizedBox.shrink();
-                                  return Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        '${actInfo.actNameHindi} की प्रमुख धाराएं (टैप करके जोड़ें):',
-                                        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF475569)),
+                                  return SizedBox(
+                                    width: double.infinity,
+                                    child: OutlinedButton.icon(
+                                      style: OutlinedButton.styleFrom(
+                                        foregroundColor: StitchColors.courtNavy,
+                                        side: const BorderSide(color: Color(0xFFC7D2FE)),
+                                        backgroundColor: const Color(0xFFF8FAFC),
+                                        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                                       ),
-                                      const SizedBox(height: 6),
-                                      Wrap(
-                                        spacing: 6,
-                                        runSpacing: 6,
-                                        children: actInfo.popularSections.map((secStr) {
-                                          return ActionChip(
-                                            backgroundColor: const Color(0xFFF1F5F9),
-                                            side: const BorderSide(color: Color(0xFFCBD5E1)),
-                                            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-                                            avatar: const Icon(Icons.add, size: 14, color: StitchColors.courtNavy),
-                                            label: Text(
-                                              secStr,
-                                              style: const TextStyle(fontSize: 11, color: Color(0xFF1E293B)),
-                                            ),
-                                            onPressed: () => _addSpecificSection(secStr),
-                                          );
-                                        }).toList(),
+                                      icon: const Icon(Icons.manage_search, size: 18),
+                                      label: Text(
+                                        '${actInfo.actCode} की धाराएं खोजें / जोड़ें (${actInfo.popularSections.length} धाराएं)',
+                                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
                                       ),
-                                    ],
+                                      onPressed: () => _openSpecialActSectionPicker(actInfo),
+                                    ),
                                   );
                                 },
                               ),

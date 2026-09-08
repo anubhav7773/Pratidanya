@@ -243,39 +243,51 @@ async def generate_draft_endpoint(
 
         # 4. Semantic Precedent Retrieval from Real pgvector Corpus (Goal 8)
         supabase = get_supabase_admin_client()
-        query_vector = await gemini_service.generate_dense_embedding(
-            text=factual_matrix,
-            task_type="RETRIEVAL_QUERY",
-            is_dummy_data=payload.is_dummy_testing
-        )
+        retrieved_precedents = []
+        try:
+            query_vector = await gemini_service.generate_dense_embedding(
+                text=factual_matrix,
+                task_type="RETRIEVAL_QUERY",
+                is_dummy_data=payload.is_dummy_testing
+            )
 
-        # Clean target section numbers for GIN array filtering
-        cleaned_sections = extract_statutory_section_tokens(payload.sections)
+            # Clean target section numbers for GIN array filtering
+            cleaned_sections = extract_statutory_section_tokens(payload.sections)
 
-        # Pass 1: Direct Act/Section Matching
-        rpc_res = supabase.rpc("match_verified_precedents", {
-            "query_embedding": query_vector,
-            "target_sections": cleaned_sections,
-            "similarity_threshold": 0.55,
-            "match_count": 3
-        }).execute()
+            if query_vector and len(query_vector) == 768:
+                # Pass 1: Direct Act/Section Matching
+                rpc_res = supabase.rpc("match_verified_precedents", {
+                    "query_embedding": query_vector,
+                    "target_sections": cleaned_sections,
+                    "similarity_threshold": 0.55,
+                    "match_count": 3
+                }).execute()
+                retrieved_precedents = rpc_res.data or []
 
-        retrieved_precedents = rpc_res.data or []
+                # Pass 2: Universal Jurisprudential Semantic Match
+                if len(retrieved_precedents) < 2:
+                    fallback_rpc = supabase.rpc("match_verified_precedents", {
+                        "query_embedding": query_vector,
+                        "target_sections": [],
+                        "similarity_threshold": 0.38,
+                        "match_count": 3
+                    }).execute()
+                    fallback_data = fallback_rpc.data or []
+                    existing_cids = {p.get("citation_id") for p in retrieved_precedents}
+                    for row in fallback_data:
+                        if row.get("citation_id") not in existing_cids:
+                            retrieved_precedents.append(row)
+                            existing_cids.add(row.get("citation_id"))
+        except Exception as vec_err:
+            logger.warning(f"[Drafts] Vector precedent match error: {vec_err}. Using direct table fallback.")
 
-        # Pass 2: Universal Jurisprudential Semantic Match (Guarantees all Indian Acts match binding Supreme Court principles)
-        if len(retrieved_precedents) < 2:
-            fallback_rpc = supabase.rpc("match_verified_precedents", {
-                "query_embedding": query_vector,
-                "target_sections": [],  # Unrestricted semantic matching across constitutional & criminal defense corpus
-                "similarity_threshold": 0.38,
-                "match_count": 3
-            }).execute()
-            fallback_data = fallback_rpc.data or []
-            existing_cids = {p.get("citation_id") for p in retrieved_precedents}
-            for row in fallback_data:
-                if row.get("citation_id") not in existing_cids:
-                    retrieved_precedents.append(row)
-                    existing_cids.add(row.get("citation_id"))
+        # If vector matching was unavailable or returned empty, direct query fallback
+        if not retrieved_precedents:
+            try:
+                direct_res = supabase.table("verified_precedents").select("*").limit(3).execute()
+                retrieved_precedents = direct_res.data or []
+            except Exception as direct_err:
+                logger.warning(f"[Drafts] Direct table query error: {direct_err}")
 
         # 5. Transform retrieved database records into candidate precedents with live reachable URLs
         candidate_citations = []

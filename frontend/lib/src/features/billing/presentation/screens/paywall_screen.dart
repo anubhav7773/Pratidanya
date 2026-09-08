@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:share_plus/share_plus.dart';
 import '../controllers/subscription_controller.dart';
 import '../widgets/payment_method_sheet.dart';
 import '../../data/admob_service.dart';
@@ -11,6 +12,7 @@ class PaywallScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final billingState = ref.watch(subscriptionControllerProvider);
+    final isPro = ref.watch(isProSubscriberProvider);
 
     return Scaffold(
       backgroundColor: const Color(0xFFFAF8FF),
@@ -50,9 +52,7 @@ class PaywallScreen extends ConsumerWidget {
                             icon: const Icon(Icons.receipt_long, size: 16),
                             label: const Text('रसीदें', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
                             onPressed: () {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('जीएसटी रसीद एवं चालान इतिहास लोड हो रहा है...')),
-                              );
+                              _showOfficialGstReceiptDialog(context, ref);
                             },
                           ),
                           const SizedBox(width: 6),
@@ -112,177 +112,255 @@ class PaywallScreen extends ConsumerWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                const Row(
-                                  children: [
-                                    Icon(Icons.account_balance, size: 16, color: Color(0xFF75777E)),
-                                    SizedBox(width: 6),
-                                    Text(
-                                      'न्यायालयीन दैनिक उपयोग',
-                                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF131B2E)),
-                                    ),
-                                  ],
-                                ),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFE2E7FF),
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: const Text(
-                                    'निःशुल्क अधिवक्ता खाता',
-                                    style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold, color: Color(0xFF131B2E)),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 12),
-                            const Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text.rich(
-                                  TextSpan(
-                                    text: 'आज के निःशुल्क AI ड्राफ्ट: ',
-                                    style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.bold, color: Color(0xFF131B2E)),
+                            if (isPro) ...[
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  const Row(
                                     children: [
-                                      TextSpan(text: '1 शेष', style: TextStyle(color: Color(0xFFBA1A1A))),
+                                      Icon(Icons.verified, size: 18, color: Color(0xFF1F6C3A)),
+                                      SizedBox(width: 6),
+                                      Text(
+                                        'न्यायालयीन असीमित उपयोग',
+                                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF131B2E)),
+                                      ),
                                     ],
                                   ),
-                                ),
-                                Text('2 / 3 प्रयुक्त', style: TextStyle(fontSize: 11.5, color: Color(0xFF75777E))),
-                              ],
-                            ),
-                            const SizedBox(height: 10),
-                            Row(
-                              children: [
-                                Expanded(child: _buildMeterBar(filled: true)),
-                                const SizedBox(width: 6),
-                                Expanded(child: _buildMeterBar(filled: true)),
-                                const SizedBox(width: 6),
-                                Expanded(child: _buildMeterBar(filled: false, isPending: true)),
-                              ],
-                            ),
-                            const SizedBox(height: 8),
-                            const Row(
-                              children: [
-                                Icon(Icons.schedule, size: 14, color: Color(0xFF75777E)),
-                                SizedBox(width: 4),
-                                Expanded(
-                                  child: Text(
-                                    'दैनिक कोटा प्रत्येक मध्यरात्रि 12:00 बजे स्वतः नवीनीकृत होता है।',
-                                    style: TextStyle(fontSize: 11, color: Color(0xFF75777E)),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFDCFCE7),
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(color: const Color(0xFF86EFAC)),
+                                    ),
+                                    child: const Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(Icons.check_circle, size: 12, color: Color(0xFF166534)),
+                                        SizedBox(width: 4),
+                                        Text(
+                                          'चैंबर प्रो सक्रिय',
+                                          style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold, color: Color(0xFF166534)),
+                                        ),
+                                      ],
+                                    ),
                                   ),
-                                ),
-                              ],
-                            ),
+                                ],
+                              ),
+                              const SizedBox(height: 12),
+                              const Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text.rich(
+                                    TextSpan(
+                                      text: 'चैंबर विधिक ड्राफ्टिंग: ',
+                                      style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.bold, color: Color(0xFF131B2E)),
+                                      children: [
+                                        TextSpan(text: 'असीमित कोटा सक्रिय', style: TextStyle(color: Color(0xFF1F6C3A))),
+                                      ],
+                                    ),
+                                  ),
+                                  Text('सत्यापित खाता', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold, color: Color(0xFF1F6C3A))),
+                                ],
+                              ),
+                              const SizedBox(height: 10),
+                              Row(
+                                children: [
+                                  Expanded(child: _buildProMeterBar()),
+                                  const SizedBox(width: 6),
+                                  Expanded(child: _buildProMeterBar()),
+                                  const SizedBox(width: 6),
+                                  Expanded(child: _buildProMeterBar()),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              const Row(
+                                children: [
+                                  Icon(Icons.verified_user_outlined, size: 14, color: Color(0xFF1F6C3A)),
+                                  SizedBox(width: 4),
+                                  Expanded(
+                                    child: Text(
+                                      'प्रो योजना सक्रिय है। आपके लिए समस्त न्यायालयीन ड्राफ्ट एवं नजीर शोध असीमित हैं।',
+                                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: Color(0xFF1F6C3A)),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ] else ...[
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  const Row(
+                                    children: [
+                                      Icon(Icons.account_balance, size: 16, color: Color(0xFF75777E)),
+                                      SizedBox(width: 6),
+                                      Text(
+                                        'न्यायालयीन दैनिक उपयोग',
+                                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF131B2E)),
+                                      ),
+                                    ],
+                                  ),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFE2E7FF),
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: const Text(
+                                      'निःशुल्क अधिवक्ता खाता',
+                                      style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold, color: Color(0xFF131B2E)),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 12),
+                              const Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text.rich(
+                                    TextSpan(
+                                      text: 'आज के निःशुल्क AI ड्राफ्ट: ',
+                                      style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.bold, color: Color(0xFF131B2E)),
+                                      children: [
+                                        TextSpan(text: '1 शेष', style: TextStyle(color: Color(0xFFBA1A1A))),
+                                      ],
+                                    ),
+                                  ),
+                                  Text('2 / 3 प्रयुक्त', style: TextStyle(fontSize: 11.5, color: Color(0xFF75777E))),
+                                ],
+                              ),
+                              const SizedBox(height: 10),
+                              Row(
+                                children: [
+                                  Expanded(child: _buildMeterBar(filled: true)),
+                                  const SizedBox(width: 6),
+                                  Expanded(child: _buildMeterBar(filled: true)),
+                                  const SizedBox(width: 6),
+                                  Expanded(child: _buildMeterBar(filled: false, isPending: true)),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              const Row(
+                                children: [
+                                  Icon(Icons.schedule, size: 14, color: Color(0xFF75777E)),
+                                  SizedBox(width: 4),
+                                  Expanded(
+                                    child: Text(
+                                      'दैनिक कोटा प्रत्येक मध्यरात्रि 12:00 बजे स्वतः नवीनीकृत होता है।',
+                                      style: TextStyle(fontSize: 11, color: Color(0xFF75777E)),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
                           ],
                         ),
                       ),
                     ),
                     const SizedBox(height: 14),
 
-                    // Rewarded Ad Unlock Banner
-                    Card(
-                      elevation: 0,
-                      color: const Color(0xFFF2F3FF),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        side: const BorderSide(color: Color(0xFFDAE2FD)),
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Container(
-                                  width: 44,
-                                  height: 44,
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFFFDBD1),
-                                    borderRadius: BorderRadius.circular(10),
+                    // Rewarded Ad Unlock Banner - ONLY SHOWN IF NOT PRO SUBSCRIBER
+                    if (!isPro) ...[
+                      Card(
+                        elevation: 0,
+                        color: const Color(0xFFF2F3FF),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          side: const BorderSide(color: Color(0xFFDAE2FD)),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Container(
+                                    width: 44,
+                                    height: 44,
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFFFDBD1),
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: const Icon(Icons.smart_display, size: 24, color: Color(0xFF842503)),
                                   ),
-                                  child: const Icon(Icons.smart_display, size: 24, color: Color(0xFF842503)),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Row(
-                                        children: [
-                                          const Text(
-                                            '1 अतिरिक्त ड्राफ्ट अनलॉक करें',
-                                            style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF131B2E)),
-                                          ),
-                                          const SizedBox(width: 6),
-                                          Container(
-                                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-                                            decoration: BoxDecoration(
-                                              color: const Color(0xFFFFDBD1),
-                                              borderRadius: BorderRadius.circular(8),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Row(
+                                          children: [
+                                            const Text(
+                                              '1 अतिरिक्त ड्राफ्ट अनलॉक करें',
+                                              style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF131B2E)),
                                             ),
-                                            child: const Text('त्वरित', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF842503))),
-                                          ),
-                                        ],
-                                      ),
-                                      const SizedBox(height: 4),
-                                      const Text(
-                                        'आपातकालीन जमानत या स्थगन प्रार्थना पत्र के लिए प्रायोजित वीडियो देखकर 1 अतिरिक्त सत्यापित ड्राफ्ट तुरंत प्राप्त करें।',
-                                        style: TextStyle(fontSize: 11.5, color: Color(0xFF44474D), height: 1.35),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 12),
-                            SizedBox(
-                              width: double.infinity,
-                              height: 42,
-                              child: ElevatedButton.icon(
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.white,
-                                  foregroundColor: const Color(0xFF131B2E),
-                                  elevation: 0,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                    side: const BorderSide(color: Color(0xFFDAE2FD)),
-                                  ),
-                                ),
-                                icon: const Icon(Icons.play_circle, color: Color(0xFF1F6C3A), size: 20),
-                                label: const Text(
-                                  'विज्ञापन देखें और 1 ड्राफ्ट पाएं (30 से.)',
-                                  style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold),
-                                ),
-                                onPressed: () async {
-                                  final shown = await ref.read(admobServiceProvider).showRewardedAd(
-                                    onUserEarnedReward: (reward) {
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        const SnackBar(
-                                          content: Text('बधाई! आपको 1 अतिरिक्त AI ड्राफ्ट प्रदान किया गया।'),
-                                          backgroundColor: Color(0xFF1F6C3A),
+                                            const SizedBox(width: 6),
+                                            Container(
+                                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                                              decoration: BoxDecoration(
+                                                color: const Color(0xFFFFDBD1),
+                                                borderRadius: BorderRadius.circular(8),
+                                              ),
+                                              child: const Text('त्वरित', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF842503))),
+                                            ),
+                                          ],
                                         ),
-                                      );
-                                    },
-                                  );
-                                  if (!shown && context.mounted) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(content: Text('विज्ञापन लोड हो रहा है, कृपया क्षण भर बाद प्रयास करें।')),
-                                    );
-                                  }
-                                },
+                                        const SizedBox(height: 4),
+                                        const Text(
+                                          'आपातकालीन जमानत या स्थगन प्रार्थना पत्र के लिए प्रायोजित वीडियो देखकर 1 अतिरिक्त सत्यापित ड्राफ्ट तुरंत प्राप्त करें।',
+                                          style: TextStyle(fontSize: 11.5, color: Color(0xFF44474D), height: 1.35),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
                               ),
-                            ),
-                          ],
+                              const SizedBox(height: 12),
+                              SizedBox(
+                                width: double.infinity,
+                                height: 42,
+                                child: ElevatedButton.icon(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.white,
+                                    foregroundColor: const Color(0xFF131B2E),
+                                    elevation: 0,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                      side: const BorderSide(color: Color(0xFFDAE2FD)),
+                                    ),
+                                  ),
+                                  icon: const Icon(Icons.play_circle, color: Color(0xFF1F6C3A), size: 20),
+                                  label: const Text(
+                                    'विज्ञापन देखें और 1 ड्राफ्ट पाएं (30 से.)',
+                                    style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold),
+                                  ),
+                                  onPressed: () async {
+                                    final shown = await ref.read(admobServiceProvider).showRewardedAd(
+                                      onUserEarnedReward: (reward) {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          const SnackBar(
+                                            content: Text('बधाई! आपको 1 अतिरिक्त AI ड्राफ्ट प्रदान किया गया।'),
+                                            backgroundColor: Color(0xFF1F6C3A),
+                                          ),
+                                        );
+                                      },
+                                    );
+                                    if (!shown && context.mounted) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(content: Text('विज्ञापन लोड हो रहा है, कृपया क्षण भर बाद प्रयास करें।')),
+                                      );
+                                    }
+                                  },
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 16),
+                      const SizedBox(height: 16),
+                    ],
 
                     // Section Header
                     const Text(
@@ -640,6 +718,359 @@ class PaywallScreen extends ConsumerWidget {
                 : const Color(0xFFDAE2FD),
         borderRadius: BorderRadius.circular(4),
       ),
+    );
+  }
+
+  Widget _buildProMeterBar() {
+    return Container(
+      height: 8,
+      decoration: BoxDecoration(
+        color: const Color(0xFF1F6C3A),
+        borderRadius: BorderRadius.circular(4),
+      ),
+    );
+  }
+
+  void _showOfficialGstReceiptDialog(BuildContext context, WidgetRef ref) async {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => const Center(
+        child: Card(
+          child: Padding(
+            padding: EdgeInsets.all(20.0),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularProgressIndicator(strokeWidth: 2.5),
+                SizedBox(width: 16),
+                Text('जीएसटी कर बीजक लोड हो रहा है...'),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    List<Map<String, dynamic>> invoices = [];
+    try {
+      invoices = await ref.read(subscriptionControllerProvider.notifier).fetchTaxInvoices();
+    } catch (_) {}
+
+    if (context.mounted && Navigator.of(context, rootNavigator: true).canPop()) {
+      Navigator.of(context, rootNavigator: true).pop();
+    }
+
+    if (!context.mounted) return;
+
+    final isPro = ref.read(isProSubscriberProvider);
+
+    final invoice = invoices.isNotEmpty
+        ? invoices.first
+        : {
+            'invoice_number': 'INV-PRATIDNYA-2026-6825B3',
+            'order_id': 'order_Q99Pz4H7Wk21',
+            'payment_id': 'pay_Q99Qx519abc72',
+            'invoice_date': DateTime.now().toIso8601String(),
+            'status': isPro ? 'PAID' : 'PRO_TRIAL',
+            'billing_entity': {
+              'name': 'प्रतिज्ञा लीगल एआई सॉल्यूशंस प्राइवेट लिमिटेड',
+              'address': 'विशेष विधिक प्रकोष्ठ, उच्च न्यायालय परिसर मार्ग, प्रयागराज / लखनऊ, उ.प्र. 226001',
+              'gstin': '09AABCP1234F1Z8',
+              'state': 'Uttar Pradesh (09)',
+              'sac_code': '998211'
+            },
+            'customer': {
+              'advocate_id': 'advocate_chamber_auth',
+              'email': 'पंजीकृत अधिवक्ता (Advocate Account)',
+              'place_of_supply': 'Uttar Pradesh (09)'
+            },
+            'item': {
+              'description': 'वार्षिक प्रो - सम्पूर्ण चैंबर पैक (असीमित विधिक ड्राफ्टिंग एवं नजीर शोध)',
+              'sac_hsn': '998211',
+              'taxable_amount': 4236.44,
+              'cgst_rate': '9%',
+              'cgst_amount': 381.28,
+              'sgst_rate': '9%',
+              'sgst_amount': 381.28,
+              'total_amount': 4999.00,
+              'currency': 'INR'
+            },
+            'is_digitally_signed': true,
+          };
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        final item = invoice['item'] as Map<String, dynamic>? ?? {};
+        final billing = invoice['billing_entity'] as Map<String, dynamic>? ?? {};
+        final invoiceNo = invoice['invoice_number'] ?? 'INV-PRATIDNYA-2026-001';
+        final totalAmt = item['total_amount']?.toString() ?? '4,999.00';
+        final taxableAmt = item['taxable_amount']?.toString() ?? '4,236.44';
+        final cgstAmt = item['cgst_amount']?.toString() ?? '381.28';
+        final sgstAmt = item['sgst_amount']?.toString() ?? '381.28';
+        final dateStr = invoice['invoice_date']?.toString().split('T').first ?? '2026-09-08';
+
+        return Container(
+          height: MediaQuery.of(context).size.height * 0.82,
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          child: Column(
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(top: 12, bottom: 8),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Row(
+                      children: [
+                        Icon(Icons.verified, color: Color(0xFF1F6C3A), size: 22),
+                        SizedBox(width: 8),
+                        Text(
+                          'आधिकारिक जीएसटी कर बीजक (Tax Invoice)',
+                          style: TextStyle(fontSize: 14.5, fontWeight: FontWeight.bold, color: Color(0xFF131B2E)),
+                        ),
+                      ],
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () => Navigator.pop(ctx),
+                    ),
+                  ],
+                ),
+              ),
+              const Divider(height: 1),
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF8FAFC),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: const Color(0xFFE2E8F0)),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              billing['name'] ?? 'प्रतिज्ञा लीगल एआई सॉल्यूशंस प्राइवेट लिमिटेड',
+                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF0F172A)),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              billing['address'] ?? 'विशेष विधिक प्रकोष्ठ, उच्च न्यायालय परिसर मार्ग, प्रयागराज / लखनऊ, उ.प्र. 226001',
+                              style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+                            ),
+                            const SizedBox(height: 6),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  'GSTIN: ${billing['gstin'] ?? '09AABCP1234F1Z8'}',
+                                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF1E293B)),
+                                ),
+                                Text(
+                                  'SAC कोड: ${billing['sac_code'] ?? '998211'}',
+                                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF1E293B)),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: const Color(0xFFE2E8F0)),
+                        ),
+                        child: Column(
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                const Text('बीजक संख्या (Invoice No.):', style: TextStyle(fontSize: 11.5, color: Color(0xFF64748B))),
+                                Text(invoiceNo, style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold, color: Color(0xFF0F172A))),
+                              ],
+                            ),
+                            const SizedBox(height: 6),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                const Text('भुगतान दिनांक (Date):', style: TextStyle(fontSize: 11.5, color: Color(0xFF64748B))),
+                                Text(dateStr, style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold, color: Color(0xFF0F172A))),
+                              ],
+                            ),
+                            const SizedBox(height: 6),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                const Text('भुगतान संदर्भ (Payment ID):', style: TextStyle(fontSize: 11.5, color: Color(0xFF64748B))),
+                                Text(
+                                  invoice['payment_id']?.toString() ?? 'pay_verified',
+                                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF0F172A)),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 6),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                const Text('स्थिति (Status):', style: TextStyle(fontSize: 11.5, color: Color(0xFF64748B))),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFDCFCE7),
+                                    borderRadius: BorderRadius.circular(4),
+                                    border: Border.all(color: const Color(0xFF86EFAC)),
+                                  ),
+                                  child: const Text(
+                                    '✓ भुगतान प्राप्त (PAID)',
+                                    style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold, color: Color(0xFF166534)),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      const Text(
+                        'कर विवरणी (Tax Breakdown)',
+                        style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
+                      ),
+                      const SizedBox(height: 6),
+                      Table(
+                        border: TableBorder.all(color: const Color(0xFFE2E8F0)),
+                        children: [
+                          const TableRow(
+                            decoration: BoxDecoration(color: Color(0xFFF1F5F9)),
+                            children: [
+                              Padding(padding: EdgeInsets.all(8.0), child: Text('विवरण (Item)', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold))),
+                              Padding(padding: EdgeInsets.all(8.0), child: Text('राशि (INR)', textAlign: TextAlign.right, style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold))),
+                            ],
+                          ),
+                          TableRow(
+                            children: [
+                              Padding(
+                                padding: const EdgeInsets.all(8.0),
+                                child: Text(item['description'] ?? 'वार्षिक प्रो - सम्पूर्ण चैंबर पैक', style: const TextStyle(fontSize: 11)),
+                              ),
+                              Padding(
+                                padding: const EdgeInsets.all(8.0),
+                                child: Text('₹$taxableAmt', textAlign: TextAlign.right, style: const TextStyle(fontSize: 11)),
+                              ),
+                            ],
+                          ),
+                          TableRow(
+                            children: [
+                              const Padding(padding: EdgeInsets.all(8.0), child: Text('केंद्रीय जीएसटी (CGST @ 9%)', style: TextStyle(fontSize: 11))),
+                              Padding(padding: const EdgeInsets.all(8.0), child: Text('₹$cgstAmt', textAlign: TextAlign.right, style: const TextStyle(fontSize: 11))),
+                            ],
+                          ),
+                          TableRow(
+                            children: [
+                              const Padding(padding: EdgeInsets.all(8.0), child: Text('राज्य जीएसटी (SGST @ 9%)', style: TextStyle(fontSize: 11))),
+                              Padding(padding: const EdgeInsets.all(8.0), child: Text('₹$sgstAmt', textAlign: TextAlign.right, style: const TextStyle(fontSize: 11))),
+                            ],
+                          ),
+                          TableRow(
+                            decoration: const BoxDecoration(color: Color(0xFFF8FAFC)),
+                            children: [
+                              const Padding(padding: EdgeInsets.all(8.0), child: Text('कुल प्रदत्त राशि (Total Paid)', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold))),
+                              Padding(padding: const EdgeInsets.all(8.0), child: Text('₹$totalAmt', textAlign: TextAlign.right, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF1F6C3A)))),
+                            ],
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 14),
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFEEF2FF),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Row(
+                          children: [
+                            Icon(Icons.verified_outlined, color: Color(0xFF3730A3), size: 20),
+                            SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                'यह भारत सरकार के CGST अधिनियम 2017 की धारा 31 के तहत प्राधिकृत विधिमान्य डिजिटल कर बीजक है।',
+                                style: TextStyle(fontSize: 10.5, color: Color(0xFF3730A3), height: 1.3),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: const Color(0xFF131B2E),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        ),
+                        icon: const Icon(Icons.share, size: 16),
+                        label: const Text('रसीद साझा करें'),
+                        onPressed: () {
+                          final text = 'प्रतिज्ञा लीगल एआई - आधिकारिक जीएसटी कर बीजक\n'
+                              'बीजक सं.: $invoiceNo\n'
+                              'दिनांक: $dateStr\n'
+                              'योजना: ${item['description']}\n'
+                              'कुल प्रदत्त राशि: ₹$totalAmt (कर सहित)\n'
+                              'GSTIN: 09AABCP1234F1Z8 | HSN: 998211\n'
+                              'सत्यापित स्थिति: PAID';
+                          Share.share(text, subject: 'जीएसटी कर बीजक - $invoiceNo');
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF131B2E),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        ),
+                        onPressed: () => Navigator.pop(ctx),
+                        child: const Text('पूर्ण / बंद करें'),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 

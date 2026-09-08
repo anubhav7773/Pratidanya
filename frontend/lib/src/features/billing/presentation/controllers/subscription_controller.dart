@@ -320,10 +320,40 @@ class SubscriptionController extends StateNotifier<AsyncValue<bool>> {
           'Authorization': 'Bearer $idToken',
         },
       );
-      return response.statusCode == 200;
+      if (response.statusCode == 200) {
+        await checkActiveSubscription();
+        return true;
+      }
+      return false;
     } catch (e) {
       return false;
     }
+  }
+
+  Future<List<Map<String, dynamic>>> fetchTaxInvoices() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) return [];
+
+      final idToken = await user.getIdToken();
+      final url = Uri.parse('${AppEnvironment.backendBaseUrl}/api/v1/billing/receipts');
+      final response = await http.get(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $idToken',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
+        final list = data['invoices'] as List<dynamic>? ?? [];
+        return list.map((e) => e as Map<String, dynamic>).toList();
+      }
+    } catch (e) {
+      debugPrint('[SubscriptionController] Error fetching receipts: $e');
+    }
+    return [];
   }
 
   @override

@@ -104,6 +104,15 @@ class CaseAnalysisDraft {
     );
   }
 
+  Map<String, dynamic> toJson() => {
+        'court_header': courtHeader,
+        'case_title': caseTitle,
+        'statutory_grounds': statutoryGrounds,
+        'prosecution_weaknesses': prosecutionWeaknesses,
+        'procedural_objections': proceduralObjections,
+        'cited_precedents': citedPrecedents.map((e) => e.toJson()).toList(),
+      };
+
   CaseAnalysisDraft copyWith({
     String? courtHeader,
     String? caseTitle,

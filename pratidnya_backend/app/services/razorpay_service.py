@@ -166,6 +166,34 @@ class RazorpayService:
                 detail="सुरक्षा उल्लंघन: यह भुगतान रसीद पहले से किसी अन्य खाते में संबद्ध है।"
             )
 
+        # Calculate GST Breakdown (HSN 998211 - Legal & Professional Services)
+        total_inr = round(plan["price_amount_micros"] / 1_000_000.0, 2)
+        taxable_inr = round(total_inr / 1.18, 2)
+        cgst_inr = round(taxable_inr * 0.09, 2)
+        sgst_inr = round(total_inr - taxable_inr - cgst_inr, 2)
+        clean_ord = re.sub(r'[^A-Za-z0-9]', '', razorpay_order_id)[-6:].upper()
+        invoice_no = f"INV-PRATIDNYA-2026-{clean_ord}"
+
+        invoice_data = {
+            "invoice_number": invoice_no,
+            "order_id": razorpay_order_id,
+            "payment_id": razorpay_payment_id,
+            "invoice_date": now.isoformat(),
+            "plan_type": plan_type_upper,
+            "plan_name": "वार्षिक प्रो - सम्पूर्ण चैंबर पैक" if plan_type_upper == "YEARLY" else "मासिक प्रो चैंबर पैक",
+            "hsn_sac": "998211",
+            "gstin": "09AABCP1234F1Z8",
+            "billing_entity": "प्रतिज्ञा लीगल एआई सॉल्यूशंस प्राइवेट लिमिटेड",
+            "taxable_amount": taxable_inr,
+            "cgst_rate": "9%",
+            "cgst_amount": cgst_inr,
+            "sgst_rate": "9%",
+            "sgst_amount": sgst_inr,
+            "total_amount": total_inr,
+            "currency": "INR",
+            "status": "PAID"
+        }
+
         # Upsert subscription record
         sub_payload = {
             "advocate_id": advocate_id,
@@ -185,6 +213,7 @@ class RazorpayService:
                 "payment_id": razorpay_payment_id,
                 "order_id": razorpay_order_id,
                 "verified_at": now.isoformat(),
+                "invoice": invoice_data,
             },
             "updated_at": now.isoformat(),
         }
@@ -193,19 +222,20 @@ class RazorpayService:
             .upsert(sub_payload, on_conflict="purchase_token") \
             .execute()
 
-        # Elevate quotas to unlimited PRO_CHAMBER
+        # Elevate quotas to unlimited PRO_CHAMBER via upsert (Fixes zero-row update bug)
         supabase.table("advocate_ai_quotas") \
-            .update({
+            .upsert({
+                "advocate_id": advocate_id,
                 "subscription_tier": "PRO_CHAMBER",
                 "daily_drafts_remaining": 9999,
+                "ad_rewarded_drafts": 999,
                 "updated_at": now.isoformat(),
-            }) \
-            .eq("advocate_id", advocate_id) \
+            }, on_conflict="advocate_id") \
             .execute()
 
         logger.info(
             f"✅ [RAZORPAY_PAYMENT_SUCCESS] Advocate={advocate_id} elevated to PRO_CHAMBER "
-            f"via {plan_type_upper} (PaymentID={razorpay_payment_id})"
+            f"via {plan_type_upper} (PaymentID={razorpay_payment_id}, Invoice={invoice_no})"
         )
 
         return {
@@ -216,5 +246,6 @@ class RazorpayService:
             "expiry_time": expiry.isoformat(),
             "order_id": razorpay_order_id,
             "payment_id": razorpay_payment_id,
+            "invoice": invoice_data,
             "message": "चैंबर प्रो सदस्यता सफलतापूर्वक सक्रिय कर दी गई है।"
         }

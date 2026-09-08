@@ -44,32 +44,31 @@ class GeminiService:
             "x-goog-api-key": self.api_key
         }
 
-        async with httpx.AsyncClient(timeout=15.0) as client:
-            last_err = None
-            for model_name, payload in candidate_models:
-                url = f"{self.base_url}/{model_name}:embedContent"
-                response = await client.post(url, headers=headers, json=payload)
-                if response.status_code == 200:
-                    data = response.json()
-                    values = data.get("embedding", {}).get("values", [])
-                    if len(values) == 768:
-                        return values
-                    raise HTTPException(
-                        status_code=500,
-                        detail=f"अमान्य वेक्टर आयाम (Dimension): 768 अपेक्षित, {len(values)} प्राप्त।"
-                    )
-                elif response.status_code == 404:
-                    last_err = response.text
-                    continue
-                else:
-                    raise HTTPException(
-                        status_code=response.status_code,
-                        detail=f"Gemini Embedding API विफलता: {response.text}"
-                    )
-            raise HTTPException(
-                status_code=502,
-                detail=f"कोई भी संगत एम्बेडिंग मॉडल उपलब्ध नहीं: {last_err}"
-            )
+        try:
+            async with httpx.AsyncClient(timeout=15.0) as client:
+                last_err = None
+                for model_name, payload in candidate_models:
+                    url = f"{self.base_url}/{model_name}:embedContent"
+                    try:
+                        response = await client.post(url, headers=headers, json=payload)
+                    except Exception as net_err:
+                        last_err = str(net_err)
+                        continue
+
+                    if response.status_code == 200:
+                        data = response.json()
+                        values = data.get("embedding", {}).get("values", [])
+                        if len(values) == 768:
+                            return values
+                    else:
+                        last_err = response.text
+                        continue
+
+                logger.warning(f"[GeminiService] Dense embedding models exhausted ({last_err}). Returning empty vector.")
+                return []
+        except Exception as e:
+            logger.warning(f"[GeminiService] Exception in generate_dense_embedding: {e}. Returning empty vector.")
+            return []
 
     async def generate_structured_case_analysis(
         self,
@@ -99,6 +98,21 @@ class GeminiService:
                     "daily_drafts_remaining": 3,
                     "ad_rewarded_drafts": 0
                 }).execute()
+            except Exception:
+                pass
+
+        if quota.get("subscription_tier") != "PRO_CHAMBER":
+            # Resilient self-heal: check if advocate has an active subscription in advocate_subscriptions
+            try:
+                sub_check = supabase.table("advocate_subscriptions") \
+                    .select("subscription_status, expiry_time") \
+                    .eq("advocate_id", advocate_id) \
+                    .order("created_at", desc=True) \
+                    .limit(1) \
+                    .execute()
+                if sub_check and sub_check.data and sub_check.data[0].get("subscription_status") == "ACTIVE":
+                    quota["subscription_tier"] = "PRO_CHAMBER"
+                    quota["daily_drafts_remaining"] = 9999
             except Exception:
                 pass
 
