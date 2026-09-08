@@ -15,6 +15,7 @@ class MockPrecedentRepository extends PrecedentRepository {
   Future<List<PrecedentCitation>> searchSemanticPrecedents({
     required String queryText,
     required List<String> targetSections,
+    String? filterMode,
     double threshold = 0.65,
     int limit = 5,
   }) async {

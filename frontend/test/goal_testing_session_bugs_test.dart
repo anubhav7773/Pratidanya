@@ -1,6 +1,9 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pratidnya/src/core/utils/citation_formatter.dart';
 import 'package:pratidnya/src/features/03_precedent_search/domain/precedent_citation.dart';
+import 'package:pratidnya/src/features/03_precedent_search/presentation/screens/precedent_search_screen.dart';
 import 'package:pratidnya/src/features/04_draft_generator/data/drafting_repository.dart';
 
 void main() {
@@ -201,6 +204,24 @@ void main() {
         '2024_INSC_595_MANISH_SISODIA',
         '2024_INSC_26_PERUMAL_RAJA',
       ]);
+    });
+
+    testWidgets('PrecedentSearchScreen compiles and renders filter chips accurately', (tester) async {
+      await tester.pumpWidget(
+        const ProviderScope(
+          child: MaterialApp(
+            home: PrecedentSearchScreen(
+              initialQuery: 'bns 305',
+            ),
+          ),
+        ),
+      );
+
+      // Verify that the screen renders the query and filter chips
+      expect(find.text('उच्चतम न्यायालय (SC)'), findsOneWidget);
+      expect(find.text('इलाहाबाद उच्च न्यायालय'), findsOneWidget);
+      expect(find.text('जमानत मिसालें (Bail)'), findsOneWidget);
+      expect(find.text('अंतिम 5 वर्ष'), findsOneWidget);
     });
   });
 }

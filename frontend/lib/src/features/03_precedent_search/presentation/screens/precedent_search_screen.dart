@@ -4,6 +4,7 @@ import '../../../../core/theme/stitch_colors.dart';
 import '../controllers/precedent_controller.dart';
 import '../widgets/precedent_citation_card.dart';
 import '../widgets/precedent_abstain_widget.dart';
+import '../../domain/precedent_citation.dart';
 
 class PrecedentSearchScreen extends ConsumerStatefulWidget {
   final String? initialQuery;
