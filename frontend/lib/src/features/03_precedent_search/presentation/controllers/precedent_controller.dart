@@ -53,12 +53,14 @@ class PrecedentSearchController extends StateNotifier<AsyncValue<PrecedentSearch
   Future<void> executeSearch({
     required String query,
     required List<String> sections,
+    String? filterMode,
   }) async {
     state = const AsyncValue.loading();
     try {
       final citations = await _repository.searchSemanticPrecedents(
         queryText: query,
         targetSections: sections,
+        filterMode: filterMode,
       );
 
       state = AsyncValue.data(PrecedentSearchState(

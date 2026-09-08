@@ -13,6 +13,7 @@ class PrecedentRepository {
   Future<List<PrecedentCitation>> searchSemanticPrecedents({
     required String queryText,
     required List<String> targetSections,
+    String? filterMode,
     double threshold = 0.65,
     int limit = 5,
   }) async {
@@ -31,6 +32,7 @@ class PrecedentRepository {
       body: jsonEncode({
         'query_text': queryText.trim(),
         'target_sections': targetSections,
+        if (filterMode != null) 'filter_mode': filterMode,
         'similarity_threshold': threshold,
         'limit': limit,
         'is_dummy_testing': AppEnvironment.enforceDummyData,

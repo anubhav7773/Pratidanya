@@ -279,10 +279,10 @@ class DraftingRepository {
         },
         {
           'citation_id': 'sc-vijaysinh-2011',
-          'case_title': 'विजयपुर सिंह बनाम महाराष्ट्र राज्य (2011 1 SCC 609)',
+          'case_title': 'विजयसिंह चंदुभा जडेजा बनाम गुजरात राज्य (2011 1 SCC 609)',
           'court_name': 'उच्चतम न्यायालय (संविधान पीठ)',
           'judgment_date': '2011',
-          'quoted_passage': 'मजिस्ट्रेट या राजपत्रित अधिकारी के समक्ष तलाशी का अधिकार सांविधिक है।',
+          'quoted_passage': 'एन.डी.पी.एस. अधिनियम की धारा 50 के अंतर्गत मजिस्ट्रेट या राजपत्रित अधिकारी के समक्ष व्यक्तिगत तलाशी का अधिकार सांविधिक एवं आज्ञापक है।',
           'verified_source_url': 'https://indiankanoon.org/doc/1145861/',
           'is_grounded_in_record': true,
         },

@@ -386,6 +386,9 @@ class CitationFormatter {
     }
     if (cleanId.contains('VIJAYSINH') ||
         cleanId.contains('JADEJA') ||
+        rawLower.contains('विजय सिंह चंदुभा जडेजा') ||
+        rawLower.contains('विजयसिंह चंदुभा जडेजा') ||
+        rawLower.contains('विजय सिंह') ||
         rawLower.contains('विजयपुर सिंह') ||
         rawLower.contains('विजयसिंह') ||
         rawLower.contains('जडेजा') ||

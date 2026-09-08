@@ -81,11 +81,11 @@ void main() {
         'cited_precedents': [
           {
             'citation_id': 'sc-vijaysinh-2011',
-            'case_title': 'विजयपुर सिंह बनाम महाराष्ट्र राज्य (2011 1 SCC 609)',
+            'case_title': 'विजयसिंह चंदुभा जडेजा बनाम गुजरात राज्य (2011 1 SCC 609)',
             'court_name': 'उच्चतम न्यायालय (संविधान पीठ)',
             'judgment_date': '2011',
             'quoted_passage': 'धारा 50 एन.डी.पी.एस. अधिनियम का अनुपालन आज्ञापक (Mandatory) है।',
-            'verified_source_url': 'https://indiankanoon.org/doc/1749714/',
+            'verified_source_url': 'https://indiankanoon.org/doc/1145861/',
             'is_grounded_in_record': true,
             'is_manually_verified': true,
           }

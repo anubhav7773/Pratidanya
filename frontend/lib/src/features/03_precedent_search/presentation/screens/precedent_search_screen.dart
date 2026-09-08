@@ -49,14 +49,160 @@ class _PrecedentSearchScreenState extends ConsumerState<PrecedentSearchScreen> {
     super.dispose();
   }
 
+  List<String> _extractSectionsFromQuery(String query) {
+    final lower = query.toLowerCase().trim();
+    final extracted = <String>{};
+
+    if (lower.contains('305')) {
+      extracted.addAll(['305', '305_BNS', '380', '379', '303_BNS', '317_BNS']);
+    }
+    if (lower.contains('303') && (lower.contains('bns') || lower.contains('चोरी') || lower.contains('theft'))) {
+      extracted.addAll(['303', '303_BNS', '379', '411', '317_BNS']);
+    }
+    if (lower.contains('304') && lower.contains('bns')) {
+      extracted.addAll(['304', '304_BNS', '390', '392']);
+    }
+    if (lower.contains('307') || (lower.contains('109') && lower.contains('bns'))) {
+      extracted.addAll(['307', '109_BNS']);
+    }
+    if (lower.contains('302') || (lower.contains('103') && lower.contains('bns'))) {
+      extracted.addAll(['302', '103_BNS', '103']);
+    }
+    if (lower.contains('376') || (lower.contains('64') && lower.contains('bns'))) {
+      extracted.addAll(['376', '64_BNS', '70_BNS']);
+    }
+    if (lower.contains('498a') || (lower.contains('85') && lower.contains('bns'))) {
+      extracted.addAll(['498A', '85_BNS']);
+    }
+    if (lower.contains('304b') || (lower.contains('80') && lower.contains('bns'))) {
+      extracted.addAll(['304B', '80_BNS']);
+    }
+    if (lower.contains('420') || (lower.contains('318') && lower.contains('bns'))) {
+      extracted.addAll(['420', '467', '468', '471', '318_BNS', '336_BNS', '338_BNS']);
+    }
+    if (lower.contains('50') && (lower.contains('ndps') || lower.contains('तलाशी') || lower.contains('search'))) {
+      extracted.addAll(['50', 'NDPS']);
+    }
+    if (lower.contains('52a') || (lower.contains('52') && lower.contains('ndps'))) {
+      extracted.addAll(['52A', 'NDPS']);
+    }
+    if (lower.contains('37') && lower.contains('ndps')) {
+      extracted.addAll(['37', 'NDPS']);
+    }
+    if (lower.contains('138') || lower.contains('139') || lower.contains('चेक')) {
+      extracted.addAll(['138', '139', '141', '142', 'NI_ACT']);
+    }
+    if (lower.contains('65b') || (lower.contains('63') && lower.contains('bsa'))) {
+      extracted.addAll(['65B', '63_BSA']);
+    }
+    if (lower.contains('27') && (lower.contains('साक्ष्य') || lower.contains('iea') || lower.contains('bsa') || lower.contains('बरामदगी'))) {
+      extracted.addAll(['27', '23_BSA']);
+    }
+    if (lower.contains('439') || lower.contains('483')) {
+      extracted.addAll(['439', '483_BNSS']);
+    }
+    if (lower.contains('438') || lower.contains('482')) {
+      extracted.addAll(['438', '482_BNSS']);
+    }
+    if (lower.contains('41a') || lower.contains('35_bnss') || lower.contains('35 bnss')) {
+      extracted.addAll(['41A', '35_BNSS']);
+    }
+    if (lower.contains('167') || lower.contains('187_bnss') || lower.contains('187 bnss') || lower.contains('डिफ़ॉल्ट')) {
+      extracted.addAll(['167', '187_BNSS']);
+    }
+
+    final hasStatutePrefix = lower.contains('bns') ||
+        lower.contains('ipc') ||
+        lower.contains('crpc') ||
+        lower.contains('bnss') ||
+        lower.contains('धारा') ||
+        lower.contains('sec');
+
+    if (hasStatutePrefix && extracted.isEmpty) {
+      final matches = RegExp(r'\b\d+[a-zA-Z]?\b').allMatches(lower);
+      for (final m in matches) {
+        final sec = m.group(0);
+        if (sec != null) extracted.add(sec);
+      }
+    }
+
+    return extracted.toList();
+  }
+
   void _triggerSearch() {
     final query = _queryController.text.trim();
     if (query.isNotEmpty) {
+      final extracted = _extractSectionsFromQuery(query);
+      final combinedSections = {..._selectedSections, ...extracted}.toList();
+
+      String? filterCode;
+      if (_activeChip == 'अंतिम 5 वर्ष') {
+        filterCode = 'LAST_5_YEARS';
+      } else if (_activeChip == 'उच्चतम न्यायालय (SC)') {
+        filterCode = 'SUPREME_COURT';
+      } else if (_activeChip == 'इलाहाबाद उच्च न्यायालय') {
+        filterCode = 'ALLAHABAD_HC';
+      } else if (_activeChip == 'जमानत मिसालें (Bail)') {
+        filterCode = 'BAIL';
+      }
+
       ref.read(precedentSearchControllerProvider.notifier).executeSearch(
             query: query,
-            sections: _selectedSections,
+            sections: combinedSections,
+            filterMode: filterCode,
           );
     }
+  }
+
+  List<PrecedentCitation> _applyActiveFilters(List<PrecedentCitation> rawResults, String query) {
+    if (rawResults.isEmpty) return rawResults;
+
+    var filtered = List<PrecedentCitation>.from(rawResults);
+
+    // 1. Strict section fidelity gating:
+    // If user explicitly searched for a section (e.g. "bns 305", "धारा 305", "ipc 307"),
+    // discard unrelated cases (e.g. 307 Babu Singh or 376 Pramod Pawar for bns 305 search)
+    final targetSecs = _extractSectionsFromQuery(query);
+    if (targetSecs.isNotEmpty) {
+      final upperTargets = targetSecs.map((s) => s.toUpperCase()).toSet();
+      filtered = filtered.where((c) {
+        final cSecs = c.sectionNumbers.map((s) => s.toUpperCase()).toSet();
+        return upperTargets.any((t) => cSecs.contains(t) || cSecs.any((cs) => cs.contains(t) || t.contains(cs)));
+      }).toList();
+    }
+
+    // 2. Chip Filter:
+    if (_activeChip == 'अंतिम 5 वर्ष') {
+      final currentYear = DateTime.now().year; // e.g. 2026
+      final cutoffYear = currentYear - 5; // e.g. 2021
+      filtered = filtered.where((c) {
+        final match = RegExp(r'\b(19\d\d|20\d\d)\b').firstMatch(c.judgmentDate);
+        if (match != null) {
+          final year = int.tryParse(match.group(1) ?? '0') ?? 0;
+          return year >= cutoffYear;
+        }
+        return false;
+      }).toList();
+    } else if (_activeChip == 'उच्चतम न्यायालय (SC)') {
+      filtered = filtered.where((c) {
+        final court = c.courtName.toLowerCase();
+        return court.contains('सर्वोच्च') || court.contains('उच्चतम') || court.contains('supreme');
+      }).toList();
+    } else if (_activeChip == 'इलाहाबाद उच्च न्यायालय') {
+      filtered = filtered.where((c) {
+        final court = c.courtName.toLowerCase();
+        return court.contains('इलाहाबाद') || court.contains('allahabad');
+      }).toList();
+    } else if (_activeChip == 'जमानत मिसालें (Bail)') {
+      filtered = filtered.where((c) {
+        final combined = '${c.actName} ${c.caseTitle} ${c.headnoteHindi} ${c.sectionNumbers.join(" ")}'.toLowerCase();
+        return combined.contains('bail') ||
+            combined.contains('जमानत') ||
+            c.sectionNumbers.any((s) => ['437', '438', '439', '480', '482', '483', '480_bnss', '482_bnss', '483_bnss'].contains(s.toLowerCase()));
+      }).toList();
+    }
+
+    return filtered;
   }
 
   @override
@@ -217,6 +363,9 @@ class _PrecedentSearchScreenState extends ConsumerState<PrecedentSearchScreen> {
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                             onSelected: (val) {
                               setState(() => _activeChip = val ? chip : '');
+                              if (_queryController.text.trim().isNotEmpty) {
+                                _triggerSearch();
+                              }
                             },
                           ),
                         );
@@ -254,9 +403,12 @@ class _PrecedentSearchScreenState extends ConsumerState<PrecedentSearchScreen> {
                     );
                   }
 
-                  if (searchState.results.isEmpty) {
+                  final queryToReport = searchState.lastQuery.isNotEmpty ? searchState.lastQuery : _queryController.text;
+                  final displayedResults = _applyActiveFilters(searchState.results, queryToReport);
+
+                  if (displayedResults.isEmpty) {
                     return PrecedentAbstainWidget(
-                      queryTerm: searchState.lastQuery,
+                      queryTerm: queryToReport,
                       onModifyQuery: () {
                         _queryController.selection = TextSelection(
                           baseOffset: 0,
@@ -279,7 +431,7 @@ class _PrecedentSearchScreenState extends ConsumerState<PrecedentSearchScreen> {
                                 const Icon(Icons.verified, size: 16, color: Color(0xFF1F6C3A)),
                                 const SizedBox(width: 6),
                                 Text(
-                                  'प्राप्त परिणाम: ${searchState.results.length} प्रमाणित मिसालें',
+                                  'प्राप्त परिणाम: ${displayedResults.length} प्रमाणित मिसालें',
                                   style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold, color: Color(0xFF131B2E)),
                                 ),
                               ],
@@ -300,10 +452,10 @@ class _PrecedentSearchScreenState extends ConsumerState<PrecedentSearchScreen> {
                       ),
                       Expanded(
                         child: ListView.builder(
-                          itemCount: searchState.results.length,
+                          itemCount: displayedResults.length,
                           padding: const EdgeInsets.only(bottom: 24.0),
                           itemBuilder: (context, index) {
-                            final citation = searchState.results[index];
+                            final citation = displayedResults[index];
                             return PrecedentCitationCard(
                               citation: citation,
                               onVerificationChanged: (val) {
