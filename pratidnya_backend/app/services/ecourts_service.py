@@ -218,12 +218,34 @@ class EcourtsService:
         except Exception as err:
             logger.warning(f"Could not load real Supabase cases for cause list: {err}")
 
+        # Dynamic district CNR prefix and police stations for authentic CIS 3.2 simulation
+        dist_clean = (district or "Lucknow").strip().lower()
+        district_code_map = {
+            "lucknow": ("UPLK", "कैंट", "गोमती नगर", "हजरतगंज", "विभूति खंड"),
+            "kanpur": ("UPKN", "कोतवाली", "कल्याणपुर", "गोविंद नगर", "चकेरी"),
+            "prayagraj": ("UPAL", "सिविल लाइंस", "धूमनगंज", "जॉर्ज टाउन", "कर्नलगंज"),
+            "varanasi": ("UPVA", "दशाश्वमेध", "भेलूपुर", "कैंट", "सिगरा"),
+            "gorakhpur": ("UPGK", "कैंट", "कोतवाली", "शाहपुर", "गोरखनाथ"),
+            "agra": ("UPAG", "हरीपर्वत", "ताजगंज", "लोहामंडी", "सदर बाजार"),
+            "meerut": ("UPME", "नौचंदी", "सिविल लाइंस", "लालकुर्ती", "ब्रह्मपुरी"),
+            "ghaziabad": ("UPGZ", "कवि नगर", "साहिबाबाद", "इंदिरापुरम", "सिहानी गेट"),
+        }
+        
+        # Match key or default to generic prefix
+        matched_prefix = "UP" + dist_clean[:2].upper()
+        matched_ps = ["कोतवाली नगर", "सिविल लाइंस", "कैंट", "सदर"]
+        for k, v in district_code_map.items():
+            if k in dist_clean:
+                matched_prefix = v[0]
+                matched_ps = list(v[1:])
+                break
+
         # 2. Supplementary Court Board entries to show full courtroom roll (items 2-5)
         supplementary_board = [
             {
                 "case_number": "Sessions Trial No. 124/2025",
-                "cnr_number": "UPLK010001242025",
-                "fir_details": "मु.अ.सं. 412/2025, थाना कैंट",
+                "cnr_number": f"{matched_prefix}010001242025",
+                "fir_details": f"मु.अ.सं. 412/2025, थाना {matched_ps[0]}",
                 "applicant_name": "दिनेश कुमार वर्मा",
                 "opposite_party": "उत्तर प्रदेश राज्य",
                 "under_sections": ["302 IPC", "201 IPC"],
@@ -235,12 +257,12 @@ class EcourtsService:
             },
             {
                 "case_number": "Criminal Revision No. 56/2026",
-                "cnr_number": "UPLK010000562026",
-                "fir_details": "मु.अ.सं. 15/2026, थाना गोमती नगर",
+                "cnr_number": f"{matched_prefix}010000562026",
+                "fir_details": f"मु.अ.सं. 15/2026, थाना {matched_ps[1 % len(matched_ps)]}",
                 "applicant_name": "सुरेश यादव",
                 "opposite_party": "राधेश्याम एवं अन्य",
                 "under_sections": ["138 N.I. Act"],
-                "advocate_for_applicant": "एडवोकेट के. एस. चौहान (UP/1234/2018)",
+                "advocate_for_applicant": f"एडवोकेट (चैंबर) {advocate_bar_number or 'UP/1234/2018'}",
                 "advocate_for_opposite": "अधिवक्ता आर. के. निगम",
                 "stage_of_hearing": "आदेश / निर्णय (Order Reserved)",
                 "listing_status": "ORDER_RESERVED",
@@ -248,8 +270,8 @@ class EcourtsService:
             },
             {
                 "case_number": "Special POCSO Case No. 89/2025",
-                "cnr_number": "UPLK010000892025",
-                "fir_details": "मु.अ.सं. 201/2025, थाना मड़ियांव",
+                "cnr_number": f"{matched_prefix}010000892025",
+                "fir_details": f"मु.अ.सं. 201/2025, थाना {matched_ps[2 % len(matched_ps)]}",
                 "applicant_name": "विकास सोनकर",
                 "opposite_party": "उत्तर प्रदेश राज्य",
                 "under_sections": ["POCSO Sec 7/8", "354 IPC"],
@@ -261,12 +283,12 @@ class EcourtsService:
             },
             {
                 "case_number": "Bail Application No. 401/2026",
-                "cnr_number": "UPLK010004012026",
-                "fir_details": "मु.अ.सं. 99/2026, थाना विभूति खंड",
+                "cnr_number": f"{matched_prefix}010004012026",
+                "fir_details": f"मु.अ.सं. 99/2026, थाना {matched_ps[3 % len(matched_ps)]}",
                 "applicant_name": "अमित सक्सेना",
                 "opposite_party": "उत्तर प्रदेश राज्य",
                 "under_sections": ["420 IPC", "406 IPC", "468 IPC"],
-                "advocate_for_applicant": "एडवोकेट के. एस. चौहान (UP/1234/2018)",
+                "advocate_for_applicant": f"एडवोकेट (चैंबर) {advocate_bar_number or 'UP/1234/2018'}",
                 "advocate_for_opposite": "ए.डी.जी.सी. (क्रिमिनल)",
                 "stage_of_hearing": "केस डायरी तलब (CD Awaited)",
                 "listing_status": "ADJOURNED",

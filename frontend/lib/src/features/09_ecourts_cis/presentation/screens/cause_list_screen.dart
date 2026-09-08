@@ -6,6 +6,8 @@ import '../../../01_onboarding/presentation/controllers/auth_controller.dart';
 import '../../data/ecourts_repository.dart';
 import '../../domain/ecourts_models.dart';
 
+import '../../../../core/constants/up_districts_registry.dart';
+
 class CauseListScreen extends ConsumerStatefulWidget {
   const CauseListScreen({super.key});
 
@@ -19,11 +21,22 @@ class _CauseListScreenState extends ConsumerState<CauseListScreen> {
   DailyCauseList? _causeList;
   String _selectedFilter = 'ALL'; // ALL, MY_CASES, CALLED_OUT, BAIL
   int _selectedDayOffset = 0; // 0 = Today, 1 = Tomorrow
+  String _selectedDistrict = 'Lucknow';
+  bool _initializedDistrict = false;
 
   @override
   void initState() {
     super.initState();
-    _loadCauseList();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!_initializedDistrict) {
+        final profile = ref.read(currentAdvocateProfileProvider).valueOrNull;
+        if (profile?.district != null && profile!.district!.isNotEmpty) {
+          _selectedDistrict = profile.district!;
+        }
+        _initializedDistrict = true;
+      }
+      _loadCauseList();
+    });
   }
 
   Future<void> _loadCauseList() async {
@@ -37,7 +50,6 @@ class _CauseListScreenState extends ConsumerState<CauseListScreen> {
       final profile = ref.read(currentAdvocateProfileProvider).valueOrNull;
       final barNumber = profile?.barCouncilNumber;
 
-
       final targetDate = DateTime.now()
           .add(Duration(days: _selectedDayOffset))
           .toIso8601String()
@@ -45,7 +57,7 @@ class _CauseListScreenState extends ConsumerState<CauseListScreen> {
           .first;
 
       final data = await repo.fetchDailyCauseList(
-        district: 'Lucknow',
+        district: _selectedDistrict,
         targetDate: targetDate,
         advocateBarNumber: barNumber ?? 'UP/1234/2018',
       );
@@ -146,6 +158,44 @@ class _CauseListScreenState extends ConsumerState<CauseListScreen> {
           ],
         ),
         actions: [
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.location_city, color: Colors.white),
+            tooltip: 'जनपद चुनें (Select District)',
+            onSelected: (String district) {
+              setState(() {
+                _selectedDistrict = district;
+              });
+              _loadCauseList();
+            },
+            itemBuilder: (BuildContext context) {
+              return UpDistrictsRegistry.allDistricts.take(20).map((UpDistrict d) {
+                final isSelected = d.englishName.toLowerCase() == _selectedDistrict.toLowerCase() ||
+                    d.hindiName == _selectedDistrict;
+                return PopupMenuItem<String>(
+                  value: d.englishName,
+                  child: Row(
+                    children: [
+                      Icon(
+                        isSelected ? Icons.check_circle : Icons.circle_outlined,
+                        size: 16,
+                        color: isSelected ? const Color(0xFF1F6C3A) : Colors.grey,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          '${d.hindiName} (${d.englishName})',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }).toList();
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.refresh, color: Colors.white),
             tooltip: 'CIS 3.2 से रिफ्रेश करें',

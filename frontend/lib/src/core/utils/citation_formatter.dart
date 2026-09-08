@@ -8,6 +8,19 @@ class CitationFormatter {
     '2014_AIR_SC_2756_ARNESH_KUMAR': 'https://indiankanoon.org/doc/2982624/',
     '1984_4_SCC_116_SHARAD_BIRDHICHAND': 'https://indiankanoon.org/doc/13149785/',
     '1994_3_SCC_299_BABU_SINGH': 'https://indiankanoon.org/doc/1515744/',
+    'SC-BABU-SINGH-1978': 'https://indiankanoon.org/doc/1515744/',
+    'AIR_1978_SC_527': 'https://indiankanoon.org/doc/1515744/',
+    '1978_1_SCC_579': 'https://indiankanoon.org/doc/1515744/',
+    '1978_AIR_SC_527_BABU_SINGH': 'https://indiankanoon.org/doc/1515744/',
+    '1978_1_SCC_579_BABU_SINGH': 'https://indiankanoon.org/doc/1515744/',
+    'AIR_1978_SC_527_BABU_SINGH': 'https://indiankanoon.org/doc/1515744/',
+    'BABU_SINGH': 'https://indiankanoon.org/doc/1515744/',
+    'SC-SATENDER-ANTIL-2022': 'https://indiankanoon.org/doc/7148380/',
+    '2022_10_SCC_51': 'https://indiankanoon.org/doc/7148380/',
+    '2022_10_SCC_51_SATENDER_KUMAR_ANTIL': 'https://indiankanoon.org/doc/7148380/',
+    '2022_INSC_690': 'https://indiankanoon.org/doc/7148380/',
+    'SATENDER_KUMAR_ANTIL': 'https://indiankanoon.org/doc/7148380/',
+    'SATENDER_ANTIL': 'https://indiankanoon.org/doc/7148380/',
     '2024_INSC_595_MANISH_SISODIA': 'https://indiankanoon.org/doc/132771982/',
     '2020_5_SCC_1_SUSHILA_AGGARWAL': 'https://indiankanoon.org/doc/123660783/',
     '2020_10_SCC_616_BIKRAMJIT_SINGH': 'https://indiankanoon.org/doc/10807134/',
@@ -90,7 +103,7 @@ class CitationFormatter {
 
   /// Returns permanent, live, mobile-accessible URL for judicial precedent.
   /// Eliminates incorrect matches and prevents opening unrelated cases.
-  static String getOfficialPortalUrl(String rawCitationId, String? existingUrl) {
+  static String getOfficialPortalUrl(String rawCitationId, [String? existingUrl]) {
     if (rawCitationId.isEmpty) return 'https://indiankanoon.org/';
 
     final cleanId = rawCitationId.trim().toUpperCase().replaceAll(' ', '_');
@@ -100,7 +113,29 @@ class CitationFormatter {
       return _knownPrecedentUrls[cleanId]!;
     }
 
-    // 2. Exact or prefix match with length threshold to prevent false positive short matches
+    // 2. Specific case keyword overrides for robust mapping
+    final rawLower = rawCitationId.toLowerCase();
+    if (cleanId.contains('SATENDER') ||
+        cleanId.contains('ANTIL') ||
+        rawLower.contains('सत्येंद्र') ||
+        rawLower.contains('सतेंदर') ||
+        rawLower.contains('अंतिल') ||
+        rawLower.contains('antil')) {
+      return 'https://indiankanoon.org/doc/7148380/';
+    }
+    if (cleanId.contains('BABU_SINGH') ||
+        rawLower.contains('बाबू सिंह') ||
+        rawLower.contains('babu singh')) {
+      return 'https://indiankanoon.org/doc/1515744/';
+    }
+    if (cleanId.contains('ARNESH') ||
+        cleanId.contains('ARNESH_KUMAR') ||
+        rawLower.contains('अर्नेश') ||
+        rawLower.contains('arnesh')) {
+      return 'https://indiankanoon.org/doc/2982624/';
+    }
+
+    // 3. Exact or prefix match with length threshold to prevent false positive short matches
     for (final entry in _knownPrecedentUrls.entries) {
       final entryKey = entry.key.toUpperCase();
       if (cleanId == entryKey) {
@@ -114,11 +149,13 @@ class CitationFormatter {
       }
     }
 
-    // 3. Fallback to existingUrl if valid and not one of the deprecated bad IDs
+    // 4. Fallback to existingUrl if valid and not one of the deprecated bad/wrong IDs
     if (existingUrl != null &&
         existingUrl.startsWith('https://indiankanoon.org/') &&
         !existingUrl.contains('1570775') && // Nelly Ghosh bad doc ID
-        !existingUrl.contains('816576')) {  // Sadakathulla bad doc ID
+        !existingUrl.contains('816576') &&  // Sadakathulla bad doc ID
+        !existingUrl.contains('171587391') && // Broken Satender Antil ID
+        !existingUrl.contains('1841394')) {  // Hans Raj Banga wrong doc ID for Babu Singh
       return existingUrl;
     }
 

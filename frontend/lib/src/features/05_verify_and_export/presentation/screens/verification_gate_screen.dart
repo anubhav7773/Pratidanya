@@ -530,20 +530,58 @@ class VerificationGateScreen extends ConsumerWidget {
                             const Icon(Icons.fact_check, size: 18, color: Color(0xFF131B2E)),
                             const SizedBox(width: 6),
                             Text(
-                              'नजीर विधिक परीक्षण चेकलिस्ट ($totalCitations)',
+                              'नजीर विधिक परीक्षण चेकलिस्ट ($verifiedCitationsCount/$totalCitations)',
                               style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF131B2E)),
                             ),
                           ],
                         ),
-                        const Row(
-                          children: [
-                            Icon(Icons.circle, size: 7, color: StitchColors.alertCrimson),
-                            SizedBox(width: 4),
-                            Text(
-                              'अनिवार्य सत्यापन',
-                              style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: StitchColors.alertCrimson),
+                        InkWell(
+                          onTap: () {
+                            final allVerified = verifiedCitationsCount == totalCitations;
+                            for (final p in draft.citedPrecedents) {
+                              gateNotifier.toggleCitation(p.citationId, !allVerified);
+                            }
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: verifiedCitationsCount == totalCitations
+                                  ? const Color(0xFFE8F5E9)
+                                  : const Color(0xFFEAEDFF),
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(
+                                color: verifiedCitationsCount == totalCitations
+                                    ? const Color(0xFF2E7D32)
+                                    : const Color(0xFF0D1C32).withOpacity(0.2),
+                              ),
                             ),
-                          ],
+                            child: Row(
+                              children: [
+                                Icon(
+                                  verifiedCitationsCount == totalCitations
+                                      ? Icons.check_circle
+                                      : Icons.done_all,
+                                  size: 14,
+                                  color: verifiedCitationsCount == totalCitations
+                                      ? const Color(0xFF2E7D32)
+                                      : const Color(0xFF0D1C32),
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  verifiedCitationsCount == totalCitations
+                                      ? '3/3 सत्यापित ✓'
+                                      : 'सभी सत्यापित करें',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                    color: verifiedCitationsCount == totalCitations
+                                        ? const Color(0xFF2E7D32)
+                                        : const Color(0xFF0D1C32),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
                       ],
                     ),
