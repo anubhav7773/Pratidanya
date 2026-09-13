@@ -6,6 +6,7 @@ import '../../02_case_input/presentation/screens/pre_trial_remand_hub_screen.dar
 import '../../02_case_input/presentation/screens/forensic_evidence_vault_screen.dart';
 import '../../02_case_input/presentation/screens/trial_examination_studio_screen.dart';
 import '../../02_case_input/presentation/screens/regional_hud_studio_screen.dart';
+import '../../02_case_input/presentation/screens/case_registration_screen.dart';
 
 class ExecutiveShellScaffold extends ConsumerWidget {
   const ExecutiveShellScaffold({super.key});
@@ -17,7 +18,11 @@ class ExecutiveShellScaffold extends ConsumerWidget {
     final List<Widget> pages = [
       DashboardScreen(
         onAddNewCase: () {
-          // Triggers case intake modal
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (context) => const CaseRegistrationScreen(),
+            ),
+          );
         },
       ),
       // 1. Dedicated Pre-Trial & Remand Defense Hub (Pillar A)
