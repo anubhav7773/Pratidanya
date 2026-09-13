@@ -43,6 +43,6 @@ void main() {
     await tester.pumpAndSettle();
 
     // Verify Tab 2 screen content rendered
-    expect(find.text('इलेक्ट्रॉनिक साक्ष्य प्रमाण पत्र परीक्षक (Sec 63 BSA)'), findsOneWidget);
+    expect(find.text('इलेक्ट्रॉनिक साक्ष्य प्रमाण पत्र परीक्षक (धारा 63 BSA)'), findsOneWidget);
   });
 }
