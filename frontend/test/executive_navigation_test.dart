@@ -44,5 +44,14 @@ void main() {
 
     // Verify Tab 2 screen content rendered
     expect(find.text('इलेक्ट्रॉनिक साक्ष्य प्रमाण पत्र परीक्षक (धारा 63 BSA)'), findsOneWidget);
+
+    // Tap on Trial Studio (Tab 3)
+    final trialStudioTabFinder = find.byIcon(Icons.record_voice_over_outlined);
+    expect(trialStudioTabFinder, findsOneWidget);
+    await tester.tap(trialStudioTabFinder);
+    await tester.pumpAndSettle();
+
+    // Verify Tab 3 screen content rendered
+    expect(find.text('साक्षी अंतर्विरोध ग्रिड (तहसीलदार सिंह सिद्धांत)'), findsOneWidget);
   });
 }
