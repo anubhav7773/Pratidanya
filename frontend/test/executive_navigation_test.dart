@@ -34,7 +34,7 @@ void main() {
     await tester.pumpAndSettle();
 
     // Verify Tab 1 screen content rendered
-    expect(find.text('गिरफ्तारी व रिमांड अनुपालन परीक्षक'), findsOneWidget);
+    expect(find.text('सांविधिक डिफ़ॉल्ट जमानत ट्रैकर (धारा 187 BNSS)'), findsOneWidget);
 
     // Tap on Forensics (Tab 2)
     final forensicsTabFinder = find.byIcon(Icons.fingerprint);

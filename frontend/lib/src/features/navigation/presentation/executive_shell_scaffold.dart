@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../shared/components/executive_dock_navigation_bar.dart';
 import '../../02_case_input/presentation/screens/dashboard_screen.dart';
-import '../../02_case_input/presentation/screens/remand_compliance_checklist_screen.dart';
+import '../../02_case_input/presentation/screens/pre_trial_remand_hub_screen.dart';
 import '../../02_case_input/presentation/screens/electronic_evidence_audit_screen.dart';
 import '../../02_case_input/presentation/screens/regional_acts_audit_screen.dart';
 import '../../02_case_input/presentation/widgets/live_courtroom_hud_widget.dart';
@@ -14,20 +14,14 @@ class ExecutiveShellScaffold extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final activeTabIndex = ref.watch(executiveNavIndexProvider);
 
-    // Primary Views mapped to Dock Navigation items
     final List<Widget> pages = [
       DashboardScreen(
         onAddNewCase: () {
-          // Triggers case registration modal
+          // Triggers case registration
         },
       ),
-      // 1. Remand Defense Hub (Pillar A)
-      const RemandComplianceChecklistScreen(
-        caseId: 'ACTIVE-REMAND-DOCKET',
-        accusedName: 'अभियुक्त',
-        policeStation: 'कोतवाली नगर',
-        district: 'लखनऊ',
-      ),
+      // 1. Dedicated Pre-Trial & Remand Defense Hub (Pillar A)
+      const PreTrialRemandHubScreen(),
       // 2. Forensics & Evidence Vault (Pillar B)
       const ElectronicEvidenceAuditScreen(
         caseId: 'ACTIVE-BSA-DOCKET',
