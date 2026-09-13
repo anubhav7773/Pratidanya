@@ -5,7 +5,7 @@ import '../../02_case_input/presentation/screens/dashboard_screen.dart';
 import '../../02_case_input/presentation/screens/pre_trial_remand_hub_screen.dart';
 import '../../02_case_input/presentation/screens/forensic_evidence_vault_screen.dart';
 import '../../02_case_input/presentation/screens/trial_examination_studio_screen.dart';
-import '../../02_case_input/presentation/screens/regional_acts_audit_screen.dart';
+import '../../02_case_input/presentation/screens/regional_hud_studio_screen.dart';
 
 class ExecutiveShellScaffold extends ConsumerWidget {
   const ExecutiveShellScaffold({super.key});
@@ -26,13 +26,8 @@ class ExecutiveShellScaffold extends ConsumerWidget {
       const ForensicEvidenceVaultScreen(),
       // 3. Dedicated Trial Examination & Cross-Exam Studio (Pillar C)
       const TrialExaminationStudioScreen(),
-      // 4. Regional Acts & Tactical Courtroom HUD (Pillars D & E)
-      const RegionalActsAuditScreen(
-        caseId: 'ACTIVE-REGIONAL-DOCKET',
-        accusedName: 'अभियुक्त',
-        policeStation: 'कोतवाली',
-        district: 'लखनऊ',
-      ),
+      // 4. Dedicated Regional Special Acts & Tactical Courtroom HUD (Pillars D & E)
+      const RegionalHudStudioScreen(),
     ];
 
     return Scaffold(

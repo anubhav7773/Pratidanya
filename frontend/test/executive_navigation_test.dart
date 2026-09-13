@@ -53,5 +53,14 @@ void main() {
 
     // Verify Tab 3 screen content rendered
     expect(find.text('साक्षी अंतर्विरोध ग्रिड (तहसीलदार सिंह सिद्धांत)'), findsOneWidget);
+
+    // Tap on Regional Acts & HUD (Tab 4)
+    final regionalHudTabFinder = find.byIcon(Icons.bolt_outlined);
+    expect(regionalHudTabFinder, findsOneWidget);
+    await tester.tap(regionalHudTabFinder);
+    await tester.pumpAndSettle();
+
+    // Verify Tab 4 screen content rendered
+    expect(find.text('उ.प्र. प्रादेशिक विशेष अधिनियम परीक्षक'), findsOneWidget);
   });
 }
