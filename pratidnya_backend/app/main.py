@@ -21,8 +21,16 @@ from app.api.v1.endpoints import (
     dpdp_compliance,
     activity,
     ecourts,
-    nlp
+    nlp,
+    remand,
+    evidence,
+    forensics,
+    trial,
+    regional_acts,
+    courtroom
 )
+
+
 
 # Initialize production logging scrubber (Points 1, 11, 15)
 configure_production_logging()
@@ -78,3 +86,11 @@ app.include_router(voice.router, prefix="/api/v1")
 app.include_router(dpdp_compliance.router, prefix="/api/v1")
 app.include_router(activity.router, prefix="/api/v1")
 app.include_router(ecourts.router, prefix="/api/v1")
+app.include_router(remand.router, prefix="/api/v1")
+app.include_router(evidence.router, prefix="/api/v1")
+app.include_router(forensics.router, prefix="/api/v1")
+app.include_router(trial.router, prefix="/api/v1")
+app.include_router(regional_acts.router, prefix="/api/v1")
+app.include_router(courtroom.router, prefix="/api/v1")
+
+
