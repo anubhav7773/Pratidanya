@@ -116,6 +116,10 @@ class DefaultBailEngine:
                 for rep in cls.MANDATORY_FORENSIC_MAPPING["FIREARMS_ARMS_ACT"]:
                     if rep not in norm_annexures:
                         missing_reports.append(rep)
+            if "103" in sec or "302" in sec:
+                for rep in cls.MANDATORY_FORENSIC_MAPPING.get("POISONING_302_BNS", ["VISCERA_EXAMINATION_REPORT"]):
+                    if rep not in norm_annexures:
+                        missing_reports.append(rep)
 
         missing_reports = sorted(list(set(missing_reports)))
 

@@ -7,6 +7,8 @@ import '../../../../shared/components/bci_disclaimer_banner.dart';
 import '../../../../shared/components/luxury_card.dart';
 import '../../../../shared/components/executive_dock_navigation_bar.dart';
 import '../../../../shared/components/executive_chamber_drawer.dart';
+import '../../data/case_docket_repository.dart';
+import '../../domain/case_docket_model.dart';
 import '../widgets/court_ticker_banner.dart';
 import '../widgets/tactical_launchpad_grid.dart';
 import 'case_registration_screen.dart';
@@ -24,7 +26,7 @@ class DashboardScreen extends ConsumerStatefulWidget {
 }
 
 class _DashboardScreenState extends ConsumerState<DashboardScreen> {
-  int _selectedFilterIndex = 0;
+  int _selectedFilterIndex = 0; // 0: By Date, 1: By Court, 2: In Custody
 
   void _openCaseRegistration() {
     if (widget.onAddNewCase != null) {
@@ -39,6 +41,29 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final dockets = ref.watch(caseDocketListProvider);
+
+    // Compute live metrics
+    final totalCases = dockets.length;
+    final today = DateTime.now();
+    final todayHearings = dockets.where((d) =>
+        d.nextHearingDate.year == today.year &&
+        d.nextHearingDate.month == today.month &&
+        d.nextHearingDate.day == today.day).length;
+    final inCustodyCount = dockets.where((d) => d.custodyStatus == 'JUDICIAL_CUSTODY' || d.custodyStatus == 'POLICE_CUSTODY').length;
+
+    // Apply Filter Chips
+    List<CaseDocketModel> filteredDockets = dockets;
+    if (_selectedFilterIndex == 0) {
+      // By Date: Sort soonest hearing first
+      filteredDockets = List.from(dockets)..sort((a, b) => a.nextHearingDate.compareTo(b.nextHearingDate));
+    } else if (_selectedFilterIndex == 1) {
+      // By Court: Group by court name
+      filteredDockets = List.from(dockets)..sort((a, b) => a.courtName.compareTo(b.courtName));
+    } else if (_selectedFilterIndex == 2) {
+      // In Custody only
+      filteredDockets = dockets.where((d) => d.custodyStatus == 'JUDICIAL_CUSTODY').toList();
+    }
 
     return Scaffold(
       drawer: const ExecutiveChamberDrawer(),
@@ -55,11 +80,16 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             child: ListView(
               padding: const EdgeInsets.only(bottom: 110.0, top: 4.0),
               children: [
-                // 1. Executive Chamber Metrics
-                _buildMetricsOverview(isDark),
+                // 1. Dynamic Chamber Metrics
+                _buildMetricsOverview(
+                  isDark: isDark,
+                  totalCases: totalCases,
+                  todayHearings: todayHearings,
+                  inCustody: inCustodyCount,
+                ),
                 const SizedBox(height: 16),
 
-                // 2. Tactical Defense Launchpad
+                // 2. Tactical Defense Launchpad (All 10 Breakthrough Modules)
                 TacticalLaunchpadGrid(
                   onSelectSuite: (targetTab) {
                     ref.read(executiveNavIndexProvider.notifier).state = targetTab;
@@ -68,11 +98,18 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 const SizedBox(height: 18),
 
                 // 3. Search & Filter Bar
-                _buildFilterBar(isDark),
+                _buildFilterBar(isDark, filteredDockets.length),
                 const SizedBox(height: 12),
 
-                // 4. Case Dockets Container
-                _buildDocketsList(isDark),
+                // 4. Filtered Case Dockets List
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 14.0),
+                  child: Column(
+                    children: filteredDockets.map((docket) {
+                      return _buildCaseDocketCard(context, ref, docket, isDark);
+                    }).toList(),
+                  ),
+                ),
               ],
             ),
           ),
@@ -95,7 +132,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     );
   }
 
-  Widget _buildMetricsOverview(bool isDark) {
+  Widget _buildMetricsOverview({
+    required bool isDark,
+    required int totalCases,
+    required int todayHearings,
+    required int inCustody,
+  }) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 14.0),
       child: Row(
@@ -103,7 +145,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           Expanded(
             child: _buildMetricTile(
               title: AppStrings.tr(ref, 'total_cases'),
-              value: '12',
+              value: totalCases.toString().padLeft(2, '0'),
               accentColor: LuxuryPalette.champagneGold,
               isDark: isDark,
             ),
@@ -112,7 +154,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           Expanded(
             child: _buildMetricTile(
               title: AppStrings.tr(ref, 'today_hearings'),
-              value: '03',
+              value: todayHearings.toString().padLeft(2, '0'),
               accentColor: LuxuryPalette.emeraldVerified,
               isDark: isDark,
             ),
@@ -121,7 +163,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           Expanded(
             child: _buildMetricTile(
               title: AppStrings.tr(ref, 'judicial_custody'),
-              value: '05',
+              value: inCustody.toString().padLeft(2, '0'),
               accentColor: LuxuryPalette.rubyAlert,
               isDark: isDark,
             ),
@@ -194,7 +236,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     );
   }
 
-  Widget _buildFilterBar(bool isDark) {
+  Widget _buildFilterBar(bool isDark, int count) {
     final filters = [
       AppStrings.tr(ref, 'filter_by_date'),
       AppStrings.tr(ref, 'filter_by_court'),
@@ -224,7 +266,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             ),
           const Spacer(),
           Text(
-            '3 ${AppStrings.tr(ref, "today_hearings")}',
+            '$count वाद',
             style: TextStyle(
               fontSize: 11.0,
               fontWeight: FontWeight.w600,
@@ -236,50 +278,27 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     );
   }
 
-  Widget _buildDocketsList(bool isDark) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 14.0),
-      child: Column(
-        children: [
-          _buildSampleCaseCard(
-            isDark: isDark,
-            crimeNumber: 'मु.अ.सं. 124/2026',
-            policeStation: 'कोतवाली नगर, लखनऊ',
-            accusedName: 'रामू उर्फ राम प्रकाश',
-            courtName: 'CJM, लखनऊ (कक्ष संख्या 14)',
-            sections: 'BNS 103(1) / 351(2)',
-            custodyStatus: 'न्यायिक अभिरक्षा (42 दिन)',
-            isUrgentDefaultBail: true,
-          ),
-          _buildSampleCaseCard(
-            isDark: isDark,
-            crimeNumber: 'मु.अ.सं. 89/2026',
-            policeStation: 'हजरतगंज, लखनऊ',
-            accusedName: 'दिनेश कुमार',
-            courtName: 'विशेष न्यायाधीश (NDPS Act)',
-            sections: 'NDPS Act Sec 20(b)(ii)(C)',
-            custodyStatus: 'न्यायिक अभिरक्षा (185 दिन)',
-            isUrgentDefaultBail: false,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSampleCaseCard({
-    required bool isDark,
-    required String crimeNumber,
-    required String policeStation,
-    required String accusedName,
-    required String courtName,
-    required String sections,
-    required String custodyStatus,
-    required bool isUrgentDefaultBail,
-  }) {
+  Widget _buildCaseDocketCard(
+    BuildContext context,
+    WidgetRef ref,
+    CaseDocketModel docket,
+    bool isDark,
+  ) {
     return LuxuryCard(
-      hasGoldAccent: isUrgentDefaultBail,
+      hasGoldAccent: docket.isDefaultBailUrgent || docket.hasForensicTamperingAlert,
+      isAlert: docket.isDefaultBailUrgent,
       margin: const EdgeInsets.only(bottom: 10.0),
       padding: const EdgeInsets.all(14.0),
+      onTap: () {
+        // Direct tap routing: Jump to relevant studio suite
+        if (docket.isDefaultBailUrgent || docket.isUnderTrialReliefEligible) {
+          ref.read(executiveNavIndexProvider.notifier).state = 1; // Remand Suite
+        } else if (docket.hasForensicTamperingAlert) {
+          ref.read(executiveNavIndexProvider.notifier).state = 2; // Forensics Suite
+        } else {
+          ref.read(executiveNavIndexProvider.notifier).state = 3; // Trial Studio
+        }
+      },
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -287,23 +306,37 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                crimeNumber,
+                docket.crimeNumber,
                 style: const TextStyle(
                   fontSize: 13.5,
                   fontWeight: FontWeight.bold,
                   letterSpacing: 0.2,
                 ),
               ),
-              if (isUrgentDefaultBail)
+              if (docket.isDefaultBailUrgent)
                 const LuxuryBadge(
-                  label: 'डिफ़ॉल्ट जमानत निकट',
+                  label: 'डिफ़ॉल्ट जमानत प्रोद्भूत (Sec 187)',
                   foregroundColor: LuxuryPalette.rubyAlert,
                   backgroundColor: LuxuryPalette.rubyBgLight,
                   icon: Icons.alarm_on,
                 )
+              else if (docket.isUnderTrialReliefEligible)
+                const LuxuryBadge(
+                  label: '1/3 सजा पूर्ण (Sec 479)',
+                  foregroundColor: LuxuryPalette.emeraldVerified,
+                  backgroundColor: LuxuryPalette.emeraldBgLight,
+                  icon: Icons.lock_clock,
+                )
+              else if (docket.hasForensicTamperingAlert)
+                const LuxuryBadge(
+                  label: 'FSL / सील दोष (Reg 19)',
+                  foregroundColor: LuxuryPalette.amberWarning,
+                  backgroundColor: LuxuryPalette.amberBgLight,
+                  icon: Icons.fingerprint,
+                )
               else
                 LuxuryBadge(
-                  label: custodyStatus.split(" ").first,
+                  label: docket.substantiveRegime,
                   foregroundColor: LuxuryPalette.champagneGold,
                   backgroundColor: LuxuryPalette.champagneGold.withValues(alpha: 0.08),
                 ),
@@ -311,7 +344,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           ),
           const SizedBox(height: 4),
           Text(
-            policeStation,
+            '${docket.policeStation}, ${docket.district}',
             style: TextStyle(
               fontSize: 11.5,
               color: isDark ? LuxuryPalette.darkTextSecondary : LuxuryPalette.lightTextSecondary,
@@ -323,7 +356,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               Icon(Icons.person_outline, size: 15, color: isDark ? Colors.white60 : Colors.black54),
               const SizedBox(width: 4),
               Text(
-                accusedName,
+                docket.accusedName,
                 style: const TextStyle(fontSize: 12.0, fontWeight: FontWeight.w600),
               ),
               const Spacer(),
@@ -334,7 +367,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: Text(
-                  sections,
+                  docket.substantiveSections,
                   style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold),
                 ),
               ),
@@ -347,7 +380,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               const SizedBox(width: 4),
               Expanded(
                 child: Text(
-                  courtName,
+                  docket.courtName,
                   style: TextStyle(
                     fontSize: 11.0,
                     color: isDark ? LuxuryPalette.darkTextMuted : LuxuryPalette.lightTextMuted,
@@ -357,6 +390,41 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 ),
               ),
             ],
+          ),
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF131F37) : const Color(0xFFF8FAFC),
+              borderRadius: BorderRadius.circular(6),
+              border: Border.all(
+                color: isDark ? LuxuryPalette.midnightBorderSubtle : LuxuryPalette.lightBorder,
+              ),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.event_note, size: 14, color: LuxuryPalette.champagneGold),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    'पेशी: ${docket.hearingPurpose}',
+                    style: const TextStyle(fontSize: 11.0, fontWeight: FontWeight.w600),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                Text(
+                  '${docket.custodyDaysElapsed} दिन जेल',
+                  style: TextStyle(
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.bold,
+                    color: docket.custodyDaysElapsed >= docket.statutoryThresholdDays
+                        ? LuxuryPalette.rubyAlert
+                        : Colors.grey,
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),

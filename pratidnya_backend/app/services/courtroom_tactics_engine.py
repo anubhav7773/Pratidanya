@@ -153,7 +153,7 @@ class CourtroomTacticsEngine:
                 counter_legal_ground="धारा 52A बी.एन.एस.एस. मजिस्ट्रेट इन्वेंटरी का अभाव धारा 37 के प्रतिबंध को शून्य बनाता है।",
                 prompt_text_hindi="श्रीमान, 'यूनियन ऑफ इंडिया बनाम मोहनलाल (2016)' व 'सिमरनजीत सिंह (2023)' के अनुसार जब तक सैंपल मजिस्ट्रेट के समक्ष धारा 52A में नहीं निकाला गया, तब तक रिकवरी प्राथमिक साक्ष्य नहीं बन सकती और धारा 37 का प्रतिबंध लागू नहीं होगा।",
                 lead_citation="Union of India v. Mohanlal (2016) 3 SCC 379; Simarnjit Singh (SC 2023)",
-                statutory_lever="Section 52A NDPS Act / Section 105 BNSS"
+                statutory_lever="धारा 52A (Section 52A NDPS Act / Section 105 BNSS)"
             ))
             rejoinders.append(OralPromptRejoinderItem(
                 counter_legal_ground="स्वतंत्र पंच साक्षी के बिना जब्ती फर्द पर भरोसा नहीं किया जा सकता।",
