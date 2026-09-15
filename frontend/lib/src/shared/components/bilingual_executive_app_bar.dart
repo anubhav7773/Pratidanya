@@ -33,16 +33,24 @@ class BilingualExecutiveAppBar extends ConsumerWidget implements PreferredSizeWi
     final titleText = AppStrings.tr(ref, titleKey);
     final subtitleText = subtitleKey != null ? AppStrings.tr(ref, subtitleKey!) : null;
 
+    final canPop = Navigator.of(context).canPop();
+
     return AppBar(
       elevation: 0,
       scrolledUnderElevation: 1.5,
-      leading: showBackButton && Navigator.of(context).canPop()
+      leading: (showBackButton && canPop)
           ? IconButton(
               icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 18),
               tooltip: currentLang == AppLanguage.hindi ? 'पीछे जाएं' : 'Back',
               onPressed: onBackOverride ?? () => Navigator.of(context).pop(),
             )
-          : null,
+          : IconButton(
+              icon: const Icon(Icons.menu_rounded, size: 22, color: LuxuryPalette.champagneGold),
+              tooltip: currentLang == AppLanguage.hindi ? 'चैंबर मेनू खोलें' : 'Open Chamber Menu',
+              onPressed: () {
+                Scaffold.of(context).openDrawer();
+              },
+            ),
       title: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisAlignment: MainAxisAlignment.center,

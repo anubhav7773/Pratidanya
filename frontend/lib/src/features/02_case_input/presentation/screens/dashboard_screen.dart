@@ -6,15 +6,17 @@ import '../../../../shared/components/bilingual_executive_app_bar.dart';
 import '../../../../shared/components/bci_disclaimer_banner.dart';
 import '../../../../shared/components/luxury_card.dart';
 import '../../../../shared/components/executive_dock_navigation_bar.dart';
+import '../../../../shared/components/executive_chamber_drawer.dart';
 import '../widgets/court_ticker_banner.dart';
 import '../widgets/tactical_launchpad_grid.dart';
+import 'case_registration_screen.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
-  final VoidCallback onAddNewCase;
+  final VoidCallback? onAddNewCase;
 
   const DashboardScreen({
     super.key,
-    required this.onAddNewCase,
+    this.onAddNewCase,
   });
 
   @override
@@ -24,11 +26,22 @@ class DashboardScreen extends ConsumerStatefulWidget {
 class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   int _selectedFilterIndex = 0;
 
+  void _openCaseRegistration() {
+    if (widget.onAddNewCase != null) {
+      widget.onAddNewCase!();
+    } else {
+      Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => const CaseRegistrationScreen()),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
+      drawer: const ExecutiveChamberDrawer(),
       appBar: const BilingualExecutiveAppBar(
         titleKey: 'active_dockets',
         subtitleKey: 'court_jurisdiction',
@@ -40,7 +53,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           const CourtTickerBanner(),
           Expanded(
             child: ListView(
-              padding: const EdgeInsets.only(bottom: 90.0, top: 4.0),
+              padding: const EdgeInsets.only(bottom: 110.0, top: 4.0),
               children: [
                 // 1. Executive Chamber Metrics
                 _buildMetricsOverview(isDark),
@@ -66,7 +79,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         ],
       ),
       floatingActionButton: Padding(
-        padding: const EdgeInsets.only(bottom: 72.0),
+        padding: const EdgeInsets.only(bottom: 74.0),
         child: FloatingActionButton.extended(
           backgroundColor: isDark ? LuxuryPalette.champagneGold : LuxuryPalette.courtNavy,
           foregroundColor: isDark ? LuxuryPalette.courtNavy : LuxuryPalette.lightSurface,
@@ -76,7 +89,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             AppStrings.tr(ref, 'new_case_btn'),
             style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
           ),
-          onPressed: widget.onAddNewCase,
+          onPressed: _openCaseRegistration,
         ),
       ),
     );
