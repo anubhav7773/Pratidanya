@@ -129,6 +129,22 @@ class StitchTheme {
         labelStyle: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600),
       ),
 
+      // SnackBar Theme
+      snackBarTheme: SnackBarThemeData(
+        behavior: SnackBarBehavior.floating,
+        elevation: 6.0,
+        backgroundColor: LuxuryPalette.courtNavy,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10.0),
+          side: const BorderSide(color: LuxuryPalette.champagneGold, width: 1.0),
+        ),
+        contentTextStyle: const TextStyle(
+          color: LuxuryPalette.lightSurface,
+          fontSize: 12.5,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+
       dividerColor: LuxuryPalette.lightBorder,
     );
   }
@@ -252,6 +268,22 @@ class StitchTheme {
         side: const BorderSide(color: LuxuryPalette.midnightBorder),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6.0)),
         labelStyle: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600),
+      ),
+
+      // SnackBar Theme
+      snackBarTheme: SnackBarThemeData(
+        behavior: SnackBarBehavior.floating,
+        elevation: 6.0,
+        backgroundColor: LuxuryPalette.courtNavy,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10.0),
+          side: const BorderSide(color: LuxuryPalette.champagneGold, width: 1.0),
+        ),
+        contentTextStyle: const TextStyle(
+          color: LuxuryPalette.lightSurface,
+          fontSize: 12.5,
+          fontWeight: FontWeight.w600,
+        ),
       ),
 
       dividerColor: LuxuryPalette.midnightBorder,

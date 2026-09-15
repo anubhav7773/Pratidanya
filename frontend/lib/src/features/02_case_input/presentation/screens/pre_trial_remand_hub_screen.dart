@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/localization/app_strings.dart';
-import '../../../../core/theme/luxury_palette.dart';
 import '../../../../shared/components/bilingual_executive_app_bar.dart';
 import '../../../../shared/components/bci_disclaimer_banner.dart';
+import '../../../../shared/components/responsive_court_tab_bar.dart';
 import '../views/default_bail_tab_view.dart';
 import '../views/remand_compliance_tab_view.dart';
 import '../views/undertrial_relief_tab_view.dart';
@@ -56,42 +56,30 @@ class _PreTrialRemandHubScreenState extends ConsumerState<PreTrialRemandHubScree
         children: [
           const BciDisclaimerBanner(),
 
-          // Executive Tab Segment Bar
-          Container(
-            margin: const EdgeInsets.fromLTRB(14, 8, 14, 10),
-            padding: const EdgeInsets.all(4),
-            decoration: BoxDecoration(
-              color: isDark ? LuxuryPalette.midnightElevated : LuxuryPalette.lightSurfaceSecondary,
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(
-                color: isDark ? LuxuryPalette.midnightBorder : LuxuryPalette.lightBorder,
+          // Responsive Scrollable Tab Bar
+          ResponsiveCourtTabBar(
+            controller: _tabController,
+            isDark: isDark,
+            tabs: [
+              CourtTabItem(
+                label: AppStrings.tr(ref, 'mod_default_bail'),
+                icon: Icons.alarm_on_rounded,
+                badgeText: 'Sec 187',
               ),
-            ),
-            child: TabBar(
-              controller: _tabController,
-              indicatorSize: TabBarIndicatorSize.tab,
-              dividerColor: Colors.transparent,
-              indicator: BoxDecoration(
-                color: isDark ? LuxuryPalette.midnightSurface : LuxuryPalette.courtNavy,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: LuxuryPalette.champagneGold.withValues(alpha: 0.7),
-                  width: 1.0,
-                ),
+              CourtTabItem(
+                label: AppStrings.tr(ref, 'mod_remand_audit'),
+                icon: Icons.gavel_rounded,
+                badgeText: 'Arnesh Kumar',
               ),
-              labelColor: LuxuryPalette.champagneGold,
-              unselectedLabelColor: isDark ? LuxuryPalette.darkTextSecondary : LuxuryPalette.lightTextSecondary,
-              labelStyle: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold),
-              unselectedLabelStyle: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w500),
-              tabs: [
-                Tab(text: AppStrings.tr(ref, 'mod_default_bail').split('(').first.trim()),
-                Tab(text: AppStrings.tr(ref, 'mod_remand_audit').split(' ').first.trim()),
-                Tab(text: AppStrings.tr(ref, 'mod_undertrial_relief').split(' ').first.trim()),
-              ],
-            ),
+              CourtTabItem(
+                label: AppStrings.tr(ref, 'mod_undertrial_relief'),
+                icon: Icons.lock_clock_rounded,
+                badgeText: '1/3rd Rule',
+              ),
+            ],
           ),
 
-          // Tab Views
+          // Tab Content Views
           Expanded(
             child: TabBarView(
               controller: _tabController,
@@ -122,3 +110,4 @@ class _PreTrialRemandHubScreenState extends ConsumerState<PreTrialRemandHubScree
     );
   }
 }
+

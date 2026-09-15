@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/localization/app_strings.dart';
-import '../../../../core/theme/luxury_palette.dart';
 import '../../../../shared/components/bilingual_executive_app_bar.dart';
 import '../../../../shared/components/bci_disclaimer_banner.dart';
+import '../../../../shared/components/responsive_court_tab_bar.dart';
 import '../views/electronic_evidence_tab_view.dart';
 import '../views/medico_legal_matrix_tab_view.dart';
 import '../views/malkhana_chain_tab_view.dart';
@@ -56,42 +56,30 @@ class _ForensicEvidenceVaultScreenState extends ConsumerState<ForensicEvidenceVa
         children: [
           const BciDisclaimerBanner(),
 
-          // Executive Tab Segment Bar
-          Container(
-            margin: const EdgeInsets.fromLTRB(14, 8, 14, 10),
-            padding: const EdgeInsets.all(4),
-            decoration: BoxDecoration(
-              color: isDark ? LuxuryPalette.midnightElevated : LuxuryPalette.lightSurfaceSecondary,
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(
-                color: isDark ? LuxuryPalette.midnightBorder : LuxuryPalette.lightBorder,
+          // Responsive Scrollable Tab Bar
+          ResponsiveCourtTabBar(
+            controller: _tabController,
+            isDark: isDark,
+            tabs: [
+              CourtTabItem(
+                label: AppStrings.tr(ref, 'mod_bsa_cert'),
+                icon: Icons.fingerprint_rounded,
+                badgeText: 'Sec 63 BSA',
               ),
-            ),
-            child: TabBar(
-              controller: _tabController,
-              indicatorSize: TabBarIndicatorSize.tab,
-              dividerColor: Colors.transparent,
-              indicator: BoxDecoration(
-                color: isDark ? LuxuryPalette.midnightSurface : LuxuryPalette.courtNavy,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: LuxuryPalette.champagneGold.withValues(alpha: 0.7),
-                  width: 1.0,
-                ),
+              CourtTabItem(
+                label: AppStrings.tr(ref, 'mod_medico_legal'),
+                icon: Icons.medical_services_outlined,
+                badgeText: 'PMR Conflict',
               ),
-              labelColor: LuxuryPalette.champagneGold,
-              unselectedLabelColor: isDark ? LuxuryPalette.darkTextSecondary : LuxuryPalette.lightTextSecondary,
-              labelStyle: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold),
-              unselectedLabelStyle: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w500),
-              tabs: [
-                Tab(text: AppStrings.tr(ref, 'mod_bsa_cert').split('(').first.trim()),
-                Tab(text: AppStrings.tr(ref, 'mod_medico_legal').split(' ').first.trim()),
-                Tab(text: AppStrings.tr(ref, 'mod_malkhana').split(' ').first.trim()),
-              ],
-            ),
+              CourtTabItem(
+                label: AppStrings.tr(ref, 'mod_malkhana'),
+                icon: Icons.inventory_2_outlined,
+                badgeText: 'Reg No. 19',
+              ),
+            ],
           ),
 
-          // Tab Content Views
+          // Tab Views
           Expanded(
             child: TabBarView(
               controller: _tabController,

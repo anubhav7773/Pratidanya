@@ -125,7 +125,7 @@ class _DefaultBailTabViewState extends ConsumerState<DefaultBailTabView> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return ListView(
-      padding: const EdgeInsets.fromLTRB(14, 0, 14, 90),
+      padding: const EdgeInsets.fromLTRB(14, 0, 14, 110),
       children: [
         // Configuration Parameters Card
         LuxuryCard(

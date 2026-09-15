@@ -121,7 +121,7 @@ class _SuretyScrutinyTabViewState extends ConsumerState<SuretyScrutinyTabView> {
   @override
   Widget build(BuildContext context) {
     return ListView(
-      padding: const EdgeInsets.fromLTRB(14, 0, 14, 90),
+      padding: const EdgeInsets.fromLTRB(14, 0, 14, 110),
       children: [
         LuxuryCard(
           padding: const EdgeInsets.all(14),

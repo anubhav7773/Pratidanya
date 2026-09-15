@@ -117,7 +117,7 @@ class _UndertrialReliefTabViewState extends ConsumerState<UndertrialReliefTabVie
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return ListView(
-      padding: const EdgeInsets.fromLTRB(14, 0, 14, 90),
+      padding: const EdgeInsets.fromLTRB(14, 0, 14, 110),
       children: [
         LuxuryCard(
           padding: const EdgeInsets.all(14),

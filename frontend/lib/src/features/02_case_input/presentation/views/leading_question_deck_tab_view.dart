@@ -87,7 +87,7 @@ class _LeadingQuestionDeckTabViewState extends ConsumerState<LeadingQuestionDeck
   @override
   Widget build(BuildContext context) {
     return ListView(
-      padding: const EdgeInsets.fromLTRB(14, 0, 14, 90),
+      padding: const EdgeInsets.fromLTRB(14, 0, 14, 110),
       children: [
         LuxuryCard(
           padding: const EdgeInsets.all(14),

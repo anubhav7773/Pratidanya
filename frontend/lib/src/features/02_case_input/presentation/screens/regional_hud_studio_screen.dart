@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/localization/app_strings.dart';
-import '../../../../core/theme/luxury_palette.dart';
 import '../../../../shared/components/bilingual_executive_app_bar.dart';
 import '../../../../shared/components/bci_disclaimer_banner.dart';
+import '../../../../shared/components/responsive_court_tab_bar.dart';
 import '../views/up_gangsters_goondas_tab_view.dart';
 import '../views/surety_scrutiny_tab_view.dart';
 import '../views/live_courtroom_hud_tab_view.dart';
@@ -56,39 +56,27 @@ class _RegionalHudStudioScreenState extends ConsumerState<RegionalHudStudioScree
         children: [
           const BciDisclaimerBanner(),
 
-          // Executive Tab Segment Bar
-          Container(
-            margin: const EdgeInsets.fromLTRB(14, 8, 14, 10),
-            padding: const EdgeInsets.all(4),
-            decoration: BoxDecoration(
-              color: isDark ? LuxuryPalette.midnightElevated : LuxuryPalette.lightSurfaceSecondary,
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(
-                color: isDark ? LuxuryPalette.midnightBorder : LuxuryPalette.lightBorder,
+          // Responsive Scrollable Tab Bar
+          ResponsiveCourtTabBar(
+            controller: _tabController,
+            isDark: isDark,
+            tabs: [
+              CourtTabItem(
+                label: AppStrings.tr(ref, 'mod_regional_acts'),
+                icon: Icons.security_rounded,
+                badgeText: 'Farhana Ratio',
               ),
-            ),
-            child: TabBar(
-              controller: _tabController,
-              indicatorSize: TabBarIndicatorSize.tab,
-              dividerColor: Colors.transparent,
-              indicator: BoxDecoration(
-                color: isDark ? LuxuryPalette.midnightSurface : LuxuryPalette.courtNavy,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: LuxuryPalette.champagneGold.withValues(alpha: 0.7),
-                  width: 1.0,
-                ),
+              CourtTabItem(
+                label: 'जमानत प्रतिभू (Moti Ram Scrutiny)',
+                icon: Icons.handshake_outlined,
+                badgeText: 'Sec 483 BNSS',
               ),
-              labelColor: LuxuryPalette.champagneGold,
-              unselectedLabelColor: isDark ? LuxuryPalette.darkTextSecondary : LuxuryPalette.lightTextSecondary,
-              labelStyle: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold),
-              unselectedLabelStyle: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w500),
-              tabs: [
-                Tab(text: AppStrings.tr(ref, 'mod_regional_acts').split(' ').first.trim()),
-                const Tab(text: 'जमानत प्रतिभू (Moti Ram)'),
-                Tab(text: AppStrings.tr(ref, 'mod_live_hud').split(' ').first.trim()),
-              ],
-            ),
+              CourtTabItem(
+                label: AppStrings.tr(ref, 'mod_live_hud'),
+                icon: Icons.bolt_rounded,
+                badgeText: '< 450ms Realtime',
+              ),
+            ],
           ),
 
           // Tab Views
@@ -121,3 +109,4 @@ class _RegionalHudStudioScreenState extends ConsumerState<RegionalHudStudioScree
     );
   }
 }
+
