@@ -85,6 +85,7 @@ from app.schemas.arrest_compliance_schema import (
 from app.services.arrest_compliance_engine import ArrestComplianceEngine
 
 @router.post("/audit-arrest-compliance", response_model=ArrestComplianceAuditResponse)
+@router.post("/audit-compliance", response_model=ArrestComplianceAuditResponse)
 async def audit_arrest_compliance_endpoint(
     payload: ArrestComplianceAuditRequest,
     current_user: dict = Security(verify_advocate_token)

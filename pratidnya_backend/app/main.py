@@ -6,6 +6,8 @@ from app.core.security_headers import ProductionSecurityHeadersMiddleware
 from app.core.sanitized_logger import configure_production_logging
 from app.core.rate_limiter import limiter, rate_limit_exceeded_handler, RateLimitExceeded, SLOWAPI_AVAILABLE
 from app.services.opennyai_engine import OpenNyAIEngine
+from app.core.logging_config import render_logger
+from app.middleware.activity_logger_middleware import ActivityLoggerMiddleware
 from app.api.v1.endpoints import (
     health,
     precedents,
@@ -27,7 +29,8 @@ from app.api.v1.endpoints import (
     forensics,
     trial,
     regional_acts,
-    courtroom
+    courtroom,
+    telemetry,
 )
 
 
@@ -40,6 +43,7 @@ async def lifespan(app: FastAPI):
     # Server Startup: Load OpenNyAI into RAM
     engine = OpenNyAIEngine.get_instance()
     engine.initialize()
+    render_logger.info("🚀 Pratidnya Backend Engine Initialized on Render. Activity Logging is LIVE.")
     yield
     # Server Shutdown: Flush and cleanup memory
     engine.cleanup()
@@ -56,10 +60,13 @@ if SLOWAPI_AVAILABLE:
     app.state.limiter = limiter
     app.add_exception_handler(RateLimitExceeded, rate_limit_exceeded_handler)
 
-# 1. Register OWASP Production Security Headers & HTTPS Middleware (Points 9, 18, 19)
+# 1. Install Render Activity Logger Middleware (Must run on every HTTP request)
+app.add_middleware(ActivityLoggerMiddleware)
+
+# 2. Register OWASP Production Security Headers & HTTPS Middleware (Points 9, 18, 19)
 app.add_middleware(ProductionSecurityHeadersMiddleware)
 
-# 2. Strict CORS Configuration (Points 6, 12, 18)
+# 3. Strict CORS Configuration (Points 6, 12, 18)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.ALLOWED_CORS_ORIGINS,
@@ -92,5 +99,6 @@ app.include_router(forensics.router, prefix="/api/v1")
 app.include_router(trial.router, prefix="/api/v1")
 app.include_router(regional_acts.router, prefix="/api/v1")
 app.include_router(courtroom.router, prefix="/api/v1")
+app.include_router(telemetry.router, prefix="/api/v1")
 
 
